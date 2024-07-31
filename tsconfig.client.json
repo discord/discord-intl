@@ -1,0 +1,9 @@
+// Configuration for projects that run in Browser/client environments.
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+  },
+}

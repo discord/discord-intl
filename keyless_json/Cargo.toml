@@ -1,0 +1,12 @@
+[package]
+name = "keyless_json"
+description = "A Serde serializer that allows well-structured JSON to be minified into keyless arrays of elements."
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+itoa = "1"
+ryu = "1"
+thiserror = "1"

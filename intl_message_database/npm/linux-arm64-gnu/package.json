@@ -1,0 +1,22 @@
+{
+  "name": "@discordapp/intl-message-database-linux-arm64-gnu",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "intl-message-database.linux-arm64-gnu.node",
+  "files": [
+    "intl-message-database.linux-arm64-gnu.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "libc": [
+    "glibc"
+  ]
+}

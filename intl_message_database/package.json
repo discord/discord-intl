@@ -1,0 +1,47 @@
+{
+  "name": "@discordapp/intl-message-database",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Rust-based Node extension module for parsing, extracting, and managing messages and translations across a project.",
+  "author": "Jon Egeland",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "scripts": {
+    "build": "cargo build --release",
+    "build:local-release": "cargo-cp-artifact -nc ./npm/local/intl-message-database.local.node -- cargo build --release --message-format=json-render-diagnostics",
+    "build:local-release:mac": "pnpm build:local-release --target aarch64-apple-darwin",
+    "build:cross-linux": "cd .. && cross build --package intl_message_database --target x86_64-unknown-linux-gnu --release && cp target/x86_64-unknown-linux-gnu/release/libintl_message_database.so ./intl_message_database/npm/linux-x64-gnu/intl-message-database.linux-x64-gnu.node",
+    "build:debug": "cargo build --platform",
+    "test": "cargo test",
+    "bench:native": "node ./bench/native.js"
+  },
+  "optionalDependencies": {
+    "@discordapp/intl-message-database-darwin-arm64": "workspace:*",
+    "@discordapp/intl-message-database-darwin-x64": "workspace:*",
+    "@discordapp/intl-message-database-linux-x64-gnu": "workspace:*",
+    "@discordapp/intl-message-database-local": "workspace:*",
+    "@discordapp/intl-message-database-win32-ia32-msvc": "workspace:*",
+    "@discordapp/intl-message-database-win32-x64-msvc": "workspace:*"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.3",
+    "cargo-cp-artifact": "^0.1.9"
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "napi": {
+    "name": "intl-message-database",
+    "triples": {
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-unknown-linux-musl",
+        "x86_64-unknown-linux-musl",
+        "aarch64-pc-windows-msvc",
+        "i686-pc-windows-msvc"
+      ]
+    }
+  }
+}

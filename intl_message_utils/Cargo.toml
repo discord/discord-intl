@@ -1,0 +1,9 @@
+[package]
+name = "intl_message_utils"
+description = "Utilities used across different crates in the intl package."
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+xxhash-rust = { version = "0.8.10", features = ["xxh64"] }

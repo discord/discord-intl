@@ -1,0 +1,18 @@
+// Configuration for projects that run in Node.js/server environments.
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "composite": true,
+    "noEmit": true
+  },
+  "include": [
+    "intl_message_database/",
+    "metro-intl-transformer/",
+    "rspack-intl-loader/",
+    "swc-intl-message-transformer/",
+  ]
+}

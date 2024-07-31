@@ -1,0 +1,3 @@
+packages:
+  - ./*
+  - ./intl_message_database/npm/*

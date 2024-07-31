@@ -1,0 +1,9 @@
+/target
+^target/
+target
+test/cases/*
+
+data/*
+
+# This result is copied out from `target` to use from the node package
+*.node

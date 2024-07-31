@@ -1,0 +1,23 @@
+{
+  "name": "discord-intl-root",
+  "description": "The monorepo workspace package for managing tools across the project.",
+  "version": "none",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "22.0.0",
+    "@types/react": "*",
+    "prettier": "*",
+    "eslint": "*",
+    "typescript": "*",
+    "react": "*"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "18",
+      "react": "18",
+      "typescript": "5.5.4",
+      "prettier": "3.3.3",
+      "eslint": "9.8.0"
+    }
+  }
+}

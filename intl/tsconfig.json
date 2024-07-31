@@ -1,0 +1,10 @@
+// Configuration for projects that run in Browser/client environments.
+{
+  "extends": "../tsconfig.client.json",
+  "compilerOptions": {
+    "typeRoots": ["node_modules"],
+  },
+  "include": [
+    "intl/"
+  ]
+}

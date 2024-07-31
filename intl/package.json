@@ -1,0 +1,34 @@
+{
+  "name": "@discordapp/intl",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Client runtime for managing messages and translations in a React project.",
+  "main": "./src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "dependencies": {
+    "@formatjs/icu-messageformat-parser": "^2.7.6",
+    "@formatjs/intl": "^2.10.1",
+    "intl-messageformat": "^10.5.11"
+  },
+  "devDependencies": {
+    "@swc/cli": "^0.3.12",
+    "@swc/core": "^1.4.11",
+    "typescript": "*"
+  },
+  "peerDependencies": {
+    "@rspack/core": "0.x || 1.x",
+    "webpack": "^5.0.0",
+    "react": "> 16"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  }
+}

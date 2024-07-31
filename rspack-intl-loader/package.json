@@ -1,0 +1,27 @@
+{
+  "name": "@discordapp/rspack-intl-loader",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "commonjs",
+  "description": "Webpack/Rspack loader for i18n message definition files using intl-message-database",
+  "exports": {
+    ".": "./rspack-loader.js",
+    "./types-plugin": "./types-plugin.js"
+  },
+  "peerDependencies": {
+    "@rspack/core": "0.x || 1.x",
+    "webpack": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@discordapp/intl-message-database": "workspace:*"
+  }
+}

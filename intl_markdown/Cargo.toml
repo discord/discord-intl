@@ -1,0 +1,37 @@
+[package]
+name = "intl_markdown"
+description = "A combination Markdown and ICU messageformat parser for i18n messages."
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["lib"]
+bench = false
+
+[dependencies]
+arcstr = "1"
+bitflags = "2"
+intl_markdown_macros = { path = "../intl_markdown_macros" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+unicode-properties = "0"
+pulldown-cmark = "0.11.0"
+
+[dev-dependencies]
+test-case = "3"
+criterion = "0.5"
+
+# Test generation script
+[[example]]
+name = "gen-spec-tests"
+path = "./examples/gen-spec-tests.rs"
+
+# HTML Entity generation script
+[[example]]
+name = "gen-html-entities"
+path = "./examples/gen-html-entities.rs"
+
+[[bench]]
+name = "long_documents"
+harness = false

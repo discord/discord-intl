@@ -1,0 +1,5 @@
+[alias]
+test-markdown = "nextest run --no-fail-fast emphasis_and_strong_emphasis inlines links images textual_content code_spans entity_and_numeric_character_references backslash_escapes paragraphs fenced_code_blocks indented_code_blocks atx_headings setext_headings thematic_breaks tabs blank_lines autolinks soft_line_breaks hard_line_breaks"
+test-icu = "nextest run --no-fail-fast icu"
+test-subset = "nextest run --no-fail-fast"
+test-all = "nextest run"

@@ -1,0 +1,19 @@
+{
+  "name": "@discordapp/intl-message-database-win32-arm64-msvc",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "intl-message-database.win32-arm64-msvc.node",
+  "files": [
+    "intl-message-database.win32-arm64-msvc.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

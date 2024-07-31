@@ -1,0 +1,19 @@
+[package]
+name = "swc-intl-message-transformer"
+description = ""
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+pathdiff = "0.2.1"
+intl_message_utils = { path = "../intl_message_utils" }
+serde = "1"
+# This version is roughly tied to our rspack version: https://swc.rs/docs/plugin/selecting-swc-core
+swc_core = { version = "0.90.x", features = ["ecma_plugin_transform"] }
+tracing = "0.1.40"
+
+
+# .cargo/config defines few alias to build plugin.
