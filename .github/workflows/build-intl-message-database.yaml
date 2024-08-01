@@ -25,7 +25,7 @@ on:
 env:
   # This should ensure that the mac packages are allowed to run on all
   # supported macOS versions.
-  MACOSX_DEPLOYMENT_TARGET: 11
+  MACOSX_DEPLOYMENT_TARGET: "10.13"
 
 jobs:
   build:
