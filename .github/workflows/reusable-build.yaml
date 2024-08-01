@@ -1,0 +1,121 @@
+# Primarily taken from rspack's build workflow definition:
+# https://raw.githubusercontent.com/web-infra-dev/rspack/2f6696eb9c000e2af6a5d3c3c62b64cabd1566b1/.github/workflows/reusable-build.yml
+name: Reusable Release Build
+
+on:
+  workflow_call:
+    inputs:
+      skippable:
+        required: false
+        type: boolean
+        default: false
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      profile: # Rust profile, "debug" or "release"
+        default: "release"
+        required: false
+        type: string
+      ref: # Git reference to checkout
+        required: false
+        type: string
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      runner-labels: ${{ steps.upload-artifact.outputs.runner-labels || inputs.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+
+      - name: Git Clean
+        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        shell: bash
+        run: |
+          git clean -ffdx -e node_modules target
+          git reset --hard HEAD
+
+      - name: pnpm cache
+        uses: ./.github/actions/pnpm-workspace
+        with:
+          frozen-lockfile: true
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-cache: ${{ github.ref_name == 'main' }}
+          shared-key: build-${{ inputs.target }}
+
+      # Compile dependencies with optimization to make tests run faster
+      - name: Add optimization to debug profile
+        if: ${{ inputs.profile == 'debug' }}
+        shell: bash
+        run: |
+          echo '[profile.release.package."*"]' >> Cargo.toml
+          echo 'opt-level = 3' >> Cargo.toml
+          echo 'codegen-units = 64' >> Cargo.toml
+          echo 'incremental = false' >> Cargo.toml
+
+      - name: Check local cache
+        id: check_cache
+        if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') }}
+        shell: bash
+        run: |
+          set -e
+          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-bindings-${{ inputs.target }}
+          if [[ -d "$cache_dir" ]]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
+      - name: Free disk cache
+        if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.target == 'x86_64-unknown-linux-gnu' }}
+        uses: xc2/free-disk-space@v1.0.0
+        with:
+          tool-cache: false
+
+      - name: Setup Rust Target
+        run: rustup target add ${{ inputs.target }}
+
+      - name: Setup Apple Silicon Compilation Flags
+        if: ${{ contains(inputs.target, 'aarch64-apple') }}
+        run: |
+          if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+            # Github runner
+            sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          fi
+          export CC=$(xcrun -f clang);
+          export CXX=$(xcrun -f clang++);
+          SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
+          export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+
+      - name: Build intl-message-database
+        if: ${{ contains(inputs.target, 'linux') }}
+        run: |
+          cd intl_message_database
+          RUST_TARGET=${{inputs.target}} pnpm build:${{ inputs.profile }}
+
+#      - name: Upload artifact
+#        id: upload-artifact
+#        uses: ./.github/actions/upload-artifact
+#        if: ${{ steps.check_cache.outputs.exists != 'true' }}
+#        with:
+#          name: bindings-${{ inputs.target }}
+#          path: crates/node_binding/*.node
+#          try-local-cache: ${{ inputs.profile == 'debug' }}
+#          mv-when-local: true

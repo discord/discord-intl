@@ -1,0 +1,45 @@
+name: Release Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        required: true
+        type: string
+        description: 'Commit SHA'
+
+permissions:
+  # To publish packages with provenance
+  id-token: write
+
+jobs:
+  build:
+    name: Build Canary
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-latest
+          - target: i686-pc-windows-msvc
+            runner: windows-latest
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+          - target: aarch64-pc-windows-msvc
+            runner: windows-latest
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+    uses: ./.github/workflows/reusable-build.yaml
+    with:
+      ref: ${{inputs.commit}}
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
+      test: false

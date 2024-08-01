@@ -8,11 +8,11 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "scripts": {
-    "build": "cargo build --release",
+    "build:debug": "cargo build",
+    "build:release": "cargo build --release",
     "build:local-release": "cargo-cp-artifact -nc ./npm/local/intl-message-database.local.node -- cargo build --release --message-format=json-render-diagnostics",
     "build:local-release:mac": "pnpm build:local-release --target aarch64-apple-darwin",
     "build:cross-linux": "cd .. && cross build --package intl_message_database --target x86_64-unknown-linux-gnu --release && cp target/x86_64-unknown-linux-gnu/release/libintl_message_database.so ./intl_message_database/npm/linux-x64-gnu/intl-message-database.linux-x64-gnu.node",
-    "build:debug": "cargo build --platform",
     "test": "cargo test",
     "bench:native": "node ./bench/native.js"
   },
