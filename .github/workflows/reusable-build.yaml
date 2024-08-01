@@ -81,12 +81,12 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
-      - name: Free disk cache
-        if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.target == 'x86_64-unknown-linux-gnu' }}
-        uses: xc2/free-disk-space@v1.0.0
-        with:
-          tool-cache: false
+#      # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
+#      - name: Free disk cache
+#        if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.target == 'x86_64-unknown-linux-gnu' }}
+#        uses: xc2/free-disk-space@v1.0.0
+#        with:
+#          tool-cache: false
 
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
