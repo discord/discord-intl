@@ -37,7 +37,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          ssh-key: ${{ secrets.GIT_CLONE_SSH_KEY }}
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
       - name: Git Clean
