@@ -1,56 +1,83 @@
-const { isMessageDefinitionsFile, hashMessageKey } = require('@discordapp/intl-message-database');
+const {
+  isMessageDefinitionsFile,
+  isMessageTranslationsFile,
+} = require('@discordapp/intl-message-database');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+
+const { database } = require('./src/database');
+const { MessageDefinitionsTransformer } = require('./src/transformer');
+const {
+  ensureVirtualTranslationsModulesDirectory,
+  getVirtualTranslationsModulePath,
+} = require('./src/virtual-modules');
+
+ensureVirtualTranslationsModulesDirectory();
 
 /**
- * Babel plugin for barrel file export handling.
- *
- * @param {{types: import("@babel/types")}} babel - The Babel core object.
- * @returns {{visitor: import("babel__traverse").Visitor}} A visitor object for the Babel transform.
+ * @param {{
+ *  filename: string,
+ *  src: string,
+ *  getPrelude: () => string
+ *  getTranslationAssetExtension: () => string,
+ *  createAssetImport: (importPath: string) => string,
+ * }} options
+ * @returns
  */
-module.exports = function metroIntlTransformerPlugin(babel) {
-  const { types: t } = babel;
+async function transformToString({
+  filename,
+  src,
+  getPrelude,
+  getTranslationAssetExtension,
+  createAssetImport,
+}) {
+  if (isMessageDefinitionsFile(filename)) {
+    database.processDefinitionsFileContent(filename, src);
+    const sourceFile = database.getSourceFile(filename);
+    if (sourceFile.type !== 'definition') {
+      throw new Error(
+        'Expected an intl messages definition file, but found a translation file instead.',
+      );
+    }
 
-  return {
-    visitor: {
-      ImportDeclaration(path, _state) {
-        const importSource = path.node.source.value;
-        // This transformer only handles usages of intl messages, so only
-        // imports of definitions files need to be handled.
-        if (!isMessageDefinitionsFile(importSource)) {
-          return;
-        }
+    // TODO: This should be built inside the native extension instead.
+    const locales = database.getKnownLocales();
+    /** @type {Record<string, string>} */
+    const localeMap = {};
+    for (const locale of locales) {
+      localeMap[locale] =
+        `${sourceFile.meta.translationsPath}/${locale}.${getTranslationAssetExtension()}`;
+    }
 
-        const defaultImport = path.node.specifiers.find(
-          (specifier) => specifier.type === 'ImportDefaultSpecifier',
-        );
-        const bindingName = defaultImport?.local.name;
-        if (bindingName == null) {
-          return;
-        }
+    // Metro's file map and worker model means that there's a disconnect
+    // between a file getting written to the system and when Metro actually
+    // becomes aware of it. This is _hideous_, but neither Watchman nor the
+    // default FSEventsWatcher will have updated in time for the second part
+    // of this transformation to be able to resolve the newly-created compiled
+    // file. Waiting for a little bit (hopefully) gives it enough time to catch
+    // the event and successfully compile the added dependency.
+    const virtualModulePath = getVirtualTranslationsModulePath(
+      `${filename}.compiled.${getTranslationAssetExtension()}`,
+    );
+    await fs.writeFile(virtualModulePath, database.precompileToBuffer('en-US'));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 400);
+    });
+    localeMap['en-US'] = virtualModulePath;
 
-        const binding = path.scope.bindings[bindingName];
-        for (const reference of binding.referencePaths) {
-          const parent = reference.parent;
-          // We only care about member expressions that use the `.` syntax or
-          // use string literals, since other syntaxes could be invalid.
-          if (
-            !(
-              parent.type === 'MemberExpression' ||
-              (parent.computed && parent.property.type === 'StringLiteral')
-            )
-          ) {
-            continue;
-          }
+    const transformer = new MessageDefinitionsTransformer(
+      database.getSourceFileHashedKeys(filename),
+      localeMap,
+      createAssetImport,
+      getPrelude,
+    );
 
-          // We just want the actual value of the member being accessed.
-          /** @type {string} */
-          const memberName =
-            parent.property.type === 'StringLiteral' ? parent.property.value : parent.property.name;
+    return transformer.getOutput();
+  } else if (isMessageTranslationsFile(filename)) {
+    const localeName = path.basename(filename).split('.')[0];
+    database.processTranslationFileContent(filename, localeName, src);
+    return database.precompileToBuffer(localeName);
+  }
+}
 
-          // Then hash it up and re-write the member with the hashed version.
-          parent.computed = true;
-          parent.property = t.stringLiteral(hashMessageKey(memberName));
-        }
-      },
-    },
-  };
-};
+module.exports = { transformToString };
