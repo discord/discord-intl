@@ -1,0 +1,22 @@
+{
+  "name": "@discordapp/intl-message-database-linux-x64-musl",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "intl-message-database.linux-x64-musl.node",
+  "files": [
+    "intl-message-database.linux-x64-musl.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "libc": [
+    "musl"
+  ]
+}
