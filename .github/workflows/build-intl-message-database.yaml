@@ -88,4 +88,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: intl-message-database-${{ inputs.package-name }}
-          path: ./npm/${{ inputs.package-name }}/**
+          path: intl_message_database/npm/${{ inputs.package-name }}/**
