@@ -1,4 +1,4 @@
-name: Release Canary
+name: Release
 
 on:
   workflow_dispatch:
@@ -42,4 +42,3 @@ jobs:
       ref: ${{inputs.commit}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      test: false
