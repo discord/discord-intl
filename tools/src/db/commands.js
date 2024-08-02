@@ -2,14 +2,17 @@ import { Command, Option } from 'commander';
 import { $ } from 'zx';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
-import { buildNodeExtension, TARGET_PACKAGES } from './index.js';
+import { TARGET_PACKAGES } from './index.js';
 import { getPackage } from '../pnpm.js';
+import { buildNapiPackage } from '../napi.js';
 
 const targetOption = new Option('--target <target>')
   .choices(Object.keys(TARGET_PACKAGES))
   .makeOptionMandatory(true);
 
 export default async function () {
+  const dbPackage = await getPackage('@discord/intl-message-database');
+
   const group = new Command('db')
     .aliases(['intl-message-database'])
     .description('Operate on the intl_message_database crate/package');
@@ -19,7 +22,7 @@ export default async function () {
     .description('Build the intl_message_database native Node extension')
     .addOption(targetOption)
     .action(async ({ target }) => {
-      await buildNodeExtension(target);
+      await buildNapiPackage(dbPackage, target);
     });
 
   group.addCommand(
@@ -35,8 +38,6 @@ export default async function () {
         await npmPublish(executor, options);
       }),
   );
-
-  const dbPackage = await getPackage('@discord/intl-message-database');
 
   group.addCommand(
     npmPublishCommand(dbPackage.path, {

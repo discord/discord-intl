@@ -10,6 +10,7 @@
   "scripts": {
     "build:debug": "cargo build",
     "build:release": "cargo build --release",
+    "build:napi": "DEBUG=napi:* pnpm napi build --platform --release",
     "build:artifact": "cargo-cp-artifact -nc ./npm/${PACKAGE_NAME}/intl-message-database.${PACKAGE_NAME}.node -- cargo-zigbuild build --release --message-format=json-render-diagnostics",
     "build:local-release": "cargo-cp-artifact -nc ./npm/local/intl-message-database.local.node -- cargo build --release --message-format=json-render-diagnostics",
     "build:local-release:mac": "pnpm build:local-release --target aarch64-apple-darwin",
