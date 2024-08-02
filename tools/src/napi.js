@@ -27,6 +27,7 @@ export async function buildNapiPackage(pack, platformPackage) {
   const targetTriple = NAPI_TARGET_MAP[platformPackage];
 
   const hostPlatform = process.platform;
+  const hostArch = process.arch;
   const target = parseTriple(targetTriple);
 
   // Windows has a new target version? Something? Setting this to a static 16 is the only way it
@@ -36,7 +37,7 @@ export async function buildNapiPackage(pack, platformPackage) {
   const buildResult = await napiCli.build({
     cwd: pack.path,
     target: targetTriple,
-    crossCompile: hostPlatform !== target.platform,
+    crossCompile: hostPlatform !== target.platform || hostArch !== target.arch,
     platform: true,
   });
   // The buildResult is just a container, the task is the actual thing doing the building, so we
