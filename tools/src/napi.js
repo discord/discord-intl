@@ -2,7 +2,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { NapiCli, parseTriple } from '@napi-rs/cli';
-import { platform } from 'node:os';
 
 const napiCli = new NapiCli();
 
