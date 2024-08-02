@@ -92,9 +92,6 @@ importers:
       '@napi-rs/cli':
         specifier: ^2.18.3
         version: 2.18.4
-      cargo-cp-artifact:
-        specifier: ^0.1.9
-        version: 0.1.9
 
   intl_message_database/npm/darwin-arm64: {}
 
@@ -1056,10 +1053,6 @@ packages:
 
   caniuse-lite@1.0.30001645:
     resolution: {integrity: sha512-GFtY2+qt91kzyMk6j48dJcwJVq5uTkk71XxE3RtScx7XWRLsO7bU44LOFkOZYR8w9YMS0UhPSYpN/6rAMImmLw==}
-
-  cargo-cp-artifact@0.1.9:
-    resolution: {integrity: sha512-6F+UYzTaGB+awsTXg0uSJA1/b/B3DDJzpKVRu0UmyI7DmNeaAl2RFHuTGIN6fEgpadRxoXGb7gbC1xo4C3IdyA==}
-    hasBin: true
 
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -2859,8 +2852,6 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001645: {}
-
-  cargo-cp-artifact@0.1.9: {}
 
   chalk@4.1.2:
     dependencies:

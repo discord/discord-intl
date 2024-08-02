@@ -38,7 +38,11 @@ export async function buildNapiPackage(pack, platformPackage) {
     target: targetTriple,
     crossCompile: hostPlatform !== target.platform || hostArch !== target.arch,
     platform: true,
+    profile: 'release',
+    // We've re-written the js binding to be a lot smaller and not have implicit TS errors.
+    noJsBinding: true,
   });
+
   // The buildResult is just a container, the task is the actual thing doing the building, so we
   // need to wait for that to finish, too.
   await buildResult.task;
