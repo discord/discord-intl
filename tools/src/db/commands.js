@@ -1,17 +1,18 @@
-import path from 'node:path';
-
 import { Command, Option } from 'commander';
 import { $ } from 'zx';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
 import { buildNodeExtension, TARGET_PACKAGES } from './index.js';
+import { getPackage } from '../pnpm.js';
 
 const targetOption = new Option('--target <target>')
   .choices(Object.keys(TARGET_PACKAGES))
   .makeOptionMandatory(true);
 
-export default function () {
-  const group = new Command('db').description('Operate on the intl_message_database crate/package');
+export default async function () {
+  const group = new Command('db')
+    .aliases(['intl-message-database'])
+    .description('Operate on the intl_message_database crate/package');
 
   group
     .command('build')
@@ -22,20 +23,23 @@ export default function () {
     });
 
   group.addCommand(
-    npmPublishCommand('intl_message_database')
+    npmPublishCommand('')
       .addOption(targetOption)
       .description('Publish a platform-specific package for intl-message-database to npm')
       .action(async (options) => {
+        const targetPackage = await getPackage(`@discord/intl-message-database-${options.target}`);
         const executor = $({
-          cwd: path.resolve(`intl_message_database/npm/${options.target}`),
+          cwd: targetPackage.path,
           stdio: 'inherit',
         });
         await npmPublish(executor, options);
       }),
   );
 
+  const dbPackage = await getPackage('@discord/intl-message-database');
+
   group.addCommand(
-    npmPublishCommand('intl_message_database', {
+    npmPublishCommand(dbPackage.path, {
       commandName: 'publish-root',
     }).description('Publish the root intl-message-database package to NPM'),
   );

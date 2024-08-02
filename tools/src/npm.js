@@ -16,7 +16,7 @@ import { Command } from 'commander';
  */
 export function npmPublishCommand(packageDirectory, { commandName = 'publish' } = {}) {
   return new Command(commandName)
-    .option('-n, --dry-run', "Don't actually publish the package")
+    .option('--dry-run', "Don't actually publish the package")
     .description('Publish this package to npm')
     .action(async ({ dryRun }) => {
       const executor = $({ cwd: path.resolve(packageDirectory), stdio: 'inherit' });

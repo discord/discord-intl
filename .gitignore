@@ -4,3 +4,5 @@ target/
 *.tsbuildinfo
 
 *.DS_Store
+
+*.wasm

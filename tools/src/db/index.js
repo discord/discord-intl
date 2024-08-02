@@ -1,4 +1,5 @@
 import { $, cd } from 'zx';
+import { getPackage } from '../pnpm.js';
 
 export const TARGET_PACKAGES = {
   'darwin-arm64': 'aarch64-apple-darwin',
@@ -28,10 +29,11 @@ export async function buildNodeExtension(targetPackage) {
   if (TARGET_PACKAGES[targetPackage] == null) {
     throw new Error(`Target ${targetPackage} is not a known package for intl_message_database`);
   }
-  const oldDir = await $`pwd`;
 
-  cd('./intl_message_database');
+  const dbPackage = await getPackage('@discord/intl-message-database');
+
   await $({
+    cwd: dbPackage.path,
     env: {
       ...process.env,
       PACKAGE_NAME: targetPackage,
@@ -39,6 +41,4 @@ export async function buildNodeExtension(targetPackage) {
     },
     stdio: 'inherit',
   })`pnpm build:artifact`;
-
-  cd(oldDir);
 }
