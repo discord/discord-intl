@@ -1,0 +1,18 @@
+{
+  "name": "@discord/intl-tools",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Internal tooling for managing the discord-intl repository and packages",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "intl-cli": "index.js"
+  },
+  "scripts": {
+    "intl-cli": "node index.js"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "zx": "^8.1.4"
+  }
+}

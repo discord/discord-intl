@@ -4,12 +4,13 @@
   "version": "none",
   "private": true,
   "devDependencies": {
+    "@discord/intl-tools": "workspace:*",
     "@types/node": "22.0.0",
     "@types/react": "*",
-    "prettier": "*",
     "eslint": "*",
-    "typescript": "*",
-    "react": "*"
+    "prettier": "*",
+    "react": "*",
+    "typescript": "*"
   },
   "pnpm": {
     "overrides": {
