@@ -1,12 +1,12 @@
 import type {InternalIntlMessage} from './message';
 import type {IntlMessageGetterAdditions} from './message-loader';
 /**
- * Use this function to define messages as part of the `@discordapp/intl`
+ * Use this function to define messages as part of the `@discord/intl`
  * system, with type checking support.
  *
  * This function does not actually exist, and gets compiled out as part
  * of the bundling process both on web and mobile. See the
- * `@discordapp/intl/README.md` for more information.
+ * `@discord/intl/README.md` for more information.
  */
 export declare function defineMessages(messages: object): object;
 

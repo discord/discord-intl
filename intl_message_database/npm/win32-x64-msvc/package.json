@@ -1,5 +1,5 @@
 {
-  "name": "@discordapp/intl-message-database-win32-x64-msvc",
+  "name": "@discord/intl-message-database-win32-x64-msvc",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",

@@ -1,5 +1,5 @@
 {
-  "name": "@discordapp/rspack-intl-loader",
+  "name": "@discord/rspack-intl-loader",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -22,6 +22,6 @@
     }
   },
   "dependencies": {
-    "@discordapp/intl-message-database": "workspace:*"
+    "@discord/intl-message-database": "workspace:*"
   }
 }

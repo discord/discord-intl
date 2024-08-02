@@ -1,5 +1,5 @@
 const path = require('node:path');
-const {isMessageDefinitionsFile, isMessageTranslationsFile} = require('@discordapp/intl-message-database');
+const {isMessageDefinitionsFile, isMessageTranslationsFile} = require('@discord/intl-message-database');
 
 const {database} = require('./src/database');
 const {MessageDefinitionsTransformer} = require('./src/transformer');

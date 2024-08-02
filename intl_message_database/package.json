@@ -1,5 +1,5 @@
 {
-  "name": "@discordapp/intl-message-database",
+  "name": "@discord/intl-message-database",
   "private": true,
   "version": "0.1.0",
   "license": "MIT",
@@ -17,12 +17,12 @@
     "bench:native": "node ./bench/native.js"
   },
   "optionalDependencies": {
-    "@discordapp/intl-message-database-darwin-arm64": "workspace:*",
-    "@discordapp/intl-message-database-darwin-x64": "workspace:*",
-    "@discordapp/intl-message-database-linux-x64-gnu": "workspace:*",
-    "@discordapp/intl-message-database-local": "workspace:*",
-    "@discordapp/intl-message-database-win32-ia32-msvc": "workspace:*",
-    "@discordapp/intl-message-database-win32-x64-msvc": "workspace:*"
+    "@discord/intl-message-database-darwin-arm64": "workspace:*",
+    "@discord/intl-message-database-darwin-x64": "workspace:*",
+    "@discord/intl-message-database-linux-x64-gnu": "workspace:*",
+    "@discord/intl-message-database-local": "workspace:*",
+    "@discord/intl-message-database-win32-ia32-msvc": "workspace:*",
+    "@discord/intl-message-database-win32-x64-msvc": "workspace:*"
   },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.3",

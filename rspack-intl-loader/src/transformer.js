@@ -10,7 +10,7 @@
  *
  * ```typescript
  * // SomeModule.messages.js
- * import {defineMessages} from '@discordapp/intl';
+ * import {defineMessages} from '@discord/intl';
  *
  * export default defineMessages({
  *   THIS_IS_A_MESSAGE: 'it has some content with {values}',
@@ -25,7 +25,7 @@
  * something like:
  *
  * ```typescript
- * const {i18n} = require('@discordapp/intl');
+ * const {i18n} = require('@discord/intl');
  * const MESSAGE_KEYS = ["a9fn23"]
  * const loader = createLoader(MESSAGE_KEYS, {"en-US": () => require('./messages/en-US.messages.jsona')});
  * export default MESSAGE_KEYS.reduce((acc, k) => {acc[k] = loader.bindFor(k); return acc}, {});
@@ -88,7 +88,7 @@ class MessageDefinitionsTransformer {
   getOutput() {
     const messageKeys = this.messageKeys;
 
-    const i18nImport = `const {createLoader} = require('@discordapp/intl');`;
+    const i18nImport = `const {createLoader} = require('@discord/intl');`;
     const keysDefinition = `const _keys = ${JSON.stringify(messageKeys)};`;
     const localeMapDefinition = `const _locales = ${this.getLocaleRequireMap()};`;
     const loaderDefinition = 'const loader = createLoader(_keys, _locales);';

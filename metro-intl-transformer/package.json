@@ -1,5 +1,5 @@
 {
-    "name": "@discordapp/metro-intl-transformer",
+    "name": "@discord/metro-intl-transformer",
     "version": "0.1.0",
     "private": true,
     "license": "MIT",
@@ -11,7 +11,7 @@
         "./.cache/*": "./.cache/*"
     },
     "dependencies": {
-        "@discordapp/intl-message-database": "workspace:*"
+        "@discord/intl-message-database": "workspace:*"
     },
     "devDependencies": {
         "@babel/types": "^7.24.9",

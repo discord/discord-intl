@@ -1,4 +1,4 @@
-const {IntlMessagesDatabase} = require('@discordapp/intl-message-database');
+const {IntlMessagesDatabase} = require('@discord/intl-message-database');
 
 /**
  * A shared message database instance that's used and shared across all parts

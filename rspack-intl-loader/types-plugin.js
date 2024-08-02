@@ -1,6 +1,6 @@
 // @ts-check
 const path = require('node:path');
-const { isMessageDefinitionsFile } = require('@discordapp/intl-message-database');
+const { isMessageDefinitionsFile } = require('@discord/intl-message-database');
 
 const { database } = require('./src/database');
 

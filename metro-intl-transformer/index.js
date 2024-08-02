@@ -1,7 +1,7 @@
 const {
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
-} = require('@discordapp/intl-message-database');
+} = require('@discord/intl-message-database');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 

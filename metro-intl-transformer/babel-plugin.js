@@ -1,4 +1,4 @@
-const { isMessageDefinitionsFile, hashMessageKey } = require('@discordapp/intl-message-database');
+const { isMessageDefinitionsFile, hashMessageKey } = require('@discord/intl-message-database');
 
 /**
  * Babel plugin for obfuscating and minifying intl message _usages_, like

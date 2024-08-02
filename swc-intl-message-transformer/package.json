@@ -1,5 +1,5 @@
 {
-  "name": "@discordapp/swc-intl-message-transformer",
+  "name": "@discord/swc-intl-message-transformer",
   "private": true,
   "license": "MIT",
   "version": "0.1.0",

@@ -1,6 +1,6 @@
 /// Name of the JS runtime package that should be used for all generated code or parsing for imports
 /// that read from the package.
-pub static RUNTIME_PACKAGE_NAME: &str = "@discordapp/intl";
+pub static RUNTIME_PACKAGE_NAME: &str = "@discord/intl";
 
 /// The seed used when computing hash keys for message names and other hashed identifiers.
 pub static KEY_HASH_SEED: u64 = 0;

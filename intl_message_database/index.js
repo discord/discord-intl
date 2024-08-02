@@ -68,7 +68,7 @@ const localPath = path.join(
   __dirname,
   `npm/${packageName}/intl-message-database.${packageName}.node`,
 );
-const packagePath = `@discordapp/intl-message-database-${packageName}`;
+const packagePath = `@discord/intl-message-database-${packageName}`;
 const nativeBinding = fs.existsSync(localPath) ? require(localPath) : require(packagePath);
 
 const {

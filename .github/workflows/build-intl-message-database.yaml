@@ -21,6 +21,9 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+    outputs:
+      build-artifact-id:
+        description: "The *.node"
 
 env:
   # This should ensure that the mac packages are allowed to run on all
