@@ -54,6 +54,7 @@ jobs:
 
       - name: Publish ${{inputs.package-name}}
         run: |
+          git status
           pnpm intl-cli db publish --dry-run --target ${{inputs.package-name}}
 
       - name: Upload artifact
