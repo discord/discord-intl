@@ -19,37 +19,37 @@ jobs:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
         array:
-          # Linux: building on ubuntu 20 ensures we have a reasonable old
-          # glibc target that will work for the majority of people.
-          - target: x86_64-unknown-linux-gnu
-            package-name: linux-x64-gnu
-            runner: ubuntu-20.04
-          - target: aarch64-unknown-linux-gnu
-            package-name: linux-arm64-gnu
-            runner: ubuntu-20.04
+#          # Linux: building on ubuntu 20 ensures we have a reasonable old
+#          # glibc target that will work for the majority of people.
+#          - target: x86_64-unknown-linux-gnu
+#            package-name: linux-x64-gnu
+#            runner: ubuntu-20.04
+#          - target: aarch64-unknown-linux-gnu
+#            package-name: linux-arm64-gnu
+#            runner: ubuntu-20.04
           - target: x86_64-unknown-linux-musl
             package-name: linux-x64-musl
             runner: ubuntu-20.04
-          - target: aarch64-unknown-linux-musl
-            package-name: linux-arm64-musl
-            runner: ubuntu-20.04
-          # Windows
-          - target: i686-pc-windows-msvc
-            package-name: win32-ia32-msvc
-            runner: windows-latest
-          - target: x86_64-pc-windows-msvc
-            package-name: win32-x64-msvc
-            runner: windows-latest
-          - target: aarch64-pc-windows-msvc
-            package-name: win32-arm64-msvc
-            runner: windows-latest
-          # macOS
-          - target: x86_64-apple-darwin
-            package-name: darwin-x64
-            runner: macos-latest
-          - target: aarch64-apple-darwin
-            package-name: darwin-arm64
-            runner: macos-latest
+#          - target: aarch64-unknown-linux-musl
+#            package-name: linux-arm64-musl
+#            runner: ubuntu-20.04
+#          # Windows
+#          - target: i686-pc-windows-msvc
+#            package-name: win32-ia32-msvc
+#            runner: windows-latest
+#          - target: x86_64-pc-windows-msvc
+#            package-name: win32-x64-msvc
+#            runner: windows-latest
+#          - target: aarch64-pc-windows-msvc
+#            package-name: win32-arm64-msvc
+#            runner: windows-latest
+#          # macOS
+#          - target: x86_64-apple-darwin
+#            package-name: darwin-x64
+#            runner: macos-latest
+#          - target: aarch64-apple-darwin
+#            package-name: darwin-arm64
+#            runner: macos-latest
     uses: ./.github/workflows/build-intl-message-database.yaml
     with:
       ref: ${{inputs.commit}}

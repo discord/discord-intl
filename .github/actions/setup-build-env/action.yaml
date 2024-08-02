@@ -1,0 +1,50 @@
+name: Setup Build Env
+
+description: Setup node and rust, install dependencies, and prepare for building packages on the host.
+
+inputs:
+  ref:
+    description: "The github ref to checkout. Must be a complete SHA"
+    required: true
+    type: string
+  target:
+    description: "Optional target triple to install for the rust toolchain"
+    required: false
+    type: string
+  runner:
+    description: "Name of the runner image this action is running on"
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: pnpm cache
+      uses: ./.github/actions/pnpm-workspace
+      with:
+        frozen-lockfile: true
+        save-if: ${{ github.ref_name == 'main' }}
+
+    - name: Install Rust Toolchain
+      uses: ./.github/actions/rustup
+      with:
+        save-cache: ${{ github.ref_name == 'main' }}
+        shared-key: build-${{ inputs.target }}-${{ inputs.runner }}
+
+    - name: Setup Rust Target
+      shell: bash
+      if: ${{ inputs.target != null}}
+      run: rustup target add ${{ inputs.target }}
+
+    - name: Setup Apple Silicon Compilation Flags
+      if: ${{ contains(inputs.target, 'aarch64-apple') }}
+      shell: bash
+      run: |
+        if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+          # Github runner
+          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+        fi
+        export CC=$(xcrun -f clang);
+        export CXX=$(xcrun -f clang++);
+        SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
+        export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
