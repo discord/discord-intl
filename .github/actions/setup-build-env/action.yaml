@@ -1,6 +1,7 @@
 name: Setup Build Env
 
-description: Setup node and rust, install dependencies, and prepare for building packages on the host.
+description: |
+  Setup node and rust, install dependencies, and prepare for cross-compiling packages on the host using cargo-zigbuild.
 
 inputs:
   ref:
@@ -19,12 +20,14 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: pnpm cache
+    # Node/pnpm
+    - name: Node + pnpm cache
       uses: ./.github/actions/pnpm-workspace
       with:
         frozen-lockfile: true
         save-if: ${{ github.ref_name == 'main' }}
 
+    # Rust toolchains
     - name: Install Rust Toolchain
       uses: ./.github/actions/rustup
       with:
@@ -48,3 +51,16 @@ runs:
         export CXX=$(xcrun -f clang++);
         SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
         export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+        
+        
+    # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin
+    - name: Install ziglang
+      uses: goto-bus-stop/setup-zig@v1
+      with:
+        version: 0.13.0
+    - name: Install cargo toolchains
+      uses: taiki-e/install-action@v2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        tool: cargo-zigbuild,cargo-xwin
