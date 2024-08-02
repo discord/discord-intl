@@ -48,13 +48,13 @@ jobs:
           runner: ${{ inputs.runner }}
           target: ${{ inputs.target }}
 
-      - name: Build intl-message-database
+      - name: Build @discord/intl-message-database-${{inputs.package-name}}
         run: |
-          pnpm intl-cli db build --target ${{inputs.target}}
+          pnpm intl-cli db build --target ${{inputs.package-name}}
 
       - name: Publish ${{inputs.package-name}}
         run: |
-          pnpm intl-cli db publish --dry-run --target ${{inputs.target}}
+          pnpm intl-cli db publish --dry-run --target ${{inputs.package-name}}
 
       - name: Upload artifact
         id: upload-artifact
