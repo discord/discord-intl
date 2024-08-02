@@ -24,15 +24,16 @@ jobs:
 #          - target: x86_64-unknown-linux-gnu
 #            package-name: linux-x64-gnu
 #            runner: ubuntu-20.04
-#          - target: aarch64-unknown-linux-gnu
-#            package-name: linux-arm64-gnu
-#            runner: ubuntu-20.04
-          - target: x86_64-unknown-linux-musl
-            package-name: linux-x64-musl
+          - target: aarch64-unknown-linux-gnu
+            package-name: linux-arm64-gnu
             runner: ubuntu-20.04
-#          - target: aarch64-unknown-linux-musl
-#            package-name: linux-arm64-musl
-#            runner: ubuntu-20.04
+          # Not supporting musl builds for now.
+          # - target: x86_64-unknown-linux-musl
+          #   package-name: linux-x64-musl
+          #   runner: ubuntu-20.04
+          # - target: aarch64-unknown-linux-musl
+          #   package-name: linux-arm64-musl
+          #   runner: ubuntu-20.04
 #          # Windows
 #          - target: i686-pc-windows-msvc
 #            package-name: win32-ia32-msvc
