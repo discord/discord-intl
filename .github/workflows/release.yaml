@@ -46,7 +46,7 @@ jobs:
     secrets: inherit
 
   release:
-    name: Release and Publish (${{inputs.release-level}})
+    name: Release and Publish
     needs: [build]
     runs-on: ubuntu-latest
     permissions:
