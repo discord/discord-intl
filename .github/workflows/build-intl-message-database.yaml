@@ -56,6 +56,8 @@ jobs:
         run: |
           git status
           pnpm intl-cli db publish --dry-run --target ${{inputs.package-name}}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Upload artifact
         id: upload-artifact
