@@ -9,13 +9,18 @@ inputs:
     required: true
     type: string
   target:
-    description: "Optional target triple to install for the rust toolchain"
-    required: false
+    description: "Platform package name that can map to a Rust target triple to install."
+    required: true
     type: string
   runner:
     description: "Name of the runner image this action is running on"
     required: true
     type: string
+
+outputs:
+  target-triple:
+    value: ${{ jobs.get-target-triple.outputs.triple }}
+    description: "The Rust target triple that applies for the `target` input platform package."
 
 runs:
   using: composite
@@ -27,20 +32,28 @@ runs:
         frozen-lockfile: true
         save-if: ${{ github.ref_name == 'main' }}
 
+    # This has to run dynamically after the repo has been cloned and pnpm has been installed.
+    - name: Get target triple from package name
+      id: get-target-triple
+      shell: bash
+      run: |
+        TRIPLE=$(pnpm intl-cli util package-triple ${{inputs.target}});
+        echo "Mapped ${{inputs.target}} to $TRIPLE"
+        echo "triple=$TRIPLE" >> "$GITHUB_OUTPUT"
+
     # Rust toolchains
     - name: Install Rust Toolchain
       uses: ./.github/actions/rustup
       with:
         save-cache: ${{ github.ref_name == 'main' }}
-        shared-key: build-${{ inputs.target }}-${{ inputs.runner }}
+        shared-key: build-${{ steps.get-target-triple.outputs.triple }}-${{ inputs.runner }}
 
     - name: Setup Rust Target
       shell: bash
-      if: ${{ inputs.target != null}}
-      run: rustup target add ${{ inputs.target }}
+      run: rustup target add ${{ steps.get-target-triple.outputs.triple }}
 
     - name: Setup Apple Silicon Compilation Flags
-      if: ${{ contains(inputs.target, 'aarch64-apple') }}
+      if: ${{ inputs.target == 'darwin-arm64' }}
       shell: bash
       run: |
         if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
@@ -58,6 +71,7 @@ runs:
       uses: goto-bus-stop/setup-zig@v1
       with:
         version: 0.13.0
+
     - name: Install cargo toolchains
       uses: taiki-e/install-action@v2
       env:

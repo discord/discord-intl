@@ -18,33 +18,23 @@ jobs:
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
-        packages:
+        target:
           # Linux
-          - target: x86_64-unknown-linux-gnu
-            package-name: linux-x64-gnu
-          - target: aarch64-unknown-linux-gnu
-            package-name: linux-arm64-gnu
-          - target: x86_64-unknown-linux-musl
-            package-name: linux-x64-musl
-          - target: aarch64-unknown-linux-musl
-            package-name: linux-arm64-musl
+          - linux-x64-gnu
+          - linux-arm64-gnu
+          - linux-x64-musl
+          - linux-arm64-musl
           # Windows
-          - target: i686-pc-windows-msvc
-            package-name: win32-ia32-msvc
-          - target: x86_64-pc-windows-msvc
-            package-name: win32-x64-msvc
-          - target: aarch64-pc-windows-msvc
-            package-name: win32-arm64-msvc
+          - win32-ia32-msvc
+          - win32-x64-msvc
+          - win32-arm64-msvc
           # macOS
-          - target: x86_64-apple-darwin
-            package-name: darwin-x64
-          - target: aarch64-apple-darwin
-            package-name: darwin-arm64
+          - darwin-x64
+          - darwin-arm64
     uses: ./.github/workflows/build-intl-message-database.yaml
     with:
-      ref: ${{inputs.commit}}
-      target: ${{ matrix.array.target }}
       # Using napi and cargo-zigbuild/cargo-xwin, everything _should_ be buildable on ubuntu directly.
       runner: ubuntu-latest
-      package-name: ${{ matrix.array.package-name }}
+      target: ${{ matrix.target }}
+      ref: ${{inputs.commit}}
     secrets: inherit

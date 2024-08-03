@@ -2,6 +2,7 @@ import { program } from 'commander';
 import { cd } from 'zx';
 
 import { REPO_ROOT } from './src/constants.js';
+import utilCommands from './src/util-commands.js';
 import dbCommands from './src/db/commands.js';
 import swcCommands from './src/swc/commands.js';
 
@@ -12,6 +13,7 @@ cd(REPO_ROOT);
   program
     .description('Internal tooling for managing the discord-intl repo and packages.')
     .addCommand(await dbCommands())
+    .addCommand(await utilCommands())
     .addCommand(await swcCommands())
     .parse();
 })();

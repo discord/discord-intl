@@ -3,18 +3,11 @@ name: Build intl-message-database
 on:
   workflow_call:
     inputs:
-      target: # Target triple for building the crate
+      target: # Platform package name that maps to a Rust target triple
         required: true
         type: string
-      package-name: # npm package name that the target maps to
+      runner: # What os/version to run this workflow on.
         required: true
-        type: string
-      runner:
-        required: true
-        type: string
-      profile: # Rust profile, "debug" or "release"
-        default: "release"
-        required: false
         type: string
       ref: # Git reference to checkout
         required: false
@@ -24,6 +17,8 @@ env:
   # This should ensure that the mac packages are allowed to run on all
   # supported macOS versions.
   MACOSX_DEPLOYMENT_TARGET: "10.13"
+  DEBUG: "napi:*"
+  CI: "true"
 
 jobs:
   build:
@@ -48,14 +43,14 @@ jobs:
           runner: ${{ inputs.runner }}
           target: ${{ inputs.target }}
 
-      - name: Build @discord/intl-message-database-${{inputs.package-name}}
+      - name: Build @discord/intl-message-database-${{inputs.target}}
         run: |
-          pnpm intl-cli db build --target ${{inputs.package-name}}
+          pnpm intl-cli db build --target ${{inputs.target}}
 
-      - name: Publish ${{inputs.package-name}}
+      - name: Publish @discord/intl-message-database-${{inputs.target}}
         run: |
           git status
-          pnpm intl-cli db publish --dry-run --target ${{inputs.package-name}}
+          pnpm intl-cli db publish --dry-run --target ${{inputs.target}}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -63,5 +58,5 @@ jobs:
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: intl-message-database-${{ inputs.package-name }}
-          path: intl_message_database/npm/${{ inputs.package-name }}/**
+          name: intl-message-database-${{ inputs.target }}
+          path: intl_message_database/npm/${{ inputs.target }}/**
