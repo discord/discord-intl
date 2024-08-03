@@ -21,12 +21,12 @@ inputs:
     description: "Install native dependencies. Only needed for building Rust. True by default"
     required: false
     default: true
-    type: boolean
+    type: string
   js:
     description: "Install JS dependencies. True by default."
     required: false
     default: true
-    type: boolean
+    type: string
 
 
 outputs:
@@ -40,7 +40,7 @@ runs:
     # Node/pnpm
     - name: Node + pnpm cache
       uses: ./.github/actions/pnpm-workspace
-      if: inputs.js
+      if: inputs.js == 'true'
       with:
         frozen-lockfile: true
         save-if: ${{ github.ref_name == 'main' }}
@@ -49,7 +49,7 @@ runs:
     - name: Get target triple from package name
       id: get-target-triple
       shell: bash
-      if: inputs.native
+      if: inputs.native == 'true'
       run: |
         TRIPLE=$(pnpm intl-cli util package-triple ${{inputs.target}});
         echo "Mapped ${{inputs.target}} to $TRIPLE"
@@ -58,18 +58,18 @@ runs:
     # Rust toolchains
     - name: Install Rust Toolchain
       uses: ./.github/actions/rustup
-      if: inputs.native
+      if: inputs.native == 'true'
       with:
         save-cache: ${{ github.ref_name == 'main' }}
         shared-key: build-${{ steps.get-target-triple.outputs.triple }}-${{ inputs.runner }}
 
     - name: Setup Rust Target
-      if: inputs.native
+      if: inputs.native == 'true'
       shell: bash
       run: rustup target add ${{ steps.get-target-triple.outputs.triple }}
 
     - name: Setup Apple Silicon Compilation Flags
-      if: inputs.native && inputs.target == 'darwin-arm64' && startsWith(inputs.runner, 'macos')
+      if: inputs.native == 'true' && inputs.target == 'darwin-arm64' && startsWith(inputs.runner, 'macos')
       shell: bash
       run: |
         if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
@@ -85,13 +85,13 @@ runs:
     # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin. Only needed if the host is linux.
     - name: Install ziglang
       uses: goto-bus-stop/setup-zig@v1
-      if: inputs.native && startsWith(inputs.runner, 'ubuntu')
+      if: inputs.native == 'true' && startsWith(inputs.runner, 'ubuntu')
       with:
         version: 0.13.0
 
     - name: Install cargo toolchains
       uses: taiki-e/install-action@v2
-      if: inputs.native && startsWith(inputs.runner, 'ubuntu')
+      if: inputs.native == 'true' && startsWith(inputs.runner, 'ubuntu')
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
@@ -99,7 +99,7 @@ runs:
 
     - name: Print build environment setup
       shell: bash
-      if: inputs.native
+      if: inputs.native == 'true'
       run: |
         node --version
         pnpm --version
