@@ -66,14 +66,16 @@ runs:
         export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
         
         
-    # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin
+    # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin. Only needed if the host is linux.
     - name: Install ziglang
       uses: goto-bus-stop/setup-zig@v1
+      if: startsWith(inputs.runner, 'ubuntu')
       with:
         version: 0.13.0
 
     - name: Install cargo toolchains
       uses: taiki-e/install-action@v2
+      if: startsWith(inputs.runner, 'ubuntu')
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
