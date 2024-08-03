@@ -49,6 +49,7 @@ runs:
     - name: Get target triple from package name
       id: get-target-triple
       shell: bash
+      if: inputs.native
       run: |
         TRIPLE=$(pnpm intl-cli util package-triple ${{inputs.target}});
         echo "Mapped ${{inputs.target}} to $TRIPLE"
