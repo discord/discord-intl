@@ -3,15 +3,22 @@ name: Build intl-message-database
 on:
   workflow_call:
     inputs:
-      target: # Platform package name that maps to a Rust target triple
+      target:
+        description: "Platform package name that maps to a Rust target triple."
         required: true
         type: string
-      runner: # What os/version to run this workflow on.
+      runner:
+        description: "Which os/version to run this workflow on."
         required: true
         type: string
-      ref: # Git reference to checkout
+      ref:
+        description: "Git reference to checkout."
         required: false
         type: string
+      publish:
+        required: true
+        description: "Whether this build should get published to npm."
+        type: boolean
 
 env:
   # This should ensure that the mac packages are allowed to run on all
@@ -45,8 +52,9 @@ jobs:
           pnpm intl-cli db build --target ${{inputs.target}}
 
       - name: Publish @discord/intl-message-database-${{inputs.target}}
+        if: inputs.publish
         run: |
-          pnpm intl-cli db publish --dry-run --target ${{inputs.target}}
+          pnpm intl-cli db publish --target ${{inputs.target}}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
