@@ -1,7 +1,5 @@
-import path from 'node:path';
-
 import { $ } from 'zx';
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 
 /**
  * Create a `publish` command, used to publish an NPM package from the configured directory.
@@ -17,9 +15,19 @@ import { Command } from 'commander';
 export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
   return new Command(commandName)
     .option('--dry-run', "Don't actually publish the package")
+    .option(
+      '--tag',
+      'Tag to additionally apply to the published package. Defaults to `latest`.',
+      'latest',
+    )
+    .addOption(
+      new Option('--access', 'Whether this is publishing a public or private package.')
+        .default('public')
+        .choices(['public', 'restricted']),
+    )
     .description('Publish this package to npm')
-    .action(async ({ dryRun }) => {
-      await npmPublish(pack, { dryRun });
+    .action(async ({ dryRun, access }) => {
+      await npmPublish(pack, { dryRun, access });
     });
 }
 
@@ -28,13 +36,13 @@ export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
  * @param {import('./pnpm.js').PnpmPackage} pack
  * @param {{
  *   dryRun?: boolean,
- *   access?: boolean,
+ *   access?: 'public' | 'restricted',
  * }} options
  */
 export async function npmPublish(pack, { dryRun, access }) {
   const dryRunArg = dryRun ? '--dry-run' : '';
   const accessArg = access != null ? `--access=${access}` : '';
-  // setup-node on CI will create a new `.npmrc` with an auth token on it already...which means the
+  // CI setup will create an `.npmrc` file and also modify the `rust-toolchain.toml`, meaning the
   // git state won't be clean, which is _required_ for publishing to npm by default. So we have to
   // explicitly disable that check. Would really rather not do this to enforce that no other git
   // changes leak into releases, but oh well for now.

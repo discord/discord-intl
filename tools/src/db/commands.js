@@ -5,7 +5,10 @@ import { npmPublish, npmPublishCommand } from '../npm.js';
 import { getPackage } from '../pnpm.js';
 import { buildNapiPackage, NAPI_TARGET_MAP } from '../napi.js';
 
-const targetOption = new Option('--target <target>')
+const targetOption = new Option(
+  '--target <target>',
+  'Which platform package to build for natively.',
+)
   .choices(Object.keys(NAPI_TARGET_MAP))
   .makeOptionMandatory(true);
 
