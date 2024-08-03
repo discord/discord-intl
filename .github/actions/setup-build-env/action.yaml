@@ -19,7 +19,7 @@ inputs:
 
 outputs:
   target-triple:
-    value: ${{ jobs.get-target-triple.outputs.triple }}
+    value: ${{ steps.get-target-triple.outputs.triple }}
     description: "The Rust target triple that applies for the `target` input platform package."
 
 runs:
