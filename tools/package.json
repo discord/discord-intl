@@ -14,6 +14,10 @@
   "dependencies": {
     "@napi-rs/cli": "3.0.0-alpha.62",
     "commander": "^12.1.0",
+    "semver": "^7.6.3",
     "zx": "^8.1.4"
+  },
+  "devDependencies": {
+    "@types/semver": "^7.5.8"
   }
 }

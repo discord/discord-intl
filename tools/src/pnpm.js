@@ -1,4 +1,8 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 import { $ } from 'zx';
+
 import { REPO_ROOT } from './constants.js';
 
 /**
@@ -44,4 +48,30 @@ export async function getWorkspacePackages(options = {}) {
 export async function getPackage(packageName) {
   const packages = await getWorkspacePackages();
   return packages[packageName];
+}
+
+/**
+ * Return the package json content for the given package.
+ * @param {PnpmPackage} pack
+ * @returns {Promise<object>}
+ */
+export async function getPackageJson(pack) {
+  const packageJsonPath = path.resolve(pack.path, 'package.json');
+  const content = await fs.readFile(packageJsonPath);
+  return JSON.parse(content.toString());
+}
+
+/**
+ * Parse the existing package.json for the given package, send it to the provided callback, then
+ * write the result back to the package.json file.
+ *
+ * @param {PnpmPackage} pack
+ * @param {<T extends object>(json: T) => T | Promise<T>} mutator
+ * @returns {Promise<object>}
+ */
+export async function updatePackageJson(pack, mutator) {
+  const content = await getPackageJson(pack);
+  const updated = await mutator(content);
+  await fs.writeFile(path.resolve(pack.path, 'package.json'), JSON.stringify(updated, null, 2));
+  return updated;
 }

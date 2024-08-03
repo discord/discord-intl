@@ -10,7 +10,7 @@ on:
       publish:
         required: true
         type: boolean
-        description: "Whether to publish this release to npm"
+        description: "Publish to NPM?"
 
 
 permissions:
@@ -44,3 +44,38 @@ jobs:
       ref: ${{inputs.commit}}
       publish: ${{inputs.publish}}
     secrets: inherit
+
+  release:
+    name: Release and Publish (${{inputs.release-level}})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # To publish packages with provenance
+      id-token: write
+    if: inputs.publish
+    steps:
+      - name: Setup Build Env
+        uses: ./.github/actions/setup-build-env
+        with:
+          js-only: true
+          ref: ${{ inputs.ref }}
+          target: any
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ~/artifacts
+
+      - name: Move build artifacts into packages
+        run: |
+          pnpm intl-cli util move-gh-artifacts --path ~/artifacts
+
+      - name: Check package versions
+        run: |
+          pnpm intl-cli db version-check
+
+      - name: Publish all @discord/intl-message-database* packages
+        run: |
+          pnpm intl-cli db publish-all --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

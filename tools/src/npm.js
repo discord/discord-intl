@@ -20,46 +20,44 @@ export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
       'Tag to additionally apply to the published package. Defaults to `latest`.',
       'latest',
     )
+    .option('--provenance', 'Use provenance when publishing the package.')
     .addOption(
       new Option('--access', 'Whether this is publishing a public or private package.')
         .default('public')
         .choices(['public', 'restricted']),
     )
     .description('Publish this package to npm')
-    .action(async ({ dryRun, access }) => {
-      await npmPublish(pack, { dryRun, access });
+    .action(async (options) => {
+      await npmPublish(pack, options);
     });
 }
 
 /**
- * Run `pnpm publish` using the given executor.
+ * Run `pnpm publish` with the given arguments.
+ *
  * @param {import('./pnpm.js').PnpmPackage} pack
  * @param {{
  *   dryRun?: boolean,
  *   access?: 'public' | 'restricted',
+ *   useProvenance?: boolean,
  * }} options
  */
-export async function npmPublish(pack, { dryRun, access }) {
-  const dryRunArg = dryRun ? '--dry-run' : '';
-  const accessArg = access != null ? `--access=${access}` : '';
-  // CI setup will create an `.npmrc` file and also modify the `rust-toolchain.toml`, meaning the
-  // git state won't be clean, which is _required_ for publishing to npm by default. So we have to
-  // explicitly disable that check. Would really rather not do this to enforce that no other git
-  // changes leak into releases, but oh well for now.
-  const gitChecksArg = process.env.CI === 'true' ? '--no-git-checks' : '';
-
-  // Avoid even trying to publish a version that already exists.
-  if (await isVersionAlreadyPublished(pack)) {
-    console.error(
-      `${pack.name}@${pack.version} is already published to npm. Refusing to continue publishing`,
-    );
-    process.exit(1);
-  }
+export async function npmPublish(pack, { dryRun, access, useProvenance }) {
+  const publishArgs = [
+    dryRun ? '--dry-run' : undefined,
+    access != null ? `--access=${access}` : undefined,
+    // CI setup will create an `.npmrc` file and also modify the `rust-toolchain.toml`, meaning the
+    // git state won't be clean, which is _required_ for publishing to npm by default. So we have to
+    // explicitly disable that check. Would really rather not do this to enforce that no other git
+    // changes leak into releases, but oh well for now.
+    process.env.CI === 'true' ? '--no-git-checks' : undefined,
+    useProvenance ? '--provenance' : undefined,
+  ].filter(Boolean);
 
   await $({
     cwd: pack.path,
     stdio: 'inherit',
-  })`pnpm publish ${dryRunArg} ${accessArg} ${gitChecksArg}`;
+  })`pnpm publish ${publishArgs.join(' ')}`;
 }
 
 /**

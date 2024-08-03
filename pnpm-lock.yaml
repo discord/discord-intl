@@ -76,12 +76,21 @@ importers:
       '@discord/intl-message-database-darwin-x64':
         specifier: workspace:*
         version: link:npm/darwin-x64
+      '@discord/intl-message-database-linux-arm64-gnu':
+        specifier: workspace:*
+        version: link:npm/linux-arm64-gnu
+      '@discord/intl-message-database-linux-arm64-musl':
+        specifier: workspace:*
+        version: link:npm/linux-arm64-musl
       '@discord/intl-message-database-linux-x64-gnu':
         specifier: workspace:*
         version: link:npm/linux-x64-gnu
-      '@discord/intl-message-database-local':
+      '@discord/intl-message-database-linux-x64-musl':
         specifier: workspace:*
-        version: link:npm/local
+        version: link:npm/linux-x64-musl
+      '@discord/intl-message-database-win32-arm64-msvc':
+        specifier: workspace:*
+        version: link:npm/win32-arm64-msvc
       '@discord/intl-message-database-win32-ia32-msvc':
         specifier: workspace:*
         version: link:npm/win32-ia32-msvc
@@ -104,8 +113,6 @@ importers:
   intl_message_database/npm/linux-x64-gnu: {}
 
   intl_message_database/npm/linux-x64-musl: {}
-
-  intl_message_database/npm/local: {}
 
   intl_message_database/npm/win32-arm64-msvc: {}
 
@@ -148,9 +155,16 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      semver:
+        specifier: ^7.6.3
+        version: 7.6.3
       zx:
         specifier: ^8.1.4
         version: 8.1.4
+    devDependencies:
+      '@types/semver':
+        specifier: ^7.5.8
+        version: 7.5.8
 
 packages:
 
@@ -907,6 +921,9 @@ packages:
 
   '@types/responselike@1.0.3':
     resolution: {integrity: sha512-H/+L+UkTV33uf49PH5pCAUBVPNj2nDBXTN+qS1dOwyyg24l3CcicicCA7ca+HMvJBZcFgl5r8e+RR6elsb4Lyw==}
+
+  '@types/semver@7.5.8':
+    resolution: {integrity: sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==}
 
   '@types/wrap-ansi@3.0.0':
     resolution: {integrity: sha512-ltIpx+kM7g/MLRZfkbL7EsCEjfzCcScLpkg37eXEtx5kmrAKBkTJwd1GIAjDSL8wTpM6Hzn5YO4pSb91BEwu1g==}
@@ -2677,6 +2694,8 @@ snapshots:
   '@types/responselike@1.0.3':
     dependencies:
       '@types/node': 22.0.0
+
+  '@types/semver@7.5.8': {}
 
   '@types/wrap-ansi@3.0.0': {}
 

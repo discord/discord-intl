@@ -40,6 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/download-artifact@v4
+
+
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
         with:
@@ -51,16 +54,10 @@ jobs:
         run: |
           pnpm intl-cli db build --target ${{inputs.target}}
 
-      - name: Publish @discord/intl-message-database-${{inputs.target}}
-        if: inputs.publish
-        run: |
-          pnpm intl-cli db publish --target ${{inputs.target}}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Upload artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: intl-message-database-${{ inputs.target }}
-          path: intl_message_database/npm/${{ inputs.target }}/**
+          name: intl-message-database.${{inputs.target}}.node
+          path: intl_message_database/npm/${{inputs.target}}/intl-message-database.${inputs.target}}.node
+          if-no-files-found: error

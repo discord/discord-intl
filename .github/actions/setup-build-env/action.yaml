@@ -14,8 +14,15 @@ inputs:
     type: string
   runner:
     description: "Name of the runner image this action is running on"
-    required: true
+    required: false
+    default: 'ubuntu-latest'
     type: string
+  js-only:
+    description: "Only set up the environment for working with JS tools. If a build doesn't need rust, set this to `true`."
+    required: false
+    default: false
+    type: boolean
+
 
 outputs:
   target-triple:
@@ -44,16 +51,18 @@ runs:
     # Rust toolchains
     - name: Install Rust Toolchain
       uses: ./.github/actions/rustup
+      if: inputs.js-only == false
       with:
         save-cache: ${{ github.ref_name == 'main' }}
         shared-key: build-${{ steps.get-target-triple.outputs.triple }}-${{ inputs.runner }}
 
     - name: Setup Rust Target
+      if: inputs.js-only == false
       shell: bash
       run: rustup target add ${{ steps.get-target-triple.outputs.triple }}
 
     - name: Setup Apple Silicon Compilation Flags
-      if: inputs.target == 'darwin-arm64' && startsWith(inputs.runner, 'macos')
+      if: inputs.js-only == false && inputs.target == 'darwin-arm64' && startsWith(inputs.runner, 'macos')
       shell: bash
       run: |
         if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
@@ -69,13 +78,13 @@ runs:
     # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin. Only needed if the host is linux.
     - name: Install ziglang
       uses: goto-bus-stop/setup-zig@v1
-      if: startsWith(inputs.runner, 'ubuntu')
+      if: inputs.js-only == false && startsWith(inputs.runner, 'ubuntu')
       with:
         version: 0.13.0
 
     - name: Install cargo toolchains
       uses: taiki-e/install-action@v2
-      if: startsWith(inputs.runner, 'ubuntu')
+      if: inputs.js-only == false && startsWith(inputs.runner, 'ubuntu')
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
@@ -83,5 +92,8 @@ runs:
 
     - name: Print build environment setup
       shell: bash
+      if: inputs.js-only == false
       run: |
+        node --version
+        pnpm --version
         rustc --version --verbose

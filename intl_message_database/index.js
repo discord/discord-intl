@@ -6,8 +6,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const USE_LOCAL_DEV = process.env.INTL_LOCAL_DEV === 'true';
-
 function isMusl() {
   // For Node 10
   if (!process.report || typeof process.report.getReport !== 'function') {
@@ -52,8 +50,6 @@ const arch = process.arch;
  * @returns {string}
  */
 function getPackageName() {
-  if (USE_LOCAL_DEV) return 'local';
-
   if (!(platform in PACKAGE_NAMES)) {
     throw new Error(`Unsupported OS: ${platform}`);
   }

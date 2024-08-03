@@ -1,9 +1,10 @@
-import { Command, Option } from 'commander';
-import { $ } from 'zx';
+import { Argument, Command, Option } from 'commander';
+import semver from 'semver';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
 import { getPackage } from '../pnpm.js';
 import { buildNapiPackage, NAPI_TARGET_MAP } from '../napi.js';
+import { bumpAllVersions, checkAllVersionsEqual, getSubPackages } from './versioning.js';
 
 const targetOption = new Option(
   '--target <target>',
@@ -12,8 +13,10 @@ const targetOption = new Option(
   .choices(Object.keys(NAPI_TARGET_MAP))
   .makeOptionMandatory(true);
 
+const DB_PACKAGE_NAME = '@discord/intl-message-database';
+
 export default async function () {
-  const dbPackage = await getPackage('@discord/intl-message-database');
+  const dbPackage = await getPackage(DB_PACKAGE_NAME);
 
   const group = new Command('db')
     .aliases(['intl-message-database'])
@@ -27,6 +30,35 @@ export default async function () {
       await buildNapiPackage(dbPackage, target);
     });
 
+  group
+    .command('version')
+    .description('Bump the version of all packages around intl-message-database')
+    .addArgument(
+      new Argument('<level>', 'Which level of version to bump').choices(
+        ['rc', 'canary', 'set'].concat(semver.RELEASE_TYPES.concat()),
+      ),
+    )
+    .argument(
+      '[explicit]',
+      'When `level` is `set`, this explicit version will be applied to all packages',
+    )
+    .action(async (level, explicit) => {
+      if (level === 'set') {
+        level = { explicit };
+      }
+      await bumpAllVersions(dbPackage, level);
+    });
+
+  group
+    .command('version-check')
+    .description('Checks that all included packages are currently set to the same version.')
+    .action(async () => {
+      const allEqual = await checkAllVersionsEqual(dbPackage);
+      if (!allEqual) {
+        process.exit(1);
+      }
+    });
+
   group.addCommand(
     npmPublishCommand(dbPackage)
       .addOption(targetOption)
@@ -34,6 +66,20 @@ export default async function () {
       .action(async (options) => {
         const targetPackage = await getPackage(`@discord/intl-message-database-${options.target}`);
         await npmPublish(targetPackage, options);
+      }),
+  );
+
+  group.addCommand(
+    npmPublishCommand(dbPackage, { commandName: 'publish-all' })
+      .description(
+        'Publish all packages under intl-message-database. Prefer this command in most situations',
+      )
+      .action(async (options) => {
+        await checkAllVersionsEqual(dbPackage);
+        const packages = [dbPackage, ...(await getSubPackages(dbPackage))];
+        for (const pack of packages) {
+          await npmPublish(pack, options);
+        }
       }),
   );
 

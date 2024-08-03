@@ -1,7 +1,7 @@
 {
   "name": "@discord/intl-message-database",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.2-rc.0",
   "license": "MIT",
   "description": "Rust-based Node extension module for parsing, extracting, and managing messages and translations across a project.",
   "author": "Jon Egeland",
@@ -15,8 +15,11 @@
   "optionalDependencies": {
     "@discord/intl-message-database-darwin-arm64": "workspace:*",
     "@discord/intl-message-database-darwin-x64": "workspace:*",
+    "@discord/intl-message-database-linux-arm64-gnu": "workspace:*",
+    "@discord/intl-message-database-linux-arm64-musl": "workspace:*",
     "@discord/intl-message-database-linux-x64-gnu": "workspace:*",
-    "@discord/intl-message-database-local": "workspace:*",
+    "@discord/intl-message-database-linux-x64-musl": "workspace:*",
+    "@discord/intl-message-database-win32-arm64-msvc": "workspace:*",
     "@discord/intl-message-database-win32-ia32-msvc": "workspace:*",
     "@discord/intl-message-database-win32-x64-msvc": "workspace:*"
   },
