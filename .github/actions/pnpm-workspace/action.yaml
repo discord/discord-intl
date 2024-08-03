@@ -1,5 +1,8 @@
-name: pnpm workspace
-description: Install NodeJS and pnpm on the system, then install dependencies for the whole workspace.
+name: Node/pnpm workspace setup
+
+description: |
+  Install NodeJS and pnpm on the system, then install dependencies for the whole workspace. Any pnpm
+  command in the repository can be run after this action has completed.
 
 inputs:
   node-version:
@@ -18,55 +21,21 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ inputs.node-version }}
-
-    # https://pnpm.io/continuous-integration#github-actions
+    # Install pnpm _first_ so that the setup-node action can use it for
+    # restoring the cache.
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
         version: 9
-        dest: ${{ runner.tool_cache }}/pnpm
-        # Use `@pnpm/exe` for Node 16
-        standalone: ${{ inputs.node-version == '16' }}
+        # Don't install dependencies immediately, the node action below will
+        # handle it and load from a cache appropriately.
+        run_install: false
 
-    - name: Get pnpm store directory
-      id: pnpm-cache
-      shell: bash
-      run: |
-        # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
-        global_store_path=$(pnpm config get store-dir)
-        if [ -z "${global_store_path}" ] || [ "${global_store_path}" = "undefined" ]; then
-          global_store_path=~/.cache/pnpm
-        fi
-        pnpm config set store-dir $global_store_path/$(pnpm -v) --location project
-        echo "STORE_PATH is $(pnpm store path)"
-        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-    - name: Restore pnpm cache
-      id: restore
-      if: ${{ startsWith(runner.name, 'GitHub Actions') }}
-      uses: actions/cache/restore@v4
+    - name: Install Node.js
+      uses: actions/setup-node@v4
       with:
-        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          node-cache-${{ runner.os }}-pnpm-
-
-    - name: Install dependencies
-      shell: bash
-      run: |
-        if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
-          pnpm install --frozen-lockfile --prefer-offline
-        else
-          pnpm install --no-frozen-lockfile --prefer-offline
-        fi
-
-    - name: Save pnpm cache
-      uses: actions/cache/save@v4
-      if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
-      with:
-        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+        node-version: ${{ inputs.node-version }}
+        # registry-url has to be set for the generated .npmrc to authenticate
+        # and allow publishing.
+        registry-url: 'https://registry.npmjs.org/'
+        cache: pnpm
