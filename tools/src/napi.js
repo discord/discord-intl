@@ -38,7 +38,12 @@ export async function buildNapiPackage(pack, platformPackage) {
   const buildResult = await napiCli.build({
     cwd: pack.path,
     target: targetTriple,
-    crossCompile: hostPlatform !== target.platform || hostArch !== target.arch,
+    crossCompile:
+      hostPlatform !== target.platform ||
+      hostArch !== target.arch ||
+      // We're always gonna be building on a gnu host for linux, so if the target abi is different,
+      // then we'll need to cross-compile.
+      (target.platform === 'linux' && target.abi !== 'gnu'),
     platform: true,
     profile: 'release',
     // We've re-written the js binding to be a lot smaller and not have implicit TS errors.
