@@ -19,6 +19,7 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "10.13"
   DEBUG: "napi:*"
   CI: "true"
+  XWIN_CACHE_DIR: ${{ github.workspace }}/.xwin
 
 jobs:
   build:
@@ -30,11 +31,7 @@ jobs:
     outputs:
       runner-labels: ${{ steps.upload-artifact.outputs.runner-labels || inputs.runner }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-          clean: true
+      - uses: actions/checkout@v4
 
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
@@ -49,7 +46,6 @@ jobs:
 
       - name: Publish @discord/intl-message-database-${{inputs.target}}
         run: |
-          git status
           pnpm intl-cli db publish --dry-run --target ${{inputs.target}}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

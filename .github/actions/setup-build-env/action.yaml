@@ -53,7 +53,7 @@ runs:
       run: rustup target add ${{ steps.get-target-triple.outputs.triple }}
 
     - name: Setup Apple Silicon Compilation Flags
-      if: ${{ inputs.target == 'darwin-arm64' }}
+      if: inputs.target == 'darwin-arm64' && startsWith(inputs.runner, 'macos')
       shell: bash
       run: |
         if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
@@ -78,3 +78,8 @@ runs:
         GITHUB_TOKEN: ${{ github.token }}
       with:
         tool: cargo-zigbuild,cargo-xwin
+
+    - name: Print build environment setup
+      shell: bash
+      run: |
+        rustc --version --verbose
