@@ -47,6 +47,7 @@ jobs:
 
   release:
     name: Release and Publish (${{inputs.release-level}})
+    needs: [build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -54,6 +55,8 @@ jobs:
       id-token: write
     if: inputs.publish
     steps:
+      - uses: actions/checkout@v4
+
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
         with:
