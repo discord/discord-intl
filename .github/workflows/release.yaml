@@ -60,7 +60,7 @@ jobs:
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
         with:
-          js-only: true
+          native: false
           ref: ${{ inputs.ref }}
           target: any
 

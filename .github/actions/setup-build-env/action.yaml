@@ -17,10 +17,15 @@ inputs:
     required: false
     default: 'ubuntu-latest'
     type: string
-  js-only:
-    description: "Only set up the environment for working with JS tools. If a build doesn't need rust, set this to `true`."
+  native:
+    description: "Install native dependencies. Only needed for building Rust. True by default"
     required: false
-    default: false
+    default: true
+    type: boolean
+  js:
+    description: "Install JS dependencies. True by default."
+    required: false
+    default: true
     type: boolean
 
 
@@ -35,6 +40,7 @@ runs:
     # Node/pnpm
     - name: Node + pnpm cache
       uses: ./.github/actions/pnpm-workspace
+      if: inputs.js
       with:
         frozen-lockfile: true
         save-if: ${{ github.ref_name == 'main' }}
@@ -51,18 +57,18 @@ runs:
     # Rust toolchains
     - name: Install Rust Toolchain
       uses: ./.github/actions/rustup
-      if: ${{!inputs.js-only}}
+      if: inputs.native
       with:
         save-cache: ${{ github.ref_name == 'main' }}
         shared-key: build-${{ steps.get-target-triple.outputs.triple }}-${{ inputs.runner }}
 
     - name: Setup Rust Target
-      if: ${{!inputs.js-only}}
+      if: inputs.native
       shell: bash
       run: rustup target add ${{ steps.get-target-triple.outputs.triple }}
 
     - name: Setup Apple Silicon Compilation Flags
-      if: inputs.target == 'darwin-arm64' && startsWith(inputs.runner, 'macos') && !inputs.js-only
+      if: inputs.native && inputs.target == 'darwin-arm64' && startsWith(inputs.runner, 'macos')
       shell: bash
       run: |
         if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
@@ -78,13 +84,13 @@ runs:
     # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin. Only needed if the host is linux.
     - name: Install ziglang
       uses: goto-bus-stop/setup-zig@v1
-      if: startsWith(inputs.runner, 'ubuntu') && !inputs.js-only
+      if: inputs.native && startsWith(inputs.runner, 'ubuntu')
       with:
         version: 0.13.0
 
     - name: Install cargo toolchains
       uses: taiki-e/install-action@v2
-      if: startsWith(inputs.runner, 'ubuntu') && !inputs.js-only
+      if: inputs.native && startsWith(inputs.runner, 'ubuntu')
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
@@ -92,7 +98,7 @@ runs:
 
     - name: Print build environment setup
       shell: bash
-      if: ${{!inputs.js-only}}
+      if: inputs.native
       run: |
         node --version
         pnpm --version
