@@ -34,6 +34,11 @@ export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
 export async function npmPublish(pack, { dryRun, access }) {
   const dryRunArg = dryRun ? '--dry-run' : '';
   const accessArg = access != null ? `--access=${access}` : '';
+  // setup-node on CI will create a new `.npmrc` with an auth token on it already...which means the
+  // git state won't be clean, which is _required_ for publishing to npm by default. So we have to
+  // explicitly disable that check. Would really rather not do this to enforce that no other git
+  // changes leak into releases, but oh well for now.
+  const gitChecksArg = process.env.CI === 'true' ? '--no-git-checks' : '';
 
   // Avoid even trying to publish a version that already exists.
   if (await isVersionAlreadyPublished(pack)) {
@@ -43,7 +48,10 @@ export async function npmPublish(pack, { dryRun, access }) {
     process.exit(1);
   }
 
-  await $({ cwd: pack.path, stdio: 'inherit' })`pnpm publish ${dryRunArg} ${accessArg}`;
+  await $({
+    cwd: pack.path,
+    stdio: 'inherit',
+  })`pnpm publish ${dryRunArg} ${accessArg} ${gitChecksArg}`;
 }
 
 /**

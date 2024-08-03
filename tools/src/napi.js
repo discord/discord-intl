@@ -31,7 +31,9 @@ export async function buildNapiPackage(pack, platformPackage) {
 
   // Windows has a new target version? Something? Setting this to a static 16 is the only way it
   // successfully builds right now.
-  process.env['XWIN_VERSION'] = '16';
+  if (target.platform === 'win32') {
+    process.env['XWIN_VERSION'] = '16';
+  }
 
   const buildResult = await napiCli.build({
     cwd: pack.path,

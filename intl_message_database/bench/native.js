@@ -48,7 +48,6 @@ bench('get a message', () => {
 
 bench('get source file', () => {
   const source = database.getSourceFile('./data/input/en-US.js');
-  console.log(source.messageKeys.length);
 });
 
 bench('validate', () => {
