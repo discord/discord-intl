@@ -21,21 +21,37 @@ inputs:
 runs:
   using: composite
   steps:
-    # Install pnpm _first_ so that the setup-node action can use it for
-    # restoring the cache.
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9
-        # Don't install dependencies immediately, the node action below will
-        # handle it and load from a cache appropriately.
-        run_install: false
-
     - name: Install Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        # registry-url has to be set for the generated .npmrc to authenticate
-        # and allow publishing.
         registry-url: 'https://registry.npmjs.org/'
-        cache: pnpm
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+        standalone: ${{ startsWith(inputs.node-version, '16') }}
+
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: |
+        # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
+        global_store_path=$(pnpm config get store-dir)
+        if [ -z "${global_store_path}" ] || [ "${global_store_path}" = "undefined" ]; then
+          global_store_path=~/.cache/pnpm
+        fi
+        pnpm config set store-dir $global_store_path/$(pnpm -v) --location project
+        echo "STORE_PATH is $(pnpm store path)"
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
+          pnpm install --frozen-lockfile --prefer-offline
+        else
+          pnpm install --no-frozen-lockfile --prefer-offline
+        fi
