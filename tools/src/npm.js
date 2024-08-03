@@ -8,32 +8,67 @@ import { Command } from 'commander';
  *
  * Additional options are added to the command for doing dry runs and other validation.
  *
- * @param {string} packageDirectory
+ * @param {import('./pnpm.js').PnpmPackage} pack
  * @param {{
  *   commandName?: string,
  * }=} options
  * @returns {Command}
  */
-export function npmPublishCommand(packageDirectory, { commandName = 'publish' } = {}) {
+export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
   return new Command(commandName)
     .option('--dry-run', "Don't actually publish the package")
     .description('Publish this package to npm')
     .action(async ({ dryRun }) => {
-      const executor = $({ cwd: path.resolve(packageDirectory), stdio: 'inherit' });
-      await npmPublish(executor, { dryRun });
+      await npmPublish(pack, { dryRun });
     });
 }
 
 /**
  * Run `pnpm publish` using the given executor.
- * @param {import('zx').Shell} executor
+ * @param {import('./pnpm.js').PnpmPackage} pack
  * @param {{
  *   dryRun?: boolean,
  *   access?: boolean,
  * }} options
  */
-export async function npmPublish(executor, { dryRun, access }) {
+export async function npmPublish(pack, { dryRun, access }) {
   const dryRunArg = dryRun ? '--dry-run' : '';
   const accessArg = access != null ? `--access=${access}` : '';
-  await executor`pnpm publish ${dryRunArg} ${accessArg}`;
+
+  // Avoid even trying to publish a version that already exists.
+  if (await isVersionAlreadyPublished(pack)) {
+    console.error(
+      `${pack.name}@${pack.version} is already published to npm. Refusing to continue publishing`,
+    );
+    process.exit(1);
+  }
+
+  await $({ cwd: pack.path, stdio: 'inherit' })`pnpm publish ${dryRunArg} ${accessArg}`;
+}
+
+/**
+ * Check if the configured version of a package is already published to NPM.
+ *
+ * @param {import('./pnpm.js').PnpmPackage} pack
+ * @returns {Promise<boolean>}
+ */
+export async function isVersionAlreadyPublished(pack) {
+  const response = await $({
+    nothrow: true,
+    quiet: true,
+  })`pnpm view ${pack.name} --json`;
+
+  const packageInfo = JSON.parse(response.stdout);
+
+  // pnpm view will error out if the package doesn't exist on NPM, but if there's a bad exit code
+  // and 404 _isn't_ in the output, then it's likely something else that went wrong.
+  if (response.exitCode !== 0) {
+    if (packageInfo['error']['code'] === 'E404') {
+      return false;
+    } else {
+      throw new Error(`Failed to fetch versions from npm for ${pack.name}`);
+    }
+  }
+
+  return packageInfo.versions.includes(pack.version);
 }

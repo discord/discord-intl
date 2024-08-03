@@ -2,12 +2,11 @@ import { Command, Option } from 'commander';
 import { $ } from 'zx';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
-import { TARGET_PACKAGES } from './index.js';
 import { getPackage } from '../pnpm.js';
-import { buildNapiPackage } from '../napi.js';
+import { buildNapiPackage, NAPI_TARGET_MAP } from '../napi.js';
 
 const targetOption = new Option('--target <target>')
-  .choices(Object.keys(TARGET_PACKAGES))
+  .choices(Object.keys(NAPI_TARGET_MAP))
   .makeOptionMandatory(true);
 
 export default async function () {
@@ -26,21 +25,17 @@ export default async function () {
     });
 
   group.addCommand(
-    npmPublishCommand('')
+    npmPublishCommand(dbPackage)
       .addOption(targetOption)
       .description('Publish a platform-specific package for intl-message-database to npm')
       .action(async (options) => {
         const targetPackage = await getPackage(`@discord/intl-message-database-${options.target}`);
-        const executor = $({
-          cwd: targetPackage.path,
-          stdio: 'inherit',
-        });
-        await npmPublish(executor, options);
+        await npmPublish(targetPackage, options);
       }),
   );
 
   group.addCommand(
-    npmPublishCommand(dbPackage.path, {
+    npmPublishCommand(dbPackage, {
       commandName: 'publish-root',
     }).description('Publish the root intl-message-database package to NPM'),
   );
