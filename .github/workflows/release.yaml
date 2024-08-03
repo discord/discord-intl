@@ -71,7 +71,7 @@ jobs:
 
       - name: Move build artifacts into packages
         run: |
-          pnpm intl-cli util move-gh-artifacts --path ~/artifacts
+          pnpm intl-cli util move-gh-artifacts ~/artifacts
 
       - name: Check package versions
         run: |
