@@ -6,6 +6,10 @@
   "author": "Jon Egeland",
   "main": "./index.js",
   "types": "./index.d.ts",
+  "files": [
+    "index.d.ts",
+    "index.js"
+  ],
   "scripts": {
     "build:debug": "cargo build",
     "test": "cargo test",
