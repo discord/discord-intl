@@ -22,7 +22,7 @@ export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
     )
     .option('--provenance', 'Use provenance when publishing the package.')
     .addOption(
-      new Option('--access', 'Whether this is publishing a public or private package.')
+      new Option('--access <access>', 'Whether this is publishing a public or private package.')
         .default('public')
         .choices(['public', 'restricted']),
     )
