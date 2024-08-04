@@ -54,12 +54,18 @@ export async function npmPublish(pack, { dryRun, access, useProvenance, gitCheck
     // explicitly disable that check. Would really rather not do this to enforce that no other git
     // changes leak into releases, but oh well for now.
     gitChecks ? '--git-checks' : '--no-git-checks',
-    useProvenance ? '--provenance' : undefined,
   ].filter(Boolean);
 
   await $({
     cwd: pack.path,
     stdio: 'inherit',
+    env: {
+      ...process.env,
+      // The `--provenance` flag doesn't seem to forward properly with pnpm, so use this env var
+      // instead to pass it through.
+      // See: https://github.com/pnpm/pnpm/issues/6607
+      NPM_CONFIG_PROVENANCE: useProvenance ? 'true' : 'false',
+    },
   })`pnpm publish ${publishArgs}`;
 }
 
