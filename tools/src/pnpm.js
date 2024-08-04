@@ -66,7 +66,7 @@ export async function getPackageJson(pack) {
  * write the result back to the package.json file.
  *
  * @param {PnpmPackage} pack
- * @param {<T extends object>(json: T) => T | Promise<T>} mutator
+ * @param {<T>(json: any) => T | Promise<T>} mutator
  * @returns {Promise<object>}
  */
 export async function updatePackageJson(pack, mutator) {

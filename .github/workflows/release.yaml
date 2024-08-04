@@ -12,9 +12,6 @@ on:
         type: boolean
         description: "Publish to NPM?"
 
-env:
-  CI: "true"
-
 permissions:
   # To publish packages with provenance
   id-token: write
@@ -81,6 +78,6 @@ jobs:
 
       - name: Publish all @discord/intl-message-database* packages
         run: |
-          pnpm intl-cli db publish-all --provenance --access public
+          pnpm intl-cli db publish-all --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

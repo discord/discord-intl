@@ -32,10 +32,10 @@ export default async function () {
 
   group
     .command('version')
-    .description('Bump the version of all packages around intl-message-database')
+    .description('Bump the version of all packages around intl-message-database.')
     .addArgument(
       new Argument('<level>', 'Which level of version to bump').choices(
-        ['rc', 'canary', 'set'].concat(semver.RELEASE_TYPES.concat()),
+        ['rc', 'canary', 'release', 'set'].concat(semver.RELEASE_TYPES.concat()),
       ),
     )
     .argument(
@@ -60,9 +60,9 @@ export default async function () {
     });
 
   group.addCommand(
-    npmPublishCommand(dbPackage)
-      .addOption(targetOption)
+    npmPublishCommand('publish-target')
       .description('Publish a platform-specific package for intl-message-database to npm')
+      .addOption(targetOption)
       .action(async (options) => {
         const targetPackage = await getPackage(`@discord/intl-message-database-${options.target}`);
         await npmPublish(targetPackage, options);
@@ -70,7 +70,7 @@ export default async function () {
   );
 
   group.addCommand(
-    npmPublishCommand(dbPackage, { commandName: 'publish-all' })
+    npmPublishCommand('publish-all')
       .description(
         'Publish all packages under intl-message-database. Prefer this command in most situations',
       )
@@ -84,9 +84,9 @@ export default async function () {
   );
 
   group.addCommand(
-    npmPublishCommand(dbPackage, {
-      commandName: 'publish-root',
-    }).description('Publish the root intl-message-database package to NPM'),
+    npmPublishCommand('publish-root').action(
+      async (options) => await npmPublish(dbPackage, options),
+    ),
   );
 
   return group;

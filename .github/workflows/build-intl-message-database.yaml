@@ -25,7 +25,6 @@ env:
   # supported macOS versions.
   MACOSX_DEPLOYMENT_TARGET: "10.13"
   DEBUG: "napi:*"
-  CI: "true"
   XWIN_CACHE_DIR: ${{ github.workspace }}/.xwin
 
 jobs:

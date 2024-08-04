@@ -2,17 +2,18 @@ import { $ } from 'zx';
 import { Command, Option } from 'commander';
 
 /**
- * Create a `publish` command, used to publish an NPM package from the configured directory.
+ * Create a bare `publish` command, with all of the flags used for passing to `npmPublish`
+ * separately. This command does not include any action by default, but the basic action can be
+ * implemented like:
  *
- * Additional options are added to the command for doing dry runs and other validation.
+ * ```typescript
+ * npmPublishCommand().action((options) => npmPublish(somePackage, options));
+ * ```
  *
- * @param {import('./pnpm.js').PnpmPackage} pack
- * @param {{
- *   commandName?: string,
- * }=} options
+ * @param {string=} commandName
  * @returns {Command}
  */
-export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
+export function npmPublishCommand(commandName = 'publish') {
   return new Command(commandName)
     .option('--dry-run', "Don't actually publish the package")
     .option(
@@ -21,15 +22,16 @@ export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
       'latest',
     )
     .option('--provenance', 'Use provenance when publishing the package.')
+    .option(
+      '--git-checks, --no-git-checks',
+      'Whether to enforce a clean git state before publishing.',
+    )
     .addOption(
       new Option('--access <access>', 'Whether this is publishing a public or private package.')
         .default('public')
         .choices(['public', 'restricted']),
     )
-    .description('Publish this package to npm')
-    .action(async (options) => {
-      await npmPublish(pack, options);
-    });
+    .description('Publish this package to npm');
 }
 
 /**
@@ -40,9 +42,10 @@ export function npmPublishCommand(pack, { commandName = 'publish' } = {}) {
  *   dryRun?: boolean,
  *   access?: 'public' | 'restricted',
  *   useProvenance?: boolean,
+ *   gitChecks?: boolean
  * }} options
  */
-export async function npmPublish(pack, { dryRun, access, useProvenance }) {
+export async function npmPublish(pack, { dryRun, access, useProvenance, gitChecks }) {
   const publishArgs = [
     dryRun ? '--dry-run' : undefined,
     access != null ? `--access=${access}` : undefined,
@@ -50,14 +53,14 @@ export async function npmPublish(pack, { dryRun, access, useProvenance }) {
     // git state won't be clean, which is _required_ for publishing to npm by default. So we have to
     // explicitly disable that check. Would really rather not do this to enforce that no other git
     // changes leak into releases, but oh well for now.
-    process.env.CI === 'true' ? '--no-git-checks' : undefined,
+    gitChecks ? '--git-checks' : '--no-git-checks',
     useProvenance ? '--provenance' : undefined,
   ].filter(Boolean);
 
   await $({
     cwd: pack.path,
     stdio: 'inherit',
-  })`pnpm publish ${publishArgs.join(' ')}`;
+  })`pnpm publish ${publishArgs}`;
 }
 
 /**

@@ -1,10 +1,10 @@
 import { getWorkspacePackages, updatePackageJson } from '../pnpm.js';
-import semver from 'semver';
+import semver, { SemVer } from 'semver';
 import { $ } from 'zx';
 
 /**
  * @typedef {import('../pnpm.js').PnpmPackage} PnpmPackage
- * @typedef {import('semver').ReleaseType | 'rc' | 'canary' | {explicit: string}} VersionSpec
+ * @typedef {import('semver').ReleaseType | 'rc' | 'release' | 'canary' | {explicit: string}} VersionSpec
  */
 
 /**
@@ -23,11 +23,16 @@ export async function getSubPackages(dbPackage) {
 
 /**
  *
- * @param {import('semver').SemVer | string} baseVersion
+ * @param {import('semver').SemVer} baseVersion
  * @param {VersionSpec} level
- * @returns {string | *}
+ * @returns {string}
  */
 function applyVersionBump(baseVersion, level) {
+  // Release versioning just removes any pre-release tags
+  if (level === 'release') {
+    return semver.coerce(baseVersion.version, { includePrerelease: false }).version;
+  }
+
   // RC creates a release candidate, which is just a prerelease version bump of whatever the
   // current version is.
   if (level === 'rc') {
@@ -43,7 +48,7 @@ function applyVersionBump(baseVersion, level) {
     case 'preminor':
     case 'prepatch':
     case 'prerelease':
-      return semver.inc(baseVersion, level, 'rc');
+      return baseVersion.inc(level, 'rc').version;
     case 'canary':
       return semver.inc(
         baseVersion,
@@ -52,7 +57,7 @@ function applyVersionBump(baseVersion, level) {
         false,
       );
     default:
-      return semver.inc(baseVersion, level);
+      return baseVersion.inc(level).version;
   }
 }
 
