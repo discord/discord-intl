@@ -19,10 +19,10 @@ keyless_json = { path = "../keyless_json" }
 napi = { version = "3.0.0-alpha.8", features = ["error_anyhow", "serde-json"] }
 napi-derive = "3.0.0-alpha.7"
 num_cpus = "1"
-rustc-hash = "1"
+rustc-hash = "2"
 serde = "1"
 serde_json = "1"
-string-interner = "0.15.0"
+string-interner = "0.17"
 swc_common = "0.33.25"
 swc_core = { version = "0.90.x", features = [
     "ecma_parser",
