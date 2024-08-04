@@ -12,6 +12,8 @@ on:
         type: boolean
         description: "Publish to NPM?"
 
+env:
+  CI: "true"
 
 permissions:
   # To publish packages with provenance
