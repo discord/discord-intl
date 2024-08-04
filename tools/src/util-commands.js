@@ -36,9 +36,13 @@ export default async function () {
         const nativeExtensionMatch = basename.match(/^intl-message-database\.(.*)\.node$/);
         if (nativeExtensionMatch != null) {
           const platform = nativeExtensionMatch[1];
+          // If the artifact was downloaded into a subfolder, then the actual artifact is inside of
+          // it and needs to be moved out.
+          const stats = await fs.stat(filePath);
+          const sourcePath = stats.isDirectory() ? path.join(filePath, basename) : filePath;
           const targetPath = path.join('intl_message_database', 'npm', platform, basename);
-          console.info('Moving', filePath, 'to', targetPath);
-          await fs.rename(filePath, targetPath);
+          console.info('Moving', sourcePath, 'to', targetPath);
+          await fs.rename(sourcePath, targetPath);
           continue;
         }
       }
