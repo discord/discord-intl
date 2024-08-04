@@ -289,13 +289,13 @@ impl Serialize for IcuDate {
     where
         S: Serializer,
     {
-        let has_format = self.format().is_some();
-        let len = if has_format { 3 } else { 2 };
+        let has_style = self.style().is_some();
+        let len = if has_style { 3 } else { 2 };
         let mut date = serializer.serialize_struct("IcuDate", len)?;
         date.serialize_field(fjs_types::TYPE, &FormatJsElementType::Date)?;
         date.serialize_field(fjs_types::VALUE, self.name())?;
-        if has_format {
-            date.serialize_field(fjs_types::STYLE, self.format().as_ref().unwrap())?;
+        if let Some(style) = self.style() {
+            date.serialize_field(fjs_types::STYLE, style.text())?;
         }
         date.end()
     }
@@ -306,13 +306,13 @@ impl Serialize for IcuTime {
     where
         S: Serializer,
     {
-        let has_format = self.format().is_some();
-        let len = if has_format { 3 } else { 2 };
+        let has_style = self.style().is_some();
+        let len = if has_style { 3 } else { 2 };
         let mut time = serializer.serialize_struct("IcuTime", len)?;
         time.serialize_field(fjs_types::TYPE, &FormatJsElementType::Time)?;
         time.serialize_field(fjs_types::VALUE, self.name())?;
-        if has_format {
-            time.serialize_field(fjs_types::STYLE, self.format().as_ref().unwrap())?;
+        if let Some(style) = self.style() {
+            time.serialize_field(fjs_types::STYLE, style.text())?;
         }
         time.end()
     }
@@ -323,13 +323,13 @@ impl Serialize for IcuNumber {
     where
         S: Serializer,
     {
-        let has_format = self.format().is_some();
-        let len = if has_format { 3 } else { 2 };
+        let has_style = self.style().is_some();
+        let len = if has_style { 3 } else { 2 };
         let mut number = serializer.serialize_struct("IcuNumber", len)?;
         number.serialize_field(fjs_types::TYPE, &FormatJsElementType::Number)?;
         number.serialize_field(fjs_types::VALUE, self.name())?;
-        if has_format {
-            number.serialize_field(fjs_types::STYLE, self.format().as_ref().unwrap())?;
+        if let Some(style) = self.style() {
+            number.serialize_field(fjs_types::STYLE, style.text())?;
         }
         number.end()
     }

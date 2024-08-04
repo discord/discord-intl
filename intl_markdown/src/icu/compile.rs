@@ -318,8 +318,8 @@ macro_rules! impl_from_for_icu_type {
                 let mut node = FormatJsSingleNode::default()
                     .with_type($ty)
                     .with_value(value.name());
-                if value.format().is_some() {
-                    node = node.with_style(value.format().as_ref().unwrap());
+                if value.style().is_some() {
+                    node = node.with_style(value.style().as_ref().unwrap().text());
                 }
                 node.into()
             }
@@ -356,7 +356,7 @@ impl<'a> From<&'a IcuVariable> for FormatJsNode<'a> {
 mod tests {
     use crate::parse_intl_message;
 
-    use super::{compile_to_format_js, FormatJsNode, FormatJsSingleNode};
+    use super::{compile_to_format_js, FormatJsElementType, FormatJsNode, FormatJsSingleNode};
 
     fn assert_formatjs_with_blocks(
         input_str: &str,
@@ -384,13 +384,16 @@ mod tests {
 
     macro_rules! lit {
         ($name:literal) => {
-            FormatJsNode::from(FormatJsSingleNode::literal($name))
+            FormatJsSingleNode::literal($name)
         };
     }
 
     macro_rules! var {
         ($name:literal) => {
-            FormatJsNode::from(FormatJsSingleNode::variable($name))
+            FormatJsSingleNode::variable($name)
+        };
+        ($name:literal, $ty:ident) => {
+            FormatJsSingleNode::variable($name).with_type(FormatJsElementType::$ty)
         };
     }
 
@@ -433,6 +436,22 @@ mod tests {
     #[test]
     fn icu_variables() {
         assert_formatjs("{username}", &list!(var!("username")));
+        assert_formatjs("{startDate, date}", &list!(var!("startDate", Date)));
+        assert_formatjs(
+            "{startDate, date, medium}",
+            &list!(var!("startDate", Date).with_style("medium")),
+        );
+        assert_formatjs("{postedAt, time}", &list!(var!("postedAt", Time)));
+        assert_formatjs(
+            "{postedAt, time, ::hmsGy  }",
+            &list!(var!("postedAt", Time).with_style("::hmsGy")),
+        );
+
+        assert_formatjs("{price, number}", &list!(var!("price", Number)));
+        assert_formatjs(
+            "{price, number,   ::.## sign-always currency/USD }",
+            &list!(var!("price", Number).with_style("::.## sign-always currency/USD")),
+        );
     }
 
     #[test]

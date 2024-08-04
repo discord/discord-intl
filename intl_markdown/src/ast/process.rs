@@ -566,7 +566,7 @@ pub fn process_icu_date(
 ) -> ast::IcuDate {
     ast::IcuDate {
         variable: process_icu_variable(context, &date.variable, is_unsafe),
-        format: None,
+        style: date.style.as_ref().map(process_icu_date_time_style),
         is_unsafe,
     }
 }
@@ -578,8 +578,14 @@ pub fn process_icu_time(
 ) -> ast::IcuTime {
     ast::IcuTime {
         variable: process_icu_variable(context, &time.variable, is_unsafe),
-        format: None,
+        style: time.style.as_ref().map(process_icu_date_time_style),
         is_unsafe,
+    }
+}
+
+pub fn process_icu_date_time_style(style: &cst::IcuDateTimeStyle) -> ast::IcuDateTimeStyle {
+    ast::IcuDateTimeStyle {
+        text: style.style_text.text().trim().into(),
     }
 }
 
@@ -590,8 +596,14 @@ pub fn process_icu_number(
 ) -> ast::IcuNumber {
     ast::IcuNumber {
         variable: process_icu_variable(context, &number.variable, is_unsafe),
-        format: None,
+        style: number.style.as_ref().map(process_icu_number_style),
         is_unsafe,
+    }
+}
+
+pub fn process_icu_number_style(style: &cst::IcuNumberStyle) -> ast::IcuNumberStyle {
+    ast::IcuNumberStyle {
+        text: style.style_text.text().trim().into(),
     }
 }
 

@@ -442,7 +442,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = " \n this paragraph has words\n";
+        let content = "{date, date}\n";
         let mut parser = ICUMarkdownParser::new(content, true);
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
 

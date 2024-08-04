@@ -196,9 +196,10 @@ pub enum SyntaxKind {
     ICU_IDENT,           // Any user-created identifier, used for variable names.
     ICU_PLURAL_CATEGORY, // `one`, `zero`, `other`, etc. in a plural or select ordinal.
     ICU_PLURAL_EXACT,    // Exact value match in a plural block, like `=0`.
-    ICU_DATE_KEYWORD,    // `short`, `medium`, and `long` as a date format.
-    ICU_DATE_SKELETON,   // Precise date skeletons, like `HH:MM:SS`.
-    ICU_NUMBER_SKELETON, // Precise number skeletons, like `###.##`.
+    ICU_STYLE_ARGUMENT,  // Any third argument to a number, date, or time variable.
+    ICU_STYLE_TEXT,      // The text token of the ICU_STYLE_ARGUMENT node above.
+    ICU_DATE_TIME_STYLE, // Either a keyword like `short` or a skeleton like `::hmsGy`
+    ICU_NUMBER_STYLE,    // A number style argument, almost always a skeleton like `::.##`.
     // ICU Nodes
     ICU_DATE,        // {var, date} or {var, date, format}
     ICU_TIME,        // {var, time} or {var, time, format}

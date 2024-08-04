@@ -70,34 +70,61 @@ fn parse_complex_icu_placeholder(p: &mut ICUMarkdownParser) -> Option<SyntaxKind
 fn parse_icu_date(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
     p.expect_with_context(SyntaxKind::ICU_DATE_KW, LexContext::Icu)?;
     p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
-    // TODO: Support format args here
-    // if p.at(SyntaxKind::COMMA) {
-    //     p.bump_with_context(LexContext::Icu);
-    //     p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
-    // }
+    parse_optional_icu_style_argument(p, SyntaxKind::ICU_DATE);
     Some(SyntaxKind::ICU_DATE)
 }
 
 fn parse_icu_time(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
     p.expect_with_context(SyntaxKind::ICU_TIME_KW, LexContext::Icu)?;
     p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
-    // TODO: Support format args here
-    // if p.at(SyntaxKind::COMMA) {
-    //     p.bump_with_context(LexContext::Icu);
-    //     p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
-    // }
+    parse_optional_icu_style_argument(p, SyntaxKind::ICU_TIME);
     Some(SyntaxKind::ICU_TIME)
 }
 
 fn parse_icu_number(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
     p.expect_with_context(SyntaxKind::ICU_NUMBER_KW, LexContext::Icu)?;
     p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
-    // TODO: Support format args here
-    // if p.at(SyntaxKind::COMMA) {
-    //     p.bump_with_context(LexContext::Icu);
-    //     p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
-    // }
+    parse_optional_icu_style_argument(p, SyntaxKind::ICU_NUMBER);
     Some(SyntaxKind::ICU_NUMBER)
+}
+
+/// FormatJS's interpretation of the style argument is _very_ loose. It can be completely invalid
+/// and have no meaning whatsoever, but still be accepted and treated as a variable. This is a
+/// _loose_ parse, which is separate from a _recovered_ parse. To implement that, we can try to
+/// parse out the details of the style argument (and should, eventually, to help with
+/// validations), but we can also just assume "anything until the closing brace" will create a
+/// valid style argument, the same way that FormatJS does, and let the runtime figure it out
+/// instead.
+///
+/// In the future, this can be expanded and split into appropriate parsing for both number and
+/// date/time styles, with a fallback to plain text for both.
+#[inline(always)]
+fn parse_optional_icu_style_argument(
+    p: &mut ICUMarkdownParser,
+    parent_kind: SyntaxKind,
+) -> Option<()> {
+    // If there's no comma, then there's no style are and this can just return immediately.
+    if !p.at(SyntaxKind::COMMA) {
+        return None;
+    }
+
+    // Otherwise, open the style marker and consume that comma.
+    let style_mark = p.mark();
+    p.bump_with_context(LexContext::Icu);
+    p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
+    // This relex happens first so that any potentially-significant token that may be at the
+    // current position is un-lexed and treated as plain text instead. It has to happen as a relex
+    // because the IcuStyle context doesn't understand whitespace and wouldn't be able to skip
+    // trivia as expected if it was used in `skip_whitespace_as_trivia_with_context` above.
+    p.relex_with_context(LexContext::IcuStyle);
+
+    p.expect_with_context(SyntaxKind::ICU_STYLE_TEXT, LexContext::Icu)?;
+    let completed_kind = match parent_kind {
+        SyntaxKind::ICU_DATE | SyntaxKind::ICU_TIME => SyntaxKind::ICU_DATE_TIME_STYLE,
+        SyntaxKind::ICU_NUMBER => SyntaxKind::ICU_NUMBER_STYLE,
+        _ => unreachable!(),
+    };
+    style_mark.complete(p, completed_kind)
 }
 
 fn parse_icu_plural(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {

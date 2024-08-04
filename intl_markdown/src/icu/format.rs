@@ -1,10 +1,12 @@
-use crate::ast::util::{escape_body_text, escape_href};
-use crate::ast::{
-    BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
-    IcuPlural, IcuPluralArm, IcuPluralKind, IcuTime, IcuVariable, InlineContent, Link, LinkKind,
-    Paragraph, Strikethrough, Strong, TextOrPlaceholder,
-};
 use std::fmt::Write;
+
+use crate::ast::{
+    BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
+    IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuTime,
+    IcuVariable, InlineContent, Link, LinkKind, Paragraph, Strikethrough, Strong,
+    TextOrPlaceholder,
+};
+use crate::ast::util::{escape_body_text, escape_href};
 
 macro_rules! write {
     ($dst:expr, [$($arg:expr),+ $(,)?]) => {{
@@ -257,30 +259,30 @@ impl FormatIcuString for IcuPluralArm {
 
 impl FormatIcuString for IcuDate {
     fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
-        write!(f, [self.name(), ", date"])?;
-        if let Some(format) = self.format() {
-            write!(f, [", ", format])?;
-        }
-        Ok(())
+        write!(f, [self.name(), ", date", self.style()])
     }
 }
 
 impl FormatIcuString for IcuTime {
     fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
-        write!(f, [self.name(), ", time"])?;
-        if let Some(format) = self.format() {
-            write!(f, [", ", format])?;
-        }
-        Ok(())
+        write!(f, [self.name(), ", time", self.style()])
+    }
+}
+
+impl FormatIcuString for IcuDateTimeStyle {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
+        write!(f, [", ", self.text()])
     }
 }
 
 impl FormatIcuString for IcuNumber {
     fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
-        write!(f, [self.name(), ", number"])?;
-        if let Some(format) = self.format() {
-            write!(f, [", ", format])?;
-        }
-        Ok(())
+        write!(f, [self.name(), ", number", self.style()])
+    }
+}
+
+impl FormatIcuString for IcuNumberStyle {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
+        write!(f, [", ", self.text()])
     }
 }
