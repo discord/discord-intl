@@ -1,5 +1,5 @@
 import { getWorkspacePackages, updatePackageJson } from '../pnpm.js';
-import semver, { SemVer } from 'semver';
+import semver from 'semver';
 import { $ } from 'zx';
 
 /**
@@ -9,12 +9,13 @@ import { $ } from 'zx';
 
 /**
  * Get all of the packages in the workspace that are related to intl-message-database, since they
- * should all be named `<prefix>-<extension>`.
+ * should all be named `<prefix>-<extension>`. The resulting array includes both the root package
+ * _and_ all of the sub-packages.
  *
  * @param {PnpmPackage} dbPackage
  * @returns {Promise<PnpmPackage[]>}
  */
-export async function getSubPackages(dbPackage) {
+export async function getPackageFamily(dbPackage) {
   return Object.entries(await getWorkspacePackages()).reduce((acc, [name, pack]) => {
     if (name.startsWith(dbPackage.name)) acc.push(pack);
     return acc;
@@ -92,7 +93,7 @@ export async function bumpAllVersions(dbPackage, level) {
     );
   }
   console.info(`Bumping all intl-message-database packages to ${bumpedVersion}`);
-  for (const pack of await getSubPackages(dbPackage)) {
+  for (const pack of await getPackageFamily(dbPackage)) {
     await updatePackageJson(pack, (json) => {
       json.version = bumpedVersion;
       return json;
@@ -107,7 +108,7 @@ export async function bumpAllVersions(dbPackage, level) {
  * @returns {Promise<boolean>}
  */
 export async function checkAllVersionsEqual(dbPackage) {
-  const subPackages = await getSubPackages(dbPackage);
+  const subPackages = await getPackageFamily(dbPackage);
   let allValid = true;
   for (const pack of subPackages) {
     if (pack.version !== dbPackage.version) {

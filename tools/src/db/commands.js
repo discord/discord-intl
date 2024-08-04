@@ -4,7 +4,7 @@ import semver from 'semver';
 import { npmPublish, npmPublishCommand } from '../npm.js';
 import { getPackage } from '../pnpm.js';
 import { buildNapiPackage, NAPI_TARGET_MAP } from '../napi.js';
-import { bumpAllVersions, checkAllVersionsEqual, getSubPackages } from './versioning.js';
+import { bumpAllVersions, checkAllVersionsEqual, getPackageFamily } from './versioning.js';
 
 const targetOption = new Option(
   '--target <target>',
@@ -76,8 +76,7 @@ export default async function () {
       )
       .action(async (options) => {
         await checkAllVersionsEqual(dbPackage);
-        const packages = [dbPackage, ...(await getSubPackages(dbPackage))];
-        for (const pack of packages) {
+        for (const pack of await getPackageFamily(dbPackage)) {
           await npmPublish(pack, options);
         }
       }),
