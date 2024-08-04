@@ -1,7 +1,6 @@
 {
   "name": "@discord/rspack-intl-loader",
   "version": "0.1.0",
-  "private": true,
   "license": "MIT",
   "type": "commonjs",
   "description": "Webpack/Rspack loader for i18n message definition files using intl-message-database",
