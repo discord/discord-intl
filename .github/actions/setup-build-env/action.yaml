@@ -84,7 +84,7 @@ runs:
         
     # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin. Only needed if the host is linux.
     - name: Install ziglang
-      uses: goto-bus-stop/setup-zig@v1
+      uses: goto-bus-stop/setup-zig@v2
       if: inputs.native == 'true' && startsWith(inputs.runner, 'ubuntu')
       with:
         version: 0.13.0
