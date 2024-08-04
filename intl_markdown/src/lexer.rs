@@ -1,5 +1,6 @@
-use crate::syntax::byte_is_significant;
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
+
+use crate::syntax::byte_is_significant;
 
 use super::{
     block_parser::BlockBound,
@@ -67,10 +68,22 @@ pub(super) struct LexerCheckpoint {
 
 #[derive(Clone, Copy, Debug)]
 pub enum LexContext {
+    /// Normal lexing, where all tokens are treated as they are intuitively, with no context-
+    /// sensitive components. This context is the default where Markdown syntax is parsed.
     Regular,
+    /// Code blocks treat enitre lines as single tokens, with no semantics inside of them.
     CodeBlock,
+    /// Autolinks only allow email address or URI tokens.
     Autolink,
+    /// ICU semantic blocks (e.g., within `{}` segments) ignore Markdown syntax and only lex out
+    /// ICU MessageFormat syntax
     Icu,
+    /// ICU Style arguments are effectively treated as a single plain text string. The additional
+    /// lexing context here lets the lexer just read until the definite end of the argument without
+    /// risk of interpreting keywords or other tokens (e.g., a style arg value like
+    /// `+! short currency/GBP` could potentially be parsed as a number of keyword and punctuation
+    /// tokens, but should be treated as a single string of text in this position).
+    IcuStyle,
 }
 
 pub struct Lexer<'source> {
@@ -141,6 +154,7 @@ impl<'source> Lexer<'source> {
             LexContext::CodeBlock => self.next_code_block_token(),
             LexContext::Autolink => self.next_autolink_token(),
             LexContext::Icu => self.next_icu_token(),
+            LexContext::IcuStyle => self.next_icu_style_token(),
         };
 
         self.current_kind
@@ -759,6 +773,42 @@ impl<'source> Lexer<'source> {
             c if c.is_ascii_whitespace() => self.consume_whitespace(LexContext::Icu),
             _ => self.consume_icu_keyword_or_ident(),
         }
+    }
+
+    /// Consume the entirety of the style argument for a number, date, or time variable as a single
+    /// ICU_STYLE_ARGUMENT token. If the lexer is currently at a closing curly brace `}` when this
+    /// function is called, it will be returned as an RCURLY immediately.
+    fn next_icu_style_token(&mut self) -> SyntaxKind {
+        if self.current() == b'}' {
+            return SyntaxKind::RCURLY;
+        }
+
+        let mut open_brace_count = 0;
+        loop {
+            match self.current() {
+                // Apostrophes count as quoting characters in ICU syntax, so anything within them
+                // will be treated as a string until the second apostrophe closes it, even opening
+                // and closing braces.
+                // NOTE: This does _not_ deal with "escaped escapes", but that's fine for now.
+                b'\'' => {
+                    while self.current() != b'\'' {
+                        self.advance()
+                    }
+                }
+                b'}' if open_brace_count == 0 => break,
+                b'}' => {
+                    open_brace_count -= 1;
+                    self.advance();
+                }
+                b'{' => {
+                    open_brace_count += 1;
+                    self.advance();
+                }
+                _ => self.advance(),
+            }
+        }
+
+        SyntaxKind::ICU_STYLE_TEXT
     }
 
     fn consume_icu_keyword_or_ident(&mut self) -> SyntaxKind {

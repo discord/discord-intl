@@ -1,11 +1,12 @@
-use crate::token::TriviaList;
-use crate::tree_builder::{ReadFromEventBuf, TokenSpan};
 use arcstr::ArcStr;
+
 use intl_markdown_macros::ReadFromEvents;
 
 use crate::event::{Event, EventBuffer};
 use crate::syntax::SyntaxKind;
 use crate::token::Token;
+use crate::token::TriviaList;
+use crate::tree_builder::{ReadFromEventBuf, TokenSpan};
 
 //#region Boilerplate
 pub enum NodeOrToken {
@@ -379,17 +380,20 @@ pub struct IcuDate {
     pub variable: IcuVariable,
     pub variable_comma: Token,
     pub format_token: Token,
-    pub format_comma: Option<Token>,
-    pub date_format: Option<Token>,
+    pub style: Option<IcuDateTimeStyle>,
 }
-
 #[derive(Debug, ReadFromEvents)]
 pub struct IcuTime {
     pub variable: IcuVariable,
     pub variable_comma: Token,
     pub format_token: Token,
-    pub format_comma: Option<Token>,
-    pub time_format: Option<Token>,
+    pub style: Option<IcuDateTimeStyle>,
+}
+
+#[derive(Debug, ReadFromEvents)]
+pub struct IcuDateTimeStyle {
+    pub leading_comma: Token,
+    pub style_text: Token,
 }
 
 #[derive(Debug, ReadFromEvents)]
@@ -397,8 +401,13 @@ pub struct IcuNumber {
     pub variable: IcuVariable,
     pub variable_comma: Token,
     pub format_token: Token,
-    pub format_comma: Option<Token>,
-    pub number_format: Option<Token>,
+    pub style: Option<IcuNumberStyle>,
+}
+
+#[derive(Debug, ReadFromEvents)]
+pub struct IcuNumberStyle {
+    pub leading_comma: Token,
+    pub style_text: Token,
 }
 //#endregion
 

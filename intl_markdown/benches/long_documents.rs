@@ -59,7 +59,7 @@ fn short_inlines(c: &mut Criterion) {
 fn real_messages(c: &mut Criterion) {
     let mut group = c.benchmark_group("real messages");
     let messages: HashMap<String, String> = serde_json::from_str(
-        &std::fs::read_to_string("../intl_message_extractor/data/fr.jsona")
+        &std::fs::read_to_string("../intl_message_database/data/input/fr.jsona")
             .expect("No data file exists"),
     )
     .expect("failed to parse JSON data file");
@@ -87,6 +87,5 @@ fn real_messages(c: &mut Criterion) {
     group.finish();
 }
 
-// criterion_group!(benches, long_documents, short_inlines);
-criterion_group!(benches, real_messages);
+criterion_group!(benches, long_documents, short_inlines, real_messages);
 criterion_main!(benches);

@@ -313,7 +313,7 @@ impl IcuPluralArm {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcuDate {
     variable: IcuVariable,
-    format: Option<String>,
+    style: Option<IcuDateTimeStyle>,
     is_unsafe: bool,
 }
 impl IcuDate {
@@ -323,8 +323,8 @@ impl IcuDate {
     pub fn name(&self) -> &String {
         self.variable.name()
     }
-    pub fn format(&self) -> &Option<String> {
-        &self.format
+    pub fn style(&self) -> &Option<IcuDateTimeStyle> {
+        &self.style
     }
     pub fn is_unsafe(&self) -> bool {
         self.is_unsafe
@@ -334,7 +334,7 @@ impl IcuDate {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcuTime {
     variable: IcuVariable,
-    format: Option<String>,
+    style: Option<IcuDateTimeStyle>,
     is_unsafe: bool,
 }
 impl IcuTime {
@@ -344,8 +344,8 @@ impl IcuTime {
     pub fn name(&self) -> &String {
         self.variable.name()
     }
-    pub fn format(&self) -> &Option<String> {
-        &self.format
+    pub fn style(&self) -> &Option<IcuDateTimeStyle> {
+        &self.style
     }
     pub fn is_unsafe(&self) -> bool {
         self.is_unsafe
@@ -353,9 +353,19 @@ impl IcuTime {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcuDateTimeStyle {
+    text: String,
+}
+impl IcuDateTimeStyle {
+    pub fn text(&self) -> &String {
+        &self.text
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcuNumber {
     variable: IcuVariable,
-    format: Option<String>,
+    style: Option<IcuNumberStyle>,
     is_unsafe: bool,
 }
 impl IcuNumber {
@@ -365,10 +375,20 @@ impl IcuNumber {
     pub fn name(&self) -> &String {
         self.variable.name()
     }
-    pub fn format(&self) -> &Option<String> {
-        &self.format
+    pub fn style(&self) -> &Option<IcuNumberStyle> {
+        &self.style
     }
     pub fn is_unsafe(&self) -> bool {
         self.is_unsafe
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcuNumberStyle {
+    text: String,
+}
+impl IcuNumberStyle {
+    pub fn text(&self) -> &String {
+        &self.text
     }
 }
