@@ -16,8 +16,8 @@ codespan-reporting = { version = "0.11.1", features = ["serialization"] }
 intl_markdown = { path = "../intl_markdown" }
 intl_message_utils = { path = "../intl_message_utils" }
 keyless_json = { path = "../keyless_json" }
-napi = { version = "2", features = ["error_anyhow", "serde-json"] }
-napi-derive = "2"
+napi = { version = "3.0.0-alpha.8", features = ["error_anyhow", "serde-json"] }
+napi-derive = "3.0.0-alpha.7"
 num_cpus = "1"
 rustc-hash = "1"
 serde = "1"

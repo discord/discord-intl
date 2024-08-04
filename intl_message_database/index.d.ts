@@ -17,7 +17,7 @@ export declare class IntlMessagesDatabase {
   validateMessages(): Array<IntlDiagnostic>
 }
 
-export declare export function hashMessageKey(key: string): string
+export declare function hashMessageKey(key: string): string
 
 export declare const enum IntlCompiledMessageFormat {
   Json = 0,
@@ -44,9 +44,9 @@ export interface IntlSourceFile {
   locale?: number
 }
 
-export declare export function isMessageDefinitionsFile(key: string): boolean
+export declare function isMessageDefinitionsFile(key: string): boolean
 
-export declare export function isMessageTranslationsFile(key: string): boolean
+export declare function isMessageTranslationsFile(key: string): boolean
 
-export declare export function resolveSymbol(symbol: number): string | null
+export declare function resolveSymbol(symbol: number): string | null
 
