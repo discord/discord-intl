@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { $ } from 'zx';
 
-import { npmPublishCommand } from '../npm.js';
+import { npmPublish, npmPublishCommand } from '../npm.js';
 import { getPackage } from '../pnpm.js';
 
 /**
@@ -26,7 +26,7 @@ export default async function () {
       await buildWasm(pack);
     });
 
-  group.addCommand(npmPublishCommand(pack));
+  group.addCommand(npmPublishCommand().action(async (options) => await npmPublish(pack, options)));
 
   return group;
 }
