@@ -1,5 +1,10 @@
 import { IntlShape, createIntl } from '@formatjs/intl';
-import { PART_TYPE as FormatPartType, Formats, Formatters } from 'intl-messageformat';
+import {
+  PART_TYPE as FormatPartType,
+  Formats,
+  Formatters,
+  IntlMessageFormat,
+} from 'intl-messageformat';
 
 import { LocaleImportMap, MessageLoader } from './message-loader';
 
@@ -33,7 +38,11 @@ export class IntlManager<
   constructor(defaultLocale: string = DEFAULT_LOCALE, defaultRichTextElements: DefaultElements) {
     this.defaultLocale = defaultLocale;
     this.currentLocale = defaultLocale;
-    this.intl = createIntl({ defaultLocale, locale: defaultLocale });
+    this.intl = createIntl({
+      formats: IntlMessageFormat.formats,
+      defaultLocale,
+      locale: defaultLocale,
+    });
 
     this.defaultRichTextElements = defaultRichTextElements;
     this._localeSubscriptions = new Set();
