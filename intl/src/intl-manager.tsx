@@ -1,9 +1,9 @@
-import {IntlShape, createIntl} from '@formatjs/intl';
-import {PART_TYPE as FormatPartType, Formats, Formatters} from 'intl-messageformat';
+import { IntlShape, createIntl } from '@formatjs/intl';
+import { PART_TYPE as FormatPartType, Formats, Formatters } from 'intl-messageformat';
 
-import {LocaleImportMap, MessageLoader} from './message-loader';
+import { LocaleImportMap, MessageLoader } from './message-loader';
 
-import type {TypedIntlMessageGetter, FormatValuesFor, RichTextElementMap} from './types';
+import type { TypedIntlMessageGetter, FormatValuesFor, RichTextElementMap } from './types';
 
 /**
  * Fallback locale used for all internationalization when an operation in the
@@ -11,7 +11,10 @@ import type {TypedIntlMessageGetter, FormatValuesFor, RichTextElementMap} from '
  */
 export const DEFAULT_LOCALE: string = 'en-US';
 
-export class IntlManager<DefaultElements extends RichTextElementMap, DefaultValues extends keyof DefaultElements> {
+export class IntlManager<
+  DefaultElements extends RichTextElementMap,
+  DefaultValues extends keyof DefaultElements,
+> {
   defaultLocale: string;
   currentLocale: string;
   intl: IntlShape;
@@ -30,7 +33,7 @@ export class IntlManager<DefaultElements extends RichTextElementMap, DefaultValu
   constructor(defaultLocale: string = DEFAULT_LOCALE, defaultRichTextElements: DefaultElements) {
     this.defaultLocale = defaultLocale;
     this.currentLocale = defaultLocale;
-    this.intl = createIntl({defaultLocale, locale: defaultLocale});
+    this.intl = createIntl({ defaultLocale, locale: defaultLocale });
 
     this.defaultRichTextElements = defaultRichTextElements;
     this._localeSubscriptions = new Set();
@@ -42,7 +45,7 @@ export class IntlManager<DefaultElements extends RichTextElementMap, DefaultValu
    */
   setLocale(locale: string) {
     this.currentLocale = locale;
-    this.intl = createIntl({defaultLocale: this.defaultLocale, locale});
+    this.intl = createIntl({ defaultLocale: this.defaultLocale, locale });
     this.emitLocaleChange(locale);
   }
 
@@ -72,7 +75,9 @@ export class IntlManager<DefaultElements extends RichTextElementMap, DefaultValu
    * use `format`, which will wrap the formatting in a React component that
    * subscribes to the current locale and state of loaded messages.
    */
-  formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(message: T): Array<string | any>;
+  formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
+    message: T,
+  ): Array<string | any>;
   formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
     values: Omit<FormatValuesFor<T>, DefaultValues>,
@@ -85,7 +90,10 @@ export class IntlManager<DefaultElements extends RichTextElementMap, DefaultValu
     const resolvedMessage = typeof message === 'function' ? message(this.currentLocale) : message;
     if (typeof resolvedMessage === 'string') return [resolvedMessage];
 
-    const resolvedValues = values != null ? {...this.defaultRichTextElements, ...values} : this.defaultRichTextElements;
+    const resolvedValues =
+      values != null
+        ? { ...this.defaultRichTextElements, ...values }
+        : this.defaultRichTextElements;
     const parts = resolvedMessage.formatToParts(
       this.intl.formatters as Formatters,
       this.intl.formats as Formats,

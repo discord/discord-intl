@@ -43,7 +43,7 @@ export type FormatJsPluralType = 'cardinal' | 'ordinal';
 export interface FormatJsPlural {
   type: FormatJsNodeType.Plural;
   value: string;
-  options: Record<string, {value: FormatJsNode[]}>;
+  options: Record<string, { value: FormatJsNode[] }>;
   offset: number;
   pluralType: FormatJsPluralType;
 }
@@ -72,7 +72,7 @@ export type FormatJsNode =
 // will likely appear in many, many messages. Freezing ensures that the shared
 // object can't be accidentally modified if a consumer tries to transform the
 // AST.
-export const FORMAT_JS_POUND: FormatJsPound = Object.freeze({type: 7});
+export const FORMAT_JS_POUND: FormatJsPound = Object.freeze({ type: 7 });
 
 function hydrateArray(elements: Array<Array<any>>) {
   for (let i = 0; i < elements.length; i++) {
@@ -94,9 +94,9 @@ function hydratePlural(keyless: Array<any>): FormatJsNode {
   // `pluralType` is technically only valid on `Plural` nodes, even
   // though the structure is identical to `Select`.
   if (type === FormatJsNodeType.Plural) {
-    return {type, value, options, offset, pluralType};
+    return { type, value, options, offset, pluralType };
   } else {
-    return {type, value, options, offset};
+    return { type, value, options, offset };
   }
 }
 
@@ -105,11 +105,11 @@ function hydrateSingle(keyless: Array<any>): FormatJsNode {
   switch (type) {
     case FormatJsNodeType.Literal:
     case FormatJsNodeType.Argument:
-      return {type, value: keyless[1]};
+      return { type, value: keyless[1] };
     case FormatJsNodeType.Number:
     case FormatJsNodeType.Date:
     case FormatJsNodeType.Time:
-      return {type, value: keyless[1], style: keyless[2]};
+      return { type, value: keyless[1], style: keyless[2] };
     case FormatJsNodeType.Select:
     case FormatJsNodeType.Plural:
       return hydratePlural(keyless);
@@ -118,7 +118,7 @@ function hydrateSingle(keyless: Array<any>): FormatJsNode {
     case FormatJsNodeType.Tag: {
       const [type, value, children] = keyless;
       hydrateArray(children);
-      return {type, value, children: children};
+      return { type, value, children: children };
     }
     default:
       throw new Error(`FormatJS keyless JSON encountered an unknown type: ${type}`);

@@ -12,8 +12,6 @@ const {
   getVirtualTranslationsModulePath,
 } = require('./src/virtual-modules');
 
-ensureVirtualTranslationsModulesDirectory();
-
 /**
  * @param {{
  *  filename: string,
@@ -21,6 +19,7 @@ ensureVirtualTranslationsModulesDirectory();
  *  getPrelude: () => string
  *  getTranslationAssetExtension: () => string,
  *  createAssetImport: (importPath: string) => string,
+ *  virtualModulesDir: string
  * }} options
  * @returns
  */
@@ -30,7 +29,10 @@ async function transformToString({
   getPrelude,
   getTranslationAssetExtension,
   createAssetImport,
+  virtualModulesDir,
 }) {
+  ensureVirtualTranslationsModulesDirectory(virtualModulesDir);
+
   if (isMessageDefinitionsFile(filename)) {
     database.processDefinitionsFileContent(filename, src);
     const sourceFile = database.getSourceFile(filename);
@@ -57,6 +59,7 @@ async function transformToString({
     // file. Waiting for a little bit (hopefully) gives it enough time to catch
     // the event and successfully compile the added dependency.
     const virtualModulePath = getVirtualTranslationsModulePath(
+      virtualModulesDir,
       `${filename}.compiled.${getTranslationAssetExtension()}`,
     );
     await fs.writeFile(virtualModulePath, database.precompileToBuffer('en-US'));

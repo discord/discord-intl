@@ -1,10 +1,16 @@
 // Configuration for projects that run in Browser/client environments.
 {
-  "extends": "../tsconfig.client.json",
   "compilerOptions": {
-    "typeRoots": ["node_modules"],
+    "lib": ["es2015"],
+    "noEmit": false,
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationDir": "./dist",
+    "downlevelIteration": true,
+    "module": "commonjs",
+    "jsx": "react-jsx",
   },
   "include": [
-    "intl/"
+    "./src/*"
   ]
 }
