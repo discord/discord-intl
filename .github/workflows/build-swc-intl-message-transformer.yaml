@@ -22,7 +22,7 @@ jobs:
         uses: ./.github/actions/setup-build-env
         with:
           ref: ${{ inputs.ref }}
-          target: any
+          target: wasm
 
       - name: Build @discord/swc-intl-message-transformer
         run: |

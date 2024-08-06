@@ -15,6 +15,7 @@ export const NAPI_TARGET_MAP = {
   'win32-arm64-msvc': 'aarch64-pc-windows-msvc',
   'win32-ia32-msvc': 'i686-pc-windows-msvc',
   'win32-x64-msvc': 'x86_64-pc-windows-msvc',
+  wasm: 'wasm32-unknown-unknown',
 };
 
 /**
