@@ -34,7 +34,7 @@ export function npmPublishCommand(commandName = 'publish', pack) {
     )
     .description('Publish this package to npm');
 
-  if (pack) {
+  if (pack != null) {
     command.action(async (options) => await npmPublish(pack, options));
   }
 
