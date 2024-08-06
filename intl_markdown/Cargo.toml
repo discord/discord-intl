@@ -35,3 +35,7 @@ path = "./examples/gen-html-entities.rs"
 [[bench]]
 name = "long_documents"
 harness = false
+
+[[bench]]
+name = "icu_messageformat_parser_bench"
+harness = false
