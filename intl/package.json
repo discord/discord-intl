@@ -7,6 +7,22 @@
   "exports": {
     ".": "./src/index.tsx"
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc && cp -r ./src/*.d.ts dist/",
+    "prepare": "pnpm build"
+  },
   "dependencies": {
     "@formatjs/icu-messageformat-parser": "^2.7.6",
     "@formatjs/intl": "^2.10.1",
