@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "license": "MIT",
   "description": "Client runtime for managing messages and translations in a React project.",
-  "main": "./src/index.tsx",
+  "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.tsx"
+    ".": "./src/index.ts"
   },
   "publishConfig": {
     "exports": {
