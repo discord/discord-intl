@@ -1,5 +1,5 @@
-import type {InternalIntlMessage} from './message';
-import type {IntlMessageGetterAdditions} from './message-loader';
+import type { InternalIntlMessage } from './message';
+import type { IntlMessageGetterAdditions } from './message-loader';
 /**
  * Use this function to define messages as part of the `@discord/intl`
  * system, with type checking support.
@@ -34,9 +34,8 @@ type TypedIntlMessage<FormatValues extends object> = InternalIntlMessage & {
   values: FormatValues;
 };
 
-type AnyIntlMessage<FormatValues extends object | undefined = undefined> = FormatValues extends object
-  ? TypedIntlMessage<FormatValues>
-  : PlainIntlMessage;
+type AnyIntlMessage<FormatValues extends object | undefined = undefined> =
+  FormatValues extends object ? TypedIntlMessage<FormatValues> : PlainIntlMessage;
 
 /**
  * Getter function that retrieves a message that best matches the requested
@@ -45,15 +44,18 @@ type AnyIntlMessage<FormatValues extends object | undefined = undefined> = Forma
  * represent that there are no values required and the message is a plain
  * string.
  */
-export type TypedIntlMessageGetter<FormatValues extends object | undefined> = IntlMessageGetterAdditions & {
-  (locale: string): AnyIntlMessage<FormatValues>;
-};
+export type TypedIntlMessageGetter<FormatValues extends object | undefined> =
+  IntlMessageGetterAdditions & {
+    (locale: string): AnyIntlMessage<FormatValues>;
+  };
 
 /**
  * Common utility type for converting a union type to an intersection of all
  * the types in that union.
  */
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void
+  ? I
+  : never;
 
 /**
  * Given a message getter of type `T` (which may be a union of multiple message
@@ -126,7 +128,11 @@ type FormatValuesFor<T> =
       // included in the union. Without this, the `infer U` on the latter side
       // fails to resolve and the type just becomes `never`.
       UnionToIntersection<
-        T extends TypedIntlMessageGetter<undefined> ? never : T extends TypedIntlMessageGetter<infer U> ? U : never
+        T extends TypedIntlMessageGetter<undefined>
+          ? never
+          : T extends TypedIntlMessageGetter<infer U>
+            ? U
+            : never
       >;
 
 /**

@@ -1,7 +1,15 @@
-import {TYPE as FormatElementType, parse as parseMessageFormat} from '@formatjs/icu-messageformat-parser';
-import {Formats, Formatters, MessageFormatPart, formatToParts as libFormatToParts} from 'intl-messageformat';
+import {
+  TYPE as FormatElementType,
+  parse as parseMessageFormat,
+} from '@formatjs/icu-messageformat-parser';
+import {
+  Formats,
+  Formatters,
+  MessageFormatPart,
+  formatToParts as libFormatToParts,
+} from 'intl-messageformat';
 
-import type {MessageFormatElement} from '@formatjs/icu-messageformat-parser';
+import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 
 export class InternalIntlMessage {
   locale: string;
@@ -61,7 +69,11 @@ export class InternalIntlMessage {
    * will directly serialize the function definition into a string, rather than
    * calling the function or evaluating the result.
    */
-  formatToPlainString(formatters: Formatters, formats: Formats, values?: Record<string, any>): string {
+  formatToPlainString(
+    formatters: Formatters,
+    formats: Formats,
+    values?: Record<string, any>,
+  ): string {
     // Lazily create the reduced AST if it hasn't already been done.
     if (this.plainAst == null) {
       this.plainAst = [];

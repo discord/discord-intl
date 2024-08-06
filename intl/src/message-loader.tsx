@@ -1,6 +1,6 @@
-import {InternalIntlMessage} from './message';
+import { InternalIntlMessage } from './message';
 
-import type {MessageFormatElement} from '@formatjs/icu-messageformat-parser';
+import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 
 type AnyRawMessage = string | MessageFormatElement[];
 type MessagesData = Record<string, AnyRawMessage>;
@@ -15,7 +15,7 @@ export interface IntlMessageGetter extends IntlMessageGetterAdditions {
 
 type LocaleId = string;
 
-export type LocaleImportMap = Record<LocaleId, () => Promise<{default: MessagesData}>>;
+export type LocaleImportMap = Record<LocaleId, () => Promise<{ default: MessagesData }>>;
 
 export class MessageLoader {
   messageKeys: string[];
@@ -23,6 +23,13 @@ export class MessageLoader {
   messages: Record<LocaleId, MessagesData>;
   localeImportMap: LocaleImportMap;
   supportedLocales: LocaleId[];
+
+  /**
+   * Promise representing the current locale being loaded. If this is non-null,
+   * then a request has already been made to load the locale and it is waiting
+   * to resolve.
+   */
+  _localeLoadingPromises: Record<LocaleId, Promise<{ default: MessagesData }> | undefined>;
 
   /**
    * Map of pre-parsed messages, keyed by the message key and locale
@@ -43,6 +50,7 @@ export class MessageLoader {
     this.localeImportMap = localeImportMap;
     this.supportedLocales = Object.keys(localeImportMap);
 
+    this._localeLoadingPromises = {};
     this._parseCache = new Map();
     this._subscribers = new Set();
 
@@ -73,7 +81,9 @@ export class MessageLoader {
     }
 
     // And finally throw if there's no match whatsoever
-    throw new Error(`Requested message ${key} does not have a value in the requested locale nor the default locale`);
+    throw new Error(
+      `Requested message ${key} does not have a value in the requested locale nor the default locale`,
+    );
   }
 
   /**
@@ -95,27 +105,12 @@ export class MessageLoader {
     );
   }
 
-  /**
-   * Returns the raw content value of the message in the given locale. This can
-   * either be a plain, unparsed string, or a pre-parsed AST.
-   */
-  _getMessageContent(key: string, locale: LocaleId): string | MessageFormatElement[] {
-    // Ensure the locale is loaded, if it is supported
-    if (this.messages[locale] == null && this.supportedLocales.includes(locale)) {
-      this._loadLocale(locale);
-      return key;
-    }
-
-    // Then try to return the loaded message
-    if (key in this.messages[locale]) {
-      return this.messages[locale][key];
-    }
-
-    // And finally throw if there's no match whatsoever
-    throw new Error(`Requested message ${key} does not have a value in the requested locale nor the default locale`);
-  }
-
   async _loadLocale(locale: LocaleId) {
+    // Don't re-load a locale that's already in progress.
+    if (this._localeLoadingPromises[locale] != null) {
+      return;
+    }
+
     // Safety check in case the locale map doesn't include a require for the
     // requested locale. Shouldn't happen, but throwing here is much more
     // contextual than whatever error would result otherwise.
@@ -128,7 +123,15 @@ export class MessageLoader {
     // If the locale is already set in `messages`, then it doesn't need to be loaded again.
     if (this.messages[locale] != null) return;
 
-    this.messages[locale] = (await this.localeImportMap[locale]()).default;
+    const loadStart = performance.now();
+    const loadingPromise = this.localeImportMap[locale]();
+    this._localeLoadingPromises[locale] = loadingPromise;
+    this.messages[locale] = (await loadingPromise).default;
+    delete this._localeLoadingPromises[locale];
+    const loadEnd = performance.now();
+    console.warn(
+      `[INTL] Took ${loadEnd - loadStart}ms to load ${locale} with ${Object.keys(this.messages[locale]).length} keys`,
+    );
     this.emitChange();
   }
 
