@@ -1,8 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { Command } from 'commander';
+import { $ } from 'zx';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
 import { getPackage, getWorkspacePackages } from '../pnpm.js';
 import { checkAllVersionsEqual, versionCommand } from '../versioning.js';
+import { REPO_ROOT } from '../constants.js';
 
 export default async function () {
   const allPackages = Object.values(await getWorkspacePackages());
@@ -28,6 +33,36 @@ export default async function () {
     }),
   );
   group.addCommand(versionCommand('version', dbPackage, publicPackages));
+
+  group
+    .command('local-pack')
+    .description(
+      'Build all of the packages in the repo and package them up as tarballs that can be required from another project locally.',
+    )
+    .action(async () => {
+      console.info('[local-pack] Building all compilable packages');
+      await Promise.all([
+        $`pnpm intl-cli db build --target local`,
+        $`pnpm intl-cli swc build`,
+        $`pnpm intl-cli runtime build`,
+      ]);
+
+      console.log('[local-pack] Building complete. Creating packs:');
+
+      const packsPath = path.resolve(REPO_ROOT, '.local-packs');
+      fs.mkdirSync(packsPath, { recursive: true });
+      const packPromises = [];
+      for (const pack of publicPackages) {
+        packPromises.push(
+          $({ cwd: pack.path })`pnpm pack --pack-destination ${packsPath}`.then((result) => {
+            const artifactName = result.stdout.trim();
+            console.log(`- ${pack.name} -> ${artifactName}`);
+          }),
+        );
+      }
+
+      await Promise.all(packPromises);
+    });
 
   return group;
 }
