@@ -87,7 +87,7 @@ jobs:
 
       - name: Check package versions
         run: |
-          pnpm intl-cli ecosystem version-check
+          pnpm intl-cli ecosystem version check
 
       - name: Publish all @discord/intl-message-database* packages
         run: |
