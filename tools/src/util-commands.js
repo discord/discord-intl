@@ -31,18 +31,42 @@ export default async function () {
     .action(async (artifactsPath) => {
       const files = await fs.readdir(artifactsPath);
       for (const basename of files) {
-        const filePath = path.resolve(artifactsPath, basename);
+        const rootFilePath = path.resolve(artifactsPath, basename);
+        // If the artifact was downloaded as a folder and that folder contains a single file with
+        // the same name, then assume that it's meant to be an individual file and use that inner
+        // path as the file path in all the logic below.
+        const stat = await fs.stat(rootFilePath);
+        const isSingleFileArtifact =
+          stat.isDirectory() &&
+          (await (async () => {
+            const innerFiles = await fs.readdir(rootFilePath);
+            return innerFiles.length === 1 && innerFiles[0] === basename;
+          })());
+        const filePath = isSingleFileArtifact ? path.join(rootFilePath, basename) : rootFilePath;
+
+        /**
+         * Move the artifact with the given name to the given target. If the artifact is actually a
+         * folder with a single file of the same name inside of it, move only that inner file.
+         *
+         * @param {string} targetPath
+         * @returns {Promise<void>}
+         */
+        async function moveTo(targetPath) {
+          console.info('Moving', filePath, 'to', targetPath);
+          await fs.rename(filePath, targetPath);
+        }
+
         // Native node extension artifacts move to their platform specific directory.
         const nativeExtensionMatch = basename.match(/^intl-message-database\.(.*)\.node$/);
         if (nativeExtensionMatch != null) {
           const platform = nativeExtensionMatch[1];
-          // If the artifact was downloaded into a subfolder, then the actual artifact is inside of
-          // it and needs to be moved out.
-          const stats = await fs.stat(filePath);
-          const sourcePath = stats.isDirectory() ? path.join(filePath, basename) : filePath;
-          const targetPath = path.join('intl_message_database', 'npm', platform, basename);
-          console.info('Moving', sourcePath, 'to', targetPath);
-          await fs.rename(sourcePath, targetPath);
+          await moveTo(path.join('intl_message_database', 'npm', platform, basename));
+          continue;
+        }
+
+        // SWC transformer .wasm artifact moves into its package folder
+        if (/^swc_intl_message_transformer\.wasm$/.test(basename)) {
+          await moveTo(path.join('swc-intl-message-transformer', basename));
           continue;
         }
       }

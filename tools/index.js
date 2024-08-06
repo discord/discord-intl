@@ -4,6 +4,7 @@ import { cd } from 'zx';
 import { REPO_ROOT } from './src/constants.js';
 import utilCommands from './src/util-commands.js';
 import dbCommands from './src/db/commands.js';
+import ecosystemCommands from './src/ecosystem/commands.js';
 import metroCommands from './src/metro/commands.js';
 import rspackCommands from './src/rspack/commands.js';
 import runtimeCommands from './src/runtime/commands.js';
@@ -16,6 +17,7 @@ cd(REPO_ROOT);
   program
     .description('Internal tooling for managing the discord-intl repo and packages.')
     .addCommand(await dbCommands())
+    .addCommand(await ecosystemCommands())
     .addCommand(await utilCommands())
     .addCommand(await metroCommands())
     .addCommand(await rspackCommands())

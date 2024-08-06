@@ -171,7 +171,7 @@ export async function bumpAllVersions(basePackage, packageFamily, level) {
       `Version bump of level ${JSON.stringify(level)} from ${rootVersion.version} did not create a valid version`,
     );
   }
-  console.info(`Bumping all ${basePackage.name} packages to ${bumpedVersion}`);
+  console.info(`Bumping all packages to match ${basePackage.name}: ${bumpedVersion}`);
   for (const pack of packageFamily) {
     await updatePackageJson(pack, (json) => {
       json.version = bumpedVersion;
