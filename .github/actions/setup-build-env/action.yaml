@@ -85,13 +85,13 @@ runs:
     # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin. Only needed if the host is linux.
     - name: Install ziglang
       uses: goto-bus-stop/setup-zig@v2
-      if: inputs.native == 'true' && startsWith(inputs.runner, 'ubuntu')
+      if: inputs.native == 'true' && inputs.target != 'wasm' && startsWith(inputs.runner, 'ubuntu')
       with:
         version: 0.13.0
 
     - name: Install cargo toolchains
       uses: taiki-e/install-action@v2
-      if: inputs.native == 'true' && startsWith(inputs.runner, 'ubuntu')
+      if: inputs.native == 'true' && inputs.target != 'wasm' && startsWith(inputs.runner, 'ubuntu')
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
