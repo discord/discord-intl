@@ -3,13 +3,13 @@ const path = require('node:path');
 
 /**
  * Ensure the configured cache directory exists so that files can be read from and written to it.
+ * Call this once when Metro is first started to ensure that the folder exists and has been
+ * cleaned.
  *
  * @param {string} cacheDir
  */
 function ensureVirtualTranslationsModulesDirectory(cacheDir) {
-  if (!fs.existsSync(cacheDir)) {
-    fs.mkdirSync(cacheDir, { recursive: true });
-  }
+  fs.mkdirSync(cacheDir, { recursive: true });
 }
 
 /**

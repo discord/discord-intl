@@ -93,7 +93,6 @@ export class MessageLoader {
    * for that key.
    */
   getBinds(): Record<string, IntlMessageGetter> {
-    console.warn('Getting binds', this.messageKeys.length);
     const onChange = this.onChange.bind(this);
     return this.messageKeys.reduce(
       (acc, key) => {

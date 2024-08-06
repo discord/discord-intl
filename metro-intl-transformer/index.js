@@ -1,9 +1,10 @@
+const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const {
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
 } = require('@discord/intl-message-database');
-const fs = require('node:fs/promises');
-const path = require('node:path');
 
 const { database } = require('./src/database');
 const { MessageDefinitionsTransformer } = require('./src/transformer');
@@ -58,9 +59,21 @@ async function transformToString({
     // of this transformation to be able to resolve the newly-created compiled
     // file. Waiting for a little bit (hopefully) gives it enough time to catch
     // the event and successfully compile the added dependency.
+    //
+    // Metro also hyper-caches everything that gets transformed, with no way to
+    // access and invalidate entries from that cache just from a file name. This
+    // fileHash gives a way to ensure that most changes to the source file will
+    // guarantee a cache miss and pick up the newly-compiled asset. Because the
+    // file is created on the fly inside of this transformer, if Metro decides
+    // that the source file doesn't need to be transformed again (i.e., make a
+    // change, save, then undo the change), the compiled file won't get
+    // reverted. Versioning through the fileHash means that when the cached
+    // transform is loaded, it will point _back_ to the version of the compiled
+    // file with the matching content.
+    const fileHash = crypto.createHash('md5').update(src).digest('hex');
     const virtualModulePath = getVirtualTranslationsModulePath(
       virtualModulesDir,
-      `${filename}.compiled.${getTranslationAssetExtension()}`,
+      `${filename}.compiled.${fileHash}.${getTranslationAssetExtension()}`,
     );
     await fs.writeFile(virtualModulePath, database.precompileToBuffer('en-US'));
     await new Promise((resolve) => {
