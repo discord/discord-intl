@@ -1,4 +1,4 @@
-name: Release
+name: Release intl ecosystem
 
 on:
   workflow_dispatch:
@@ -11,16 +11,22 @@ on:
         required: true
         type: boolean
         description: "Publish to NPM?"
+      fail-fast:
+        required: false
+        type: boolean
+        default: false
+        description: 'Fail fast?'
 
 permissions:
   # To publish packages with provenance
+  contents: write
   id-token: write
 
 jobs:
-  build:
-    name: Build
+  build-db:
+    name: Build intl-message-database
     strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
+      fail-fast: ${{inputs.fail-fast}}
       matrix:
         target:
           # Linux
@@ -41,16 +47,22 @@ jobs:
       runner: ${{ matrix.target[0] }}
       target: ${{ matrix.target[1] }}
       ref: ${{inputs.commit}}
-      publish: ${{inputs.publish}}
     secrets: inherit
+
+  build-swc:
+    name: Build @discord/swc-intl-message-transformer
+    uses: ./.github/workflows/build-swc-intl-message-transformer.yaml
+    with:
+      ref: ${{inputs.commit}}
 
   release:
     name: Release and Publish
-    needs: [build]
+    needs:
+      - build-db
+      - build-swc
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      # To publish packages with provenance
       id-token: write
     if: inputs.publish
     steps:
@@ -75,10 +87,10 @@ jobs:
 
       - name: Check package versions
         run: |
-          pnpm intl-cli db version-check
+          pnpm intl-cli ecosystem version-check
 
       - name: Publish all @discord/intl-message-database* packages
         run: |
-          pnpm intl-cli db publish-all --provenance --access public --no-git-checks
+          pnpm intl-cli ecosystem publish-all --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

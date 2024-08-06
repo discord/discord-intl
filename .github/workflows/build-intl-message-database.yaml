@@ -15,10 +15,6 @@ on:
         description: "Git reference to checkout."
         required: false
         type: string
-      publish:
-        required: true
-        description: "Whether this build should get published to npm."
-        type: boolean
 
 env:
   # This should ensure that the mac packages are allowed to run on all

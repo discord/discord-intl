@@ -1,0 +1,37 @@
+name: Build swc-intl-message-transformer
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git reference to checkout."
+        required: false
+        type: string
+
+jobs:
+  build:
+    name: Build swc-intl-message-transformer
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Build Env
+        uses: ./.github/actions/setup-build-env
+        with:
+          ref: ${{ inputs.ref }}
+          target: any
+
+      - name: Build @discord/swc-intl-message-transformer
+        run: |
+          pnpm intl-cli swc build
+
+      - name: Upload artifact
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swc_intl_message_transformer.wasm
+          path: swc_intl_message_transformer.wasm
+          if-no-files-found: error
