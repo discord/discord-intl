@@ -11,10 +11,11 @@ import { Command, Option } from 'commander';
  * ```
  *
  * @param {string=} commandName
+ * @param {import('./pnpm.js').PnpmPackage=} pack
  * @returns {Command}
  */
-export function npmPublishCommand(commandName = 'publish') {
-  return new Command(commandName)
+export function npmPublishCommand(commandName = 'publish', pack) {
+  const command = new Command(commandName)
     .option('--dry-run', "Don't actually publish the package")
     .option(
       '--tag',
@@ -32,6 +33,12 @@ export function npmPublishCommand(commandName = 'publish') {
         .choices(['public', 'restricted']),
     )
     .description('Publish this package to npm');
+
+  if (pack) {
+    command.action(async (options) => await npmPublish(pack, options));
+  }
+
+  return command;
 }
 
 /**
