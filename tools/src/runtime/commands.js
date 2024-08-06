@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { $ } from 'zx';
 
-import { npmPublish, npmPublishCommand } from '../npm.js';
+import { npmPublishCommand } from '../npm.js';
 import { getPackage } from '../pnpm.js';
 import { versionCommand } from '../versioning.js';
 
@@ -9,22 +9,22 @@ import { versionCommand } from '../versioning.js';
  * @param {import('../pnpm.js').PnpmPackage} pack
  * @returns {Promise<void>}
  */
-async function buildWasm(pack) {
+async function buildJs(pack) {
   $({ cwd: pack.path, stdio: 'inherit' })`pnpm build`;
 }
 
 export default async function () {
-  const pack = await getPackage('@discord/swc-intl-message-transformer');
+  const pack = await getPackage('@discord/intl');
 
-  const group = new Command('swc')
-    .aliases(['swc-intl-message-transformer'])
-    .description('Operate on the intl_message_database crate/package');
+  const group = new Command('runtime').description(
+    'Operate on the intl package, the client runtime.',
+  );
 
   group
     .command('build')
-    .description('Build the swc-intl-message-transformer WASM plugin')
+    .description('Build the intl runtime package to prepare for release.')
     .action(async () => {
-      await buildWasm(pack);
+      await buildJs(pack);
     });
 
   group.addCommand(npmPublishCommand('publish', pack));
