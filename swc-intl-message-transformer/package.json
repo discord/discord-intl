@@ -11,7 +11,7 @@
   "scripts": {
     "build": "cargo build --target wasm32-unknown-unknown --release && cp ../target/wasm32-unknown-unknown/release/swc_intl_message_transformer.wasm .",
     "build:dev": "cargo build --target wasm32-unknown-unknown && cp ../target/wasm32-unknown-unknown/debug/swc_intl_message_transformer.wasm .",
-    "prepare": "pnpm build"
+    "prepublishOnly": "pnpm build"
   },
   "files": [
     "./swc_intl_message_transformer.wasm"
