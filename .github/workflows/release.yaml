@@ -23,31 +23,31 @@ permissions:
   id-token: write
 
 jobs:
-#  build-db:
-#    name: Build intl-message-database
-#    strategy:
-#      fail-fast: ${{inputs.fail-fast}}
-#      matrix:
-#        target:
-#          # Linux
-#          - ['ubuntu-latest', 'linux-x64-gnu']
-#          - ['ubuntu-latest', 'linux-arm64-gnu']
-#          - ['ubuntu-latest', 'linux-x64-musl']
-#          - ['ubuntu-latest', 'linux-arm64-musl']
-#          # Windows
-#          - ['windows-latest', 'win32-ia32-msvc']
-#          - ['windows-latest', 'win32-x64-msvc']
-#          - ['windows-latest', 'win32-arm64-msvc']
-#          # macOS
-#          - ['macos-latest', 'darwin-x64']
-#          - ['macos-latest', 'darwin-arm64']
-#    uses: ./.github/workflows/build-intl-message-database.yaml
-#    with:
-#      # Using napi and cargo-zigbuild/cargo-xwin, everything _should_ be buildable on ubuntu directly.
-#      runner: ${{ matrix.target[0] }}
-#      target: ${{ matrix.target[1] }}
-#      ref: ${{inputs.commit}}
-#    secrets: inherit
+  build-db:
+    name: Build intl-message-database
+    strategy:
+      fail-fast: ${{inputs.fail-fast}}
+      matrix:
+        target:
+          # Linux
+          - ['ubuntu-latest', 'linux-x64-gnu']
+          - ['ubuntu-latest', 'linux-arm64-gnu']
+          - ['ubuntu-latest', 'linux-x64-musl']
+          - ['ubuntu-latest', 'linux-arm64-musl']
+          # Windows
+          - ['windows-latest', 'win32-ia32-msvc']
+          - ['windows-latest', 'win32-x64-msvc']
+          - ['windows-latest', 'win32-arm64-msvc']
+          # macOS
+          - ['macos-latest', 'darwin-x64']
+          - ['macos-latest', 'darwin-arm64']
+    uses: ./.github/workflows/build-intl-message-database.yaml
+    with:
+      # Using napi and cargo-zigbuild/cargo-xwin, everything _should_ be buildable on ubuntu directly.
+      runner: ${{ matrix.target[0] }}
+      target: ${{ matrix.target[1] }}
+      ref: ${{inputs.commit}}
+    secrets: inherit
 
   build-swc:
     name: Build @discord/swc-intl-message-transformer
@@ -58,7 +58,7 @@ jobs:
   release:
     name: Release and Publish
     needs:
-#      - build-db
+      - build-db
       - build-swc
     runs-on: ubuntu-latest
     permissions:
@@ -85,9 +85,9 @@ jobs:
         run: |
           pnpm intl-cli util move-gh-artifacts ~/artifacts
 
-#      - name: Check package versions
-#        run: |
-#          pnpm intl-cli ecosystem version check
+      - name: Check package versions
+        run: |
+          pnpm intl-cli ecosystem version check
 
       - name: Publish all @discord/intl-message-database* packages
         run: |
