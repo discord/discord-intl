@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "publishConfig": {
+    "main": "./dist/index.js",
     "exports": {
       ".": {
         "default": "./dist/index.js",

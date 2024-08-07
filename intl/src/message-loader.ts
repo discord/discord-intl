@@ -5,7 +5,6 @@ import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 type AnyRawMessage = string | MessageFormatElement[];
 type MessagesData = Record<string, AnyRawMessage>;
 export interface IntlMessageGetterAdditions {
-  isLocaleLoaded(locale: LocaleId): boolean;
   onChange(callback: () => void): () => void;
 }
 

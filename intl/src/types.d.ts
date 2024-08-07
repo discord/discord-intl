@@ -1,5 +1,6 @@
 import type { InternalIntlMessage } from './message';
 import type { IntlMessageGetterAdditions } from './message-loader';
+
 /**
  * Use this function to define messages as part of the `@discord/intl`
  * system, with type checking support.
@@ -123,7 +124,7 @@ type FormatValuesFor<T> =
   // formatter to optimize a little more on each call.
   [T] extends [TypedIntlMessageGetter<undefined>]
     ? never
-    : // The `never` conditino needs to be repeated here, but this time _without_
+    : // The `never` condition needs to be repeated here, but this time _without_
       // the `[]` syntax, so that only the union elements with actual values are
       // included in the union. Without this, the `infer U` on the latter side
       // fails to resolve and the type just becomes `never`.
@@ -134,25 +135,3 @@ type FormatValuesFor<T> =
             ? U
             : never
       >;
-
-/**
- * A generic definition of a `format*` function that accepts any message
- * argument as the first parameter, and the required values object for that
- * message as the second parameter. The second parameter
- *
- * An optional third parameter for additional options can be specified as the
- * second generic type parameter.
- */
-export interface IntlFormatFn<
-  T extends object | undefined,
-  DefaultValues extends string | number | symbol,
-  OptionsType,
-  ResultType,
-> {
-  (message: TypedIntlMessageGetter<T>, options?: OptionsType): ResultType;
-  (
-    message: TypedIntlMessageGetter<T>,
-    values: Omit<FormatValuesFor<T>, DefaultValues>,
-    options?: OptionsType,
-  ): ResultType;
-}

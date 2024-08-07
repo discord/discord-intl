@@ -45,14 +45,14 @@ export class IntlManagerReact<
     message: T,
     values: Omit<FormatValuesFor<T>, DefaultValues>,
   ): JSX.Element;
-  format(message: any): JSX.Element;
-  format<T extends TypedIntlMessageGetter<object | undefined>>(
+  format(message: string): JSX.Element;
+  format<T extends string | TypedIntlMessageGetter<object | undefined>>(
     message: T,
     values?: Omit<FormatValuesFor<T>, DefaultValues>,
   ) {
     // A string literal means there's no locale dependency, so it can just be
     // formatted directly without any subscription.
-    if (typeof message === 'string') return this.formatToParts(message);
+    if (typeof message === 'string') return message;
 
     return React.createElement(this.IntlMessage, { message, values });
   }

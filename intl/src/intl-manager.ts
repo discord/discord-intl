@@ -94,7 +94,7 @@ export class IntlManager<
   formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
     values?: Omit<FormatValuesFor<T>, DefaultValues>,
-  ) {
+  ): Array<string | any> {
     if (typeof message === 'string') return [message];
     const resolvedMessage = typeof message === 'function' ? message(this.currentLocale) : message;
     if (typeof resolvedMessage === 'string') return [resolvedMessage];
