@@ -3,6 +3,10 @@ name: Publish one or multiple NPM packages directly without building.
 on:
   workflow_dispatch:
     inputs:
+      commit:
+        required: true
+        type: string
+        description: 'Commit SHA'
       packages:
         required: true
         type: string
@@ -28,7 +32,7 @@ jobs:
         uses: ./.github/actions/setup-build-env
         with:
           native: false
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.commit }}
           target: wasm
 
       - name: Publish all @discord/intl-message-database* packages
