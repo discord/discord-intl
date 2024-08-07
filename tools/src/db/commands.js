@@ -20,10 +20,7 @@ import { hostPlatform } from '../util/platform.js';
 export function buildTargetOption() {
   const option = new Option('--target <target>', 'Which platform package to build for natively.')
     .choices(Object.keys(NAPI_TARGET_MAP).concat(['local']))
-    .argParser((target) => {
-      console.log(hostPlatform);
-      return target === 'local' ? hostPlatform.target : target;
-    })
+    .argParser((target) => (target === 'local' ? hostPlatform.target : target))
     .makeOptionMandatory(true);
 
   return option;

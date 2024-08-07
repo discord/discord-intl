@@ -14,7 +14,12 @@ function isMusl() {
       return true;
     }
   } else {
-    const { glibcVersionRuntime } = JSON.parse(process.report.getReport()).header;
+    /** @type {any} */
+    let report = process.report.getReport();
+    if (typeof report === 'string') {
+      report = JSON.parse(report);
+    }
+    const { glibcVersionRuntime } = report.header;
     return !glibcVersionRuntime;
   }
 }
@@ -28,20 +33,20 @@ const PACKAGE_NAMES = {
   'linux-gnu': {
     arm: 'linux-arm-gnueabihf',
     arm64: 'linux-arm64-gnu',
-    x64: 'linux-64-gnu',
+    x64: 'linux-x64-gnu',
     riscv64: 'linux-riscv64-gnu',
     s390x: 'linux-s390x-gnu',
   },
   'linux-musl': {
     arm: 'linux-arm-musleabihf',
     arm64: 'linux-arm64-musl',
-    x64: 'linux-64-musl',
+    x64: 'linux-x64-musl',
     riscv64: 'linux-riscv64-musl',
   },
 };
 
 const platform =
-  process.platform !== 'linux' ? process.platform : 'linux-' + isMusl() ? 'musl' : 'gnu';
+  process.platform !== 'linux' ? process.platform : 'linux-' + (isMusl() ? 'musl' : 'gnu');
 const arch = process.arch;
 
 /**
