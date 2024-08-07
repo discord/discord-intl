@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { Argument, Command } from 'commander';
 import { confirm } from '@inquirer/prompts';
-import { $, question } from 'zx';
+import { $ } from 'zx';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
 import { getPackage, getWorkspacePackages } from '../pnpm.js';

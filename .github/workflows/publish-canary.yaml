@@ -1,4 +1,4 @@
-name: Publish one or multiple NPM packages directly without building.
+name: Publish canary packages
 
 on:
   workflow_dispatch:
@@ -24,7 +24,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    if: inputs.publish
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +33,10 @@ jobs:
           native: false
           ref: ${{ inputs.commit }}
           target: wasm
+
+      - name: Set canary versions
+        run: |
+          pnpm intl-cli ecosystem version bump canary
 
       - name: Publish all @discord/intl-message-database* packages
         run: |

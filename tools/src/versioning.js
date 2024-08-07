@@ -127,12 +127,8 @@ function applyVersionBump(baseVersion, level) {
     case 'prerelease':
       return baseVersion.inc(level, 'rc').version;
     case 'canary':
-      return semver.inc(
-        baseVersion,
-        'prerelease',
-        'canary-' + $.sync`git rev-parse --short HEAD`.stdout.trim(),
-        false,
-      );
+      const canaryBase = semver.coerce(baseVersion.version, { includePrerelease: false });
+      return canaryBase + '-canary.' + $.sync`git rev-parse --short HEAD`.stdout.trim();
     default:
       return baseVersion.inc(level).version;
   }
