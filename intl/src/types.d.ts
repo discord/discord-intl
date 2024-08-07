@@ -61,7 +61,7 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 /**
  * Given a message getter of type `T` (which may be a union of multiple message
  * types), return a combined type representing the intersection of all values
- * needed to satisfy the mix of values.
+ * needed to satisfy the mix of values defined in any of the messages.
  *
  * For example, given a variable representing one of two message getters, where
  * one requires a single value to be formatted, but the other requires an

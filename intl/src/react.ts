@@ -15,7 +15,7 @@ export class IntlManagerReact<
    */
   IntlMessage = <T extends TypedIntlMessageGetter<object | undefined>>(props: {
     message: T;
-    values?: Omit<FormatValuesFor<T>, DefaultValues>;
+    values?: Omit<FormatValuesFor<T>, DefaultValues> | never;
   }) => {
     const { message, values } = props;
     // Use the locale from this point in the application, which may be
@@ -25,14 +25,15 @@ export class IntlManagerReact<
     // TODO(faulty): This can and should be replaced by a
     // `use(messagesLoadedPromise)` once `use` is shipped to stable.
     React.useSyncExternalStore(message.onChange, () => message(locale));
-    // The return the formatted version of that string.
-    if (typeof message === 'string') return message;
-
-    return React.createElement(
-      React.Fragment,
-      undefined,
-      this.formatToParts(message, values as Omit<FormatValuesFor<T>, DefaultValues> | never),
-    );
+    // If there are no object parts in the message, it has no formatting and can just be returned as
+    // a plain string.
+    return typeof message === 'string'
+      ? message
+      : React.createElement(
+          React.Fragment,
+          undefined,
+          this.formatToParts(message, values as Omit<FormatValuesFor<T>, DefaultValues>),
+        );
   };
 
   /**
@@ -40,20 +41,15 @@ export class IntlManagerReact<
    * and respond to updates about the current locale and other relevant
    * information.
    */
-  format<T extends TypedIntlMessageGetter<object | undefined>>(message: T): JSX.Element;
+  format<T extends TypedIntlMessageGetter<object | undefined>>(message: T): React.ReactElement;
   format<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
     values: Omit<FormatValuesFor<T>, DefaultValues>,
-  ): JSX.Element;
-  format(message: string): JSX.Element;
-  format<T extends string | TypedIntlMessageGetter<object | undefined>>(
+  ): React.ReactElement;
+  format<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
     values?: Omit<FormatValuesFor<T>, DefaultValues>,
-  ) {
-    // A string literal means there's no locale dependency, so it can just be
-    // formatted directly without any subscription.
-    if (typeof message === 'string') return message;
-
-    return React.createElement(this.IntlMessage, { message, values });
+  ): React.ReactElement {
+    return React.createElement(this.IntlMessage<T>, { message, values });
   }
 }
