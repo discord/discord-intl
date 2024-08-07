@@ -39,29 +39,33 @@ export default async function () {
     .description(
       'Build all of the packages in the repo and package them up as tarballs that can be required from another project locally.',
     )
-    .action(async () => {
-      console.info('[local-pack] Building all compilable packages');
-      await Promise.all([
-        $`pnpm intl-cli db build --target local`,
-        $`pnpm intl-cli swc build`,
-        $`pnpm intl-cli runtime build`,
-      ]);
+    .option(
+      '--build,--no-build',
+      'Skip building compiled packages. Useful if you are only working on JS-land packages',
+      true,
+    )
+    .action(async ({ build }) => {
+      if (build) {
+        console.info('[local-pack] Building all compilable packages');
+        await Promise.all([
+          $`pnpm intl-cli db build --target local`,
+          $`pnpm intl-cli swc build`,
+          $`pnpm intl-cli runtime build`,
+        ]);
+      }
 
       console.log('[local-pack] Building complete. Creating packs:');
 
       const packsPath = path.resolve(REPO_ROOT, '.local-packs');
       fs.mkdirSync(packsPath, { recursive: true });
-      const packPromises = [];
       for (const pack of publicPackages) {
-        packPromises.push(
-          $({ cwd: pack.path })`pnpm pack --pack-destination ${packsPath}`.then((result) => {
-            const artifactName = result.stdout.trim();
-            console.log(`- ${pack.name} -> ${artifactName}`);
-          }),
-        );
+        const result = await $({
+          cwd: pack.path,
+          stdio: 'pipe',
+        })`pnpm pack --pack-destination ${packsPath}`;
+        const artifactName = result.stdout.trim();
+        console.log(`- ${pack.name} -> ${artifactName}`);
       }
-
-      await Promise.all(packPromises);
     });
 
   return group;

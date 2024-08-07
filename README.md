@@ -65,3 +65,44 @@ export default defineMessages({
   },
 });
 ```
+
+## Development
+
+### Local development in another React Native project
+
+If you need to develop discord/intl and test on react-native projects using Metro, you will have a bad time trying to
+deal with node_modules and dependency linking. Even though this project uses pnpm, which is generally pretty good about
+managing workspaces and cross-project links for you automatically, Metro doesn't understand the symlink nature of a lot
+of what pnpm does, and will throw errors about module resolution constantly.
+
+The only way to work around this is to either use an npm-published version of the dependency, which is pre-compiled and
+always copied directly into the host project's node modules folder, _or_ use `pnpm pack` on the package you want to test
+out locally, then manually install that package in the host project use a tarball link.
+
+The latter is far and away the easiest and least-polluting method, so this workspace provides a command to pack all of
+the projects in this workspace into tarballs that you can then add manually:
+
+```shell
+pnpm intl-cli eco local-pack
+```
+
+Once this succeeds, you'll have a `./.local-packs` folder in this repo with tarballs of each package. Then you can add
+those to your host project's dependencies like a normal file link:
+
+```json
+{
+  "dependencies": {
+    "@discord/metro-intl-transformer": "link:../discord-intl/.local-packs/discord-metro-intl-transformer-0.0.1.tgz"
+  }
+}
+```
+
+The package manager for the host project should then _copy_ and install the dependency, allowing Metro to treat it like
+any other dependency with proper node_modules resolution and all. To update the package and test a new change, just run
+the `intl-cli eco local-pack` command again, then re-install the package on the host. It's tedious, but it's the only
+way that currently works with module resolution across all bundlers.
+
+Note that if you are testing changes in multiple packages, or in packages with nested dependencies, you will need to
+_explicitly_ install each package you're changing in the host project, even if it's normally an implicit dependency.
+Otherwise, the host package manager might not link the right version (this is a limitation of `pnpm pack` and how it is
+being used to make this method work).

@@ -18,12 +18,10 @@ import { hostPlatform } from '../util/platform.js';
  * @returns {Option}
  */
 export function buildTargetOption() {
-  const option = new Option('--target <target>', 'Which platform package to build for natively.')
+  return new Option('--target <target>', 'Which platform package to build for natively.')
     .choices(Object.keys(NAPI_TARGET_MAP).concat(['local']))
     .argParser((target) => (target === 'local' ? hostPlatform.target : target))
     .makeOptionMandatory(true);
-
-  return option;
 }
 
 const DB_PACKAGE_NAME = '@discord/intl-message-database';
@@ -39,7 +37,7 @@ export default async function () {
   group
     .command('build')
     .description('Build the intl_message_database native Node extension')
-    .addOption(buildTargetOption({ allowHostDefault: true }))
+    .addOption(buildTargetOption())
     .action(async ({ target }) => {
       await buildNapiPackage(dbPackage, target);
     });
@@ -49,7 +47,7 @@ export default async function () {
   group.addCommand(
     npmPublishCommand('publish-target')
       .description('Publish a platform-specific package for intl-message-database to npm')
-      .addOption(buildTargetOption({ allowHostDefault: true }))
+      .addOption(buildTargetOption())
       .action(async (options) => {
         const targetPackage = await getPackage(`@discord/intl-message-database-${options.target}`);
         await npmPublish(targetPackage, options);
