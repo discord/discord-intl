@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { Command } from 'commander';
-import { $ } from 'zx';
+import { Argument, Command } from 'commander';
+import { confirm } from '@inquirer/prompts';
+import { $, question } from 'zx';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
 import { getPackage, getWorkspacePackages } from '../pnpm.js';
@@ -20,6 +21,7 @@ export default async function () {
     .aliases(['ecosystem'])
     .description('Operate on the entire ecosystem of JS packages in the repo.');
 
+  group.addCommand(versionCommand('version', dbPackage, publicPackages));
   group.addCommand(
     npmPublishCommand('publish-all').action(async (options) => {
       console.info('Ensuring all public packages have matching versions');
@@ -32,7 +34,49 @@ export default async function () {
       }
     }),
   );
-  group.addCommand(versionCommand('version', dbPackage, publicPackages));
+  group.addCommand(
+    npmPublishCommand('publish-only')
+      .description(
+        'Publish a specific set of packages from the ecosystem. Version equality will not be checked',
+      )
+      .addArgument(
+        new Argument('<packs...>', 'Name of the package(s) to publish').choices(
+          publicPackages.map((pack) => pack.name),
+        ),
+      )
+      .option('--yes', 'Automatically approve any confirmations with `yes`')
+      .action(async (packs, options) => {
+        const chosenPackages = [];
+        for (const packName of packs) {
+          const pack = publicPackages.find((pub) => pub.name === packName);
+          if (pack == null) {
+            console.error(
+              `${packName} is not a public package and cannot be published. Exiting for safety.`,
+            );
+            process.exit(1);
+          }
+          chosenPackages.push(pack);
+        }
+
+        console.log(`Packages that will be published: ${packs.join(',')}`);
+
+        const continuePublishing =
+          options.yes ||
+          (await confirm({
+            message:
+              'This is a dangerous command that can cause version mismatches or incompatibility on publicly available packages. Are you sure you want to publish ',
+            default: false,
+          }));
+        if (!continuePublishing) {
+          console.log('Chose not to continue. Exiting.');
+          process.exit(0);
+        }
+
+        for (const pack of chosenPackages) {
+          await npmPublish(pack, options);
+        }
+      }),
+  );
 
   group
     .command('local-pack')

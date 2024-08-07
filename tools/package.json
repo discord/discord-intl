@@ -12,6 +12,7 @@
     "intl-cli": "node index.js"
   },
   "dependencies": {
+    "@inquirer/prompts": "^5.3.8",
     "@napi-rs/cli": "3.0.0-alpha.62",
     "commander": "^12.1.0",
     "semver": "^7.6.3",

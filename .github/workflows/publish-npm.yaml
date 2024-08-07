@@ -1,0 +1,38 @@
+name: Publish one or multiple NPM packages directly without building.
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        required: true
+        type: string
+        description: "Space-separated list of packages to publish"
+
+permissions:
+  # To publish packages with provenance
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    name: Release and Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    if: inputs.publish
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Build Env
+        uses: ./.github/actions/setup-build-env
+        with:
+          native: false
+          ref: ${{ inputs.ref }}
+          target: wasm
+
+      - name: Publish all @discord/intl-message-database* packages
+        run: |
+          pnpm intl-cli ecosystem publish-only ${{inputs.packages}} --yes --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
