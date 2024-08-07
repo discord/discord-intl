@@ -8,3 +8,4 @@ target/
 # Build artifacts
 *.wasm
 *.node
+.local-packs/
