@@ -59,7 +59,7 @@ class MessageDefinitionsTransformer {
    *
    * ```typescript
    * {
-   *   "en-US": () => import("path/to/en-US.json"),
+   *   "en-US": () => import("path/to/en-US.messages.json"),
    * }
    * ```
    *

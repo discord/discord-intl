@@ -85,7 +85,17 @@ const intlLoader = function intlLoader(source) {
         'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
       );
     }
-    return database.precompileToBuffer(localeName);
+    // Translations are still treated as JS files that need to be pre-parsed.
+    // Rspack will handle parsing for the actual JSON file requests.
+    if (forceTranslation) {
+      return (
+        'export default JSON.parse(' +
+        JSON.stringify(database.precompileToBuffer(localeName).toString()) +
+        ')'
+      );
+    } else {
+      return database.precompileToBuffer(localeName);
+    }
   }
 };
 
