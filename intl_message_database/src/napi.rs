@@ -48,7 +48,9 @@ pub struct IntlSourceFile {
 pub struct IntlMessageMeta {
     pub secret: bool,
     pub translate: bool,
+    #[napi(js_name = "bundleSecrets")]
     pub bundle_secrets: bool,
+    #[napi(js_name = "translationsPath")]
     pub translations_path: String,
 }
 

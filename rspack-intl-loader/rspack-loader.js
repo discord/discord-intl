@@ -1,8 +1,24 @@
+const fs = require('node:fs');
 const path = require('node:path');
-const {isMessageDefinitionsFile, isMessageTranslationsFile} = require('@discord/intl-message-database');
+const {
+  isMessageDefinitionsFile,
+  isMessageTranslationsFile,
+} = require('@discord/intl-message-database');
 
-const {database} = require('./src/database');
-const {MessageDefinitionsTransformer} = require('./src/transformer');
+const { database } = require('./src/database');
+const { MessageDefinitionsTransformer } = require('./src/transformer');
+
+/**
+ * Return the presumed locale for a translations file from it's name. The convention follows the
+ * format: `some/path/to/<locale>.messages.jsona`, so the locale is determined by taking the content
+ * of the basename up until the first `.`.
+ *
+ * @param {string} fileName
+ * @returns {string}
+ */
+function getLocaleFromTranslationsFileName(fileName) {
+  return path.basename(fileName).split('.')[0];
+}
 
 /**
  * Take in a file that contains message definitions (e.g., calls to
@@ -21,23 +37,47 @@ const intlLoader = function intlLoader(source) {
     database.processDefinitionsFileContent(sourcePath, source);
     const sourceFile = database.getSourceFile(sourcePath);
     if (sourceFile.type !== 'definition') {
-      throw new Error('Expected an intl messages definition file, but found a translation file instead.');
+      throw new Error(
+        'Expected an intl messages definition file, but found a translation file instead.',
+      );
     }
 
-    this.data.contentFileName = sourcePath;
-    // TODO: This should be built inside the native extension instead.
-    const locales = database.getKnownLocales();
+    const translationsPath = path.resolve(
+      path.dirname(sourcePath),
+      sourceFile.meta.translations_path,
+    );
+
     /** @type {Record<string, string>} */
     const localeMap = {};
-    for (const locale of locales) {
-      localeMap[locale] = `${sourceFile.meta.translationsPath}/${locale}.jsona`;
-    }
-    localeMap['en-US'] = this.data.contentFileName + '?forceTranslation';
+    try {
+      const translationFiles = fs.readdirSync(translationsPath, { encoding: 'utf-8' });
+      for (const foundFile of translationFiles) {
+        const filePath = path.join(translationsPath, foundFile);
+        if (!isMessageTranslationsFile(filePath)) continue;
 
-    const transformer = new MessageDefinitionsTransformer(database.getSourceFileHashedKeys(sourcePath), localeMap);
+        const locale = getLocaleFromTranslationsFileName(filePath);
+        localeMap[locale] = filePath;
+        this.addDependency(filePath);
+      }
+    } catch (e) {
+      this.emitWarning(
+        new Error(
+          `The translations directory ${translationsPath} was not found. No translations will be loaded for these messages`,
+        ),
+      );
+    }
+
+    delete localeMap['en-US'];
+    database.processAllTranslationFiles(localeMap);
+    localeMap['en-US'] = sourcePath + '?forceTranslation';
+
+    const transformer = new MessageDefinitionsTransformer(
+      database.getSourceFileHashedKeys(sourcePath),
+      localeMap,
+    );
     return transformer.getOutput();
   } else {
-    const localeName = forceTranslation ? 'en-US' : path.basename(sourcePath).split('.')[0];
+    const localeName = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
     if (isMessageTranslationsFile(sourcePath)) {
       database.processTranslationFileContent(sourcePath, localeName, source);
     } else if (!forceTranslation) {
@@ -45,7 +85,7 @@ const intlLoader = function intlLoader(source) {
         'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
       );
     }
-    return 'export default' + database.precompileToBuffer(localeName);
+    return database.precompileToBuffer(localeName);
   }
 };
 
