@@ -30,10 +30,10 @@ jobs:
       matrix:
         target:
           # Linux
-          - ['ubuntu-latest', 'linux-x64-gnu']
-          - ['ubuntu-latest', 'linux-arm64-gnu']
-          - ['ubuntu-latest', 'linux-x64-musl']
-          - ['ubuntu-latest', 'linux-arm64-musl']
+          - ['ubuntu-20.04', 'linux-x64-gnu']
+          - ['ubuntu-20.04', 'linux-arm64-gnu']
+          - ['ubuntu-20.04', 'linux-x64-musl']
+          - ['ubuntu-20.04', 'linux-arm64-musl']
           # Windows
           - ['windows-latest', 'win32-ia32-msvc']
           - ['windows-latest', 'win32-x64-msvc']
