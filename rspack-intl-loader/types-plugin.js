@@ -16,7 +16,11 @@ class IntlTypeGeneratorPlugin {
     const start = performance.now();
     const baseDir = path.dirname(filePath);
     const outputFileName = path.basename(filePath).replace('.js', '.d.ts');
-    database.generateTypes(filePath, path.join(baseDir, outputFileName));
+    // Ensure that the database knows about the file before trying to get its content.
+    const paths = database.getAllSourceFilePaths();
+    if (paths.includes(filePath)) {
+      database.generateTypes(filePath, path.join(baseDir, outputFileName));
+    }
     const end = performance.now();
 
     return end - start;
