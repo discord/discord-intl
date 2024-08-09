@@ -6,14 +6,17 @@
   "exports": {
     ".": "./index.js",
     "./babel-plugin": "./babel-plugin.js",
-    "./resolver": "./resolver.js",
-    "./.cache/*": "./.cache/*"
+    "./watcher": "./watcher.js"
   },
   "dependencies": {
-    "@discord/intl-message-database": "workspace:*"
+    "@discord/intl-message-database": "workspace:*",
+    "chokidar": "^3.6.0",
+    "debug": "^4.3.6",
+    "fast-glob": "^3.3.2"
   },
   "devDependencies": {
     "@babel/types": "^7.24.9",
-    "@types/babel__traverse": "7.20.6"
+    "@types/babel__traverse": "7.20.6",
+    "@types/debug": "^4.1.12"
   }
 }
