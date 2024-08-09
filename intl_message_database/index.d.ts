@@ -12,8 +12,8 @@ export declare class IntlMessagesDatabase {
   getSourceFileHashedKeys(filePath: string): string[]
   getMessage(key: string): unknown
   generateTypes(sourceFilePath: string, outputFilePath: string): void
-  precompile(locale: string, outputPath: string, format?: IntlCompiledMessageFormat | undefined | null): void
-  precompileToBuffer(locale: string, format?: IntlCompiledMessageFormat | undefined | null): Buffer
+  precompile(sourcePath: string, locale: string, outputPath: string, format?: IntlCompiledMessageFormat | undefined | null): void
+  precompileToBuffer(sourcePath: string, locale: string, format?: IntlCompiledMessageFormat | undefined | null): Buffer
   validateMessages(): Array<IntlDiagnostic>
 }
 

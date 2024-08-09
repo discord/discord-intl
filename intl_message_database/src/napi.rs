@@ -225,11 +225,12 @@ impl IntlMessagesDatabase {
     #[napi]
     pub fn precompile(
         &self,
+        source_path: String,
         locale: String,
         output_path: String,
         format: Option<IntlCompiledMessageFormat>,
     ) -> anyhow::Result<()> {
-        let buffer = self.precompile_to_buffer(locale, format)?;
+        let buffer = self.precompile_to_buffer(source_path, locale, format)?;
         std::fs::write(output_path, buffer)?;
         Ok(())
     }
@@ -237,14 +238,21 @@ impl IntlMessagesDatabase {
     #[napi]
     pub fn precompile_to_buffer(
         &self,
+        source_path: String,
         locale: String,
         format: Option<IntlCompiledMessageFormat>,
     ) -> anyhow::Result<Buffer> {
         let locale_key = global_get_symbol(&locale)?;
-        let mut result: Vec<u8> = Vec::with_capacity(self.database.messages.len() * 40);
+        let source_key = global_get_symbol(&source_path)?;
+        let keys_count = self
+            .database
+            .get_source_file(source_key)
+            .map_or(0, |source| source.message_keys().len());
+        let mut result: Vec<u8> = Vec::with_capacity(keys_count * 80);
         IntlMessagePreCompiler::new(
             &self.database,
             &mut result,
+            source_key,
             locale_key,
             format.unwrap_or(IntlCompiledMessageFormat::Json).into(),
         )

@@ -1,13 +1,14 @@
 //! Small module for creating and working with Symbols (aka Atoms), which are
 //! internal handles to commonly-shared values like message keys, file names
 //! locale ids, or anything else that needs to be shared.
-use rustc_hash::FxHasher;
-use serde::ser::Error;
-use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::hash::BuildHasherDefault;
 use std::sync::{OnceLock, RwLock, RwLockReadGuard};
+
+use rustc_hash::FxHasher;
+use serde::{Serialize, Serializer};
+use serde::ser::Error;
 use string_interner::{DefaultBackend, DefaultSymbol, StringInterner, Symbol};
 
 use super::{MessagesError, MessagesResult};
@@ -54,11 +55,12 @@ pub fn global_intern_string(value: &str) -> MessagesResult<KeySymbol> {
 /// found, or if the symbol store can't be read, this macro returns early with a MessagesError.
 #[macro_export]
 macro_rules! resolve_symbol {
-    ($var:ident) => {{
-        let store = read_global_symbol_store()?;
-        store
-            .resolve($var)
-            .ok_or_else(|| MessagesError::SymbolNotFound($var))
+    ($var:expr) => {{
+        crate::messages::symbols::read_global_symbol_store().and_then(|store| {
+            store
+                .resolve($var)
+                .ok_or_else(|| crate::messages::MessagesError::SymbolNotFound($var))
+        })
     }};
 }
 

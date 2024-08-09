@@ -53,7 +53,7 @@ impl MessagesDatabase {
         global_get_symbol(value)
     }
 
-    pub fn get_source_file(&mut self, file_key: KeySymbol) -> Option<&SourceFile> {
+    pub fn get_source_file(&self, file_key: KeySymbol) -> Option<&SourceFile> {
         self.sources.get(&file_key)
     }
 

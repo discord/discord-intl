@@ -90,11 +90,11 @@ const intlLoader = function intlLoader(source) {
     if (forceTranslation) {
       return (
         'export default JSON.parse(' +
-        JSON.stringify(database.precompileToBuffer(localeName).toString()) +
+        JSON.stringify(database.precompileToBuffer(sourcePath, localeName).toString()) +
         ')'
       );
     } else {
-      return database.precompileToBuffer(localeName);
+      return database.precompileToBuffer(sourcePath, localeName);
     }
   }
 };

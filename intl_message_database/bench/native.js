@@ -82,7 +82,12 @@ function getPrecompileFormat(format) {
 bench(`precompile (${getPrecompileFormat(COMPILATION_FORMAT)})`, () => {
   const locales = database.getKnownLocales();
   for (const locale of locales) {
-    database.precompile(locale, `./data/output/${locale}.json`, COMPILATION_FORMAT);
+    database.precompile(
+      './data/input/en-US.js',
+      locale,
+      `./data/output/${locale}.json`,
+      COMPILATION_FORMAT,
+    );
   }
 });
 

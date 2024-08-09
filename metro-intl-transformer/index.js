@@ -92,7 +92,7 @@ async function transformToString({
   } else if (isMessageTranslationsFile(filename)) {
     const localeName = path.basename(filename).split('.')[0];
     database.processTranslationFileContent(filename, localeName, src);
-    return database.precompileToBuffer(localeName);
+    return database.precompileToBuffer(filename, localeName);
   }
 }
 
