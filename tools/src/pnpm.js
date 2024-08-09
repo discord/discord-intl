@@ -27,8 +27,8 @@ let WORKSPACE_PACKAGES_CACHE = undefined;
  * @param {{cacheOk?: boolean}} options
  * @returns {Promise<Record<string, PnpmPackage>>}
  */
-export async function getWorkspacePackages(options = {}) {
-  if (options.cacheOk && WORKSPACE_PACKAGES_CACHE != null) return WORKSPACE_PACKAGES_CACHE;
+export async function getWorkspacePackages({ cacheOk = true } = {}) {
+  if (cacheOk && WORKSPACE_PACKAGES_CACHE != null) return WORKSPACE_PACKAGES_CACHE;
 
   const result = await $({ cwd: REPO_ROOT })`pnpm m ls --depth=1 --json`;
   const packages = JSON.parse(result.stdout);
