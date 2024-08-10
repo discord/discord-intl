@@ -3,6 +3,7 @@ const {
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
 } = require('@discord/intl-message-database');
+const debug = require('debug')('intl:metro-intl-transformer');
 
 const { database } = require('./src/database');
 const { MessageDefinitionsTransformer } = require('./src/transformer');
@@ -25,6 +26,7 @@ function transformToString({
   createAssetImport,
 }) {
   if (isMessageDefinitionsFile(filename)) {
+    debug(`Processing ${filename} as a definitions file`);
     database.processDefinitionsFileContent(filename, src);
     const sourceFile = database.getSourceFile(filename);
     if (sourceFile.type !== 'definition') {
@@ -34,14 +36,16 @@ function transformToString({
     }
 
     const locales = database.getKnownLocales();
+    debug(`Creating locale map to translations at path: ${sourceFile.meta.translations_path}`);
     /** @type {Record<string, string>} */
     const localeMap = {};
     for (const locale of locales) {
       localeMap[locale] =
-        `${sourceFile.meta.translationsPath}/${locale}.${getTranslationAssetExtension()}`;
+        `${sourceFile.meta.translations_path}/${locale}.${getTranslationAssetExtension()}`;
     }
-    const fileBasename = filename.substring(0, filename.lastIndexOf('.messages.js'));
-    localeMap['en-US'] = path.dirname(fileBasename + '.compiled.messages.jsona');
+    const compiledSourcePath = filename.replace(/\.messages\.js$/, '.compiled.messages.jsona');
+    debug(`Resolving source file ${filename} to compiled translations file ${compiledSourcePath}`);
+    localeMap['en-US'] = compiledSourcePath;
 
     const transformer = new MessageDefinitionsTransformer(
       database.getSourceFileHashedKeys(filename),
@@ -52,6 +56,7 @@ function transformToString({
 
     return transformer.getOutput();
   } else if (isMessageTranslationsFile(filename)) {
+    debug(`Processing ${filename} as a translations file`);
     const localeName = path.basename(filename).split('.')[0];
     database.processTranslationFileContent(filename, localeName, src);
     return database.precompileToBuffer(filename, localeName);
