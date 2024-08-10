@@ -16,7 +16,6 @@ const IGNORE_PATTERNS = [
   // Also ignore a bunch of default folders that just make globs/watches take forever.
   '**/node_modules/**',
   '**/target/**',
-  '**/native/**',
   '**/dist/**',
   '**/build/**',
   '**/cache/**',
