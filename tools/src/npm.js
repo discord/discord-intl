@@ -50,9 +50,10 @@ export function npmPublishCommand(commandName = 'publish', pack) {
  *   access?: 'public' | 'restricted',
  *   useProvenance?: boolean,
  *   gitChecks?: boolean
+ *   tag?: string
  * }} options
  */
-export async function npmPublish(pack, { dryRun, access, useProvenance, gitChecks }) {
+export async function npmPublish(pack, { dryRun, access, useProvenance, gitChecks, tag }) {
   const publishArgs = [
     dryRun ? '--dry-run' : undefined,
     access != null ? `--access=${access}` : undefined,
@@ -61,6 +62,7 @@ export async function npmPublish(pack, { dryRun, access, useProvenance, gitCheck
     // explicitly disable that check. Would really rather not do this to enforce that no other git
     // changes leak into releases, but oh well for now.
     gitChecks ? '--git-checks' : '--no-git-checks',
+    tag ? `--tag=${tag}` : undefined,
   ].filter(Boolean);
 
   await $({
