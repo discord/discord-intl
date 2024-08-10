@@ -15,9 +15,9 @@ const { MessageDefinitionsTransformer } = require('./src/transformer');
  *  getTranslationAssetExtension: () => string,
  *  createAssetImport: (importPath: string) => string,
  * }} options
- * @returns
+ * @returns {string | Buffer}
  */
-async function transformToString({
+function transformToString({
   filename,
   src,
   getPrelude,
@@ -56,6 +56,8 @@ async function transformToString({
     database.processTranslationFileContent(filename, localeName, src);
     return database.precompileToBuffer(filename, localeName);
   }
+
+  return src;
 }
 
 module.exports = { transformToString };

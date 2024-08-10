@@ -90,6 +90,8 @@ class MessageDefinitionsTransformer {
    * Returns the reduced, transformed output for this file. Currently not
    * configurable, but could be told to include default messages or preserve
    * information as necessary.
+   *
+   * @returns {string}
    */
   getOutput() {
     const messageKeys = this.messageKeys;
