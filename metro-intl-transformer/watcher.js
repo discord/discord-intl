@@ -30,12 +30,13 @@ const DEFAULT_LOCALE = 'en-US';
  * @param {string} filePath
  */
 function processFile(filePath) {
+  debug(`Processing file: ${filePath}`);
   if (!isMessageDefinitionsFile(filePath)) {
+    debug(`${filePath} is not a definitions file. Skipping processing`);
     return;
   }
 
   try {
-    debug(`Processing file: ${filePath}`);
     // Convert the file name from `.messages.js` to `.compiled.messages.jsona` for output.
     const outputPath = filePath.replace(/\.messages\.js$/, '.compiled.messages.jsona');
 
