@@ -67,7 +67,6 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
     ignore: IGNORE_PATTERNS,
     absolute: true,
     onlyFiles: true,
-    followSymbolicLinks: false,
   })) {
     processFile(filePath.toString());
   }
