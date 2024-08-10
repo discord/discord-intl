@@ -58,6 +58,7 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
   const globs = watchedFolders.flatMap((folder) =>
     MESSAGE_DEFINITION_FILE_PATTERNS.map((pattern) => path.join(folder, pattern)),
   );
+  debug(`Configured message file patterns:\n- ${globs.join('\n- ')}`);
 
   // Perform one initial scan and compilation to ensure all files exist before Metro might try to
   // resolve them.
@@ -73,7 +74,7 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
   debug('Initial message scan completed.');
 
   if (watch) {
-    debug(`Setting up file watching for configured paths:\n- ${globs.join('\n- ')}`);
+    debug(`Setting up file watching for configured paths`);
     chokidar
       .watch(globs, { ignored: IGNORE_PATTERNS, ignoreInitial: true })
       .on('all', (event, filePath) => {
