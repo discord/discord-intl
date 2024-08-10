@@ -39,6 +39,11 @@ export async function getWorkspacePackages({ cacheOk = true } = {}) {
   return WORKSPACE_PACKAGES_CACHE;
 }
 
+export async function getPublicPackages() {
+  const workspace = Object.values(await getWorkspacePackages());
+  return workspace.filter((pack) => pack.private === false);
+}
+
 /**
  * Return a single package entry from the pnpm workspace.
  *
@@ -75,3 +80,7 @@ export async function updatePackageJson(pack, mutator) {
   await fs.writeFile(path.resolve(pack.path, 'package.json'), JSON.stringify(updated, null, 2));
   return updated;
 }
+
+export const pnpm = {
+  getPublicPackages,
+};

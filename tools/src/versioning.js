@@ -1,7 +1,8 @@
-import { getWorkspacePackages, updatePackageJson } from './pnpm.js';
 import semver from 'semver';
-import { $ } from 'zx';
 import { Argument, Command } from 'commander';
+
+import { git } from './util/git.js';
+import { getWorkspacePackages, updatePackageJson } from './pnpm.js';
 
 /**
  * @typedef {import('./pnpm.js').PnpmPackage} PnpmPackage
@@ -128,7 +129,8 @@ function applyVersionBump(baseVersion, level) {
       return baseVersion.inc(level, 'rc').version;
     case 'canary':
       const canaryBase = semver.coerce(baseVersion.version, { includePrerelease: false });
-      return canaryBase + '-canary.' + $.sync`git rev-parse --short HEAD`.stdout.trim();
+      const currentHead = git.currentHead({ short: true });
+      return `${canaryBase}-canary.${currentHead}`;
     default:
       return baseVersion.inc(level).version;
   }
