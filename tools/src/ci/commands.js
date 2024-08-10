@@ -7,8 +7,8 @@
  */
 import { Argument, Command } from 'commander';
 import { checkbox } from '@inquirer/prompts';
-import { $ } from 'zx';
 
+import { gh } from '../util/gh.js';
 import { git } from '../util/git.js';
 import { pnpm } from '../pnpm.js';
 
@@ -31,12 +31,12 @@ export default async function () {
     )
     .option('--loose', 'Disable strict mode')
     .action(async (packs, { loose }) => {
-      // if (await git.hasChanges()) {
-      //   console.log(
-      //     'There are uncommited changes. Commit and push them before running this command',
-      //   );
-      //   process.exit(1);
-      // }
+      if (await git.hasChanges()) {
+        console.log(
+          'There are uncommited changes. Commit and push them before running this command',
+        );
+        process.exit(1);
+      }
 
       const chosenPackages =
         packs.length > 0
@@ -47,8 +47,26 @@ export default async function () {
               required: true,
             });
 
+      console.log('Fetching workflow information from GitHub...');
+      const workflowId = await gh.getWorkflowIdFromPath('.github/workflows/publish-canary.yaml');
+      const previousRun = await gh.getLatestWorkflowRun(workflowId);
       const ref = git.currentHead();
-      await $`gh workflow run publish-canary.yaml -r ${ref} -f ref=${ref} -f strict=${!loose} --f packages="${chosenPackages.join(' ')}"`;
+      console.log('Triggering workflow...');
+      await gh.runWorkflow('publish-canary.yaml', {
+        commit: ref,
+        strict: loose ? 'false' : 'true',
+        packages: chosenPackages.join(' '),
+      });
+      console.log('Waiting for run request to be registered...');
+      const latestRun = await gh.waitForNextRunResponse(workflowId, previousRun.number);
+      if (latestRun == null) {
+        console.error("Couldn't get a response from GitHub about the latest run. Check manually");
+        process.exit(1);
+      }
+
+      console.log(
+        `Created #${latestRun.number} (${latestRun.status}). View the run here: ${latestRun.url}`,
+      );
     });
 
   return group;
