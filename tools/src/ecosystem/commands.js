@@ -13,6 +13,7 @@ import { REPO_ROOT } from '../constants.js';
 export default async function () {
   const allPackages = Object.values(await getWorkspacePackages());
   const publicPackages = allPackages.filter((pack) => pack.private === false);
+  const publicPackageNames = publicPackages.map((pack) => pack.name);
   // The db package is the core that all other versions are based off of, so it's used as the
   // single arg, while the rest of the packages are treated as the package family.
   const dbPackage = await getPackage('@discord/intl-message-database');
@@ -40,11 +41,13 @@ export default async function () {
         'Publish a specific set of packages from the ecosystem. Version equality will not be checked',
       )
       .addArgument(
-        new Argument('<packs...>', 'Name of the package(s) to publish').choices(
-          publicPackages.map((pack) => pack.name),
-        ),
+        new Argument('<packs...>', 'Name of the package(s) to publish').choices(publicPackageNames),
       )
       .option('--yes', 'Automatically approve any confirmations with `yes`')
+      .option(
+        '--strict',
+        'Reset all other changes before publishing, e.g. version bumps done before publishing.',
+      )
       .action(async (packs, options) => {
         const chosenPackages = [];
         for (const packName of packs) {
@@ -58,13 +61,19 @@ export default async function () {
           chosenPackages.push(pack);
         }
 
-        console.log(`Packages that will be published: ${packs.join(',')}`);
+        if (options.strict) {
+          console.log('> Strict Mode. Resetting state of everything except the selected packages');
+          const resetPathspecs = chosenPackages.map((pack) => path.relative(REPO_ROOT, pack.path));
+          await $`git stash -- ${resetPathspecs} && git reset --hard && git stash pop`;
+        }
+
+        console.log(`> Packages that will be published: ${packs.join(',')}`);
 
         const continuePublishing =
           options.yes ||
           (await confirm({
             message:
-              'This is a dangerous command that can cause version mismatches or incompatibility on publicly available packages. Are you sure you want to publish ',
+              'This is a dangerous command that can cause version mismatches or incompatibility on publicly available packages. Are you sure you want to publish?',
             default: false,
           }));
         if (!continuePublishing) {

@@ -11,6 +11,10 @@ on:
         required: true
         type: string
         description: "Space-separated list of packages to publish"
+      strict:
+        required: true
+        type: boolean
+        description: "Strict Mode (only bump explicitly given packages)"
 
 permissions:
   # To publish packages with provenance
@@ -40,6 +44,8 @@ jobs:
 
       - name: Publish all @discord/intl-message-database* packages
         run: |
-          pnpm intl-cli ecosystem publish-only ${{inputs.packages}} --yes --provenance --access public --no-git-checks --tag canary
+          pnpm intl-cli ecosystem publish-only ${{inputs.packages}} \
+              --yes --provenance --access public --no-git-checks \
+              --tag canary ${{inputs.strict && '--strict' || ''}}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
