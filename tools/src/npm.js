@@ -18,7 +18,7 @@ export function npmPublishCommand(commandName = 'publish', pack) {
   const command = new Command(commandName)
     .option('--dry-run', "Don't actually publish the package")
     .option(
-      '--tag',
+      '--tag <tag>',
       'Tag to additionally apply to the published package. Defaults to `latest`.',
       'latest',
     )
