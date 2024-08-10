@@ -23,7 +23,7 @@ const IGNORE_PATTERNS = [
   '**/.cache/**',
   '**/__pycache__/**',
 ];
-const MESSAGE_DEFINITION_FILE_PATTERNS = ['*.messages.js'];
+const MESSAGE_DEFINITION_FILE_PATTERNS = ['**/*.messages.js'];
 const DEFAULT_LOCALE = 'en-US';
 
 /**
@@ -33,17 +33,15 @@ function processFile(filePath) {
   if (!isMessageDefinitionsFile(filePath)) {
     return;
   }
-  debug(`Processing file: ${filePath}`);
+
   try {
+    debug(`Processing file: ${filePath}`);
     // Convert the file name from `.messages.js` to `.compiled.messages.jsona` for output.
-    const fileBasename = filePath.substring(0, filePath.lastIndexOf('.messages.js'));
-    const outputPath = path.resolve(
-      path.dirname(filePath),
-      `${fileBasename}.compiled.messages.jsona`,
-    );
+    const outputPath = filePath.replace(/\.messages\.js$/, '.compiled.messages.jsona');
 
     database.processDefinitionsFile(filePath);
-    database.precompile(filePath, 'en-US', outputPath, IntlCompiledMessageFormat.Json);
+    database.precompile(filePath, DEFAULT_LOCALE, outputPath, IntlCompiledMessageFormat.Json);
+    debug(`Wrote definitions to: ${outputPath}`);
   } catch (e) {
     debug('[INTL Error] Failed to compile messages');
     console.error(e);
@@ -57,7 +55,9 @@ function processFile(filePath) {
  * }} options
  */
 async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
-  const globs = watchedFolders.flatMap((folder) => path.join(folder, '**/*.messages.js'));
+  const globs = watchedFolders.flatMap((folder) =>
+    MESSAGE_DEFINITION_FILE_PATTERNS.map((pattern) => path.join(folder, pattern)),
+  );
 
   // Perform one initial scan and compilation to ensure all files exist before Metro might try to
   // resolve them.
