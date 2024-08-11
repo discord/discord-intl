@@ -11,6 +11,15 @@ on:
         required: true
         type: boolean
         description: "Publish to NPM?"
+      tag:
+        required: false
+        type: string
+        default: 'latest'
+        description: "NPM version tag"
+        choices:
+          - latest
+          - canary
+          - beta
       fail-fast:
         required: false
         type: boolean
@@ -91,6 +100,6 @@ jobs:
 
       - name: Publish all @discord/intl-message-database* packages
         run: |
-          pnpm intl-cli ecosystem publish-all --provenance --access public --no-git-checks
+          pnpm intl-cli ecosystem publish-all --provenance --access public --no-git-checks --tag ${{inputs.tag}}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

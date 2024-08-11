@@ -6,10 +6,7 @@ import utilCommands from './src/util-commands.js';
 import ciCommands from './src/ci/commands.js';
 import dbCommands from './src/db/commands.js';
 import ecosystemCommands from './src/ecosystem/commands.js';
-import metroCommands from './src/metro/commands.js';
-import rspackCommands from './src/rspack/commands.js';
-import runtimeCommands from './src/runtime/commands.js';
-import swcCommands from './src/swc/commands.js';
+import { createJsPackageCommands } from './src/js-package.js';
 
 process.chdir(REPO_ROOT);
 cd(REPO_ROOT);
@@ -21,9 +18,15 @@ cd(REPO_ROOT);
     .addCommand(await dbCommands())
     .addCommand(await ecosystemCommands())
     .addCommand(await utilCommands())
-    .addCommand(await metroCommands())
-    .addCommand(await rspackCommands())
-    .addCommand(await runtimeCommands())
-    .addCommand(await swcCommands())
+    .addCommand(await createJsPackageCommands('metro-intl-transformer', { aliases: ['metro'] }))
+    .addCommand(await createJsPackageCommands('rspack-intl-loader', { aliases: ['rspack'] }))
+    .addCommand(await createJsPackageCommands('intl', { aliases: ['rt'], build: true }))
+    .addCommand(await createJsPackageCommands('intl-loader-core', { aliases: ['lc'] }))
+    .addCommand(
+      await createJsPackageCommands('swc-intl-message-transformer', {
+        aliases: ['swc'],
+        build: true,
+      }),
+    )
     .parse();
 })();
