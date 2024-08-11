@@ -1,12 +1,12 @@
-const path = require('node:path');
 const {
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
-} = require('@discord/intl-message-database');
+  processDefinitionsFile,
+  MessageDefinitionsTransformer,
+  processTranslationsFile,
+  precompileFileForLocale,
+} = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:metro-intl-transformer');
-
-const { database } = require('./src/database');
-const { MessageDefinitionsTransformer } = require('./src/transformer');
 
 /**
  * @param {{
@@ -14,7 +14,7 @@ const { MessageDefinitionsTransformer } = require('./src/transformer');
  *  src: string,
  *  getPrelude: () => string
  *  getTranslationAssetExtension: () => string,
- *  createAssetImport: (importPath: string) => string,
+ *  getTranslationImport: (importPath: string) => string,
  * }} options
  * @returns {string | Buffer}
  */
@@ -23,43 +23,31 @@ function transformToString({
   src,
   getPrelude,
   getTranslationAssetExtension,
-  createAssetImport,
+  getTranslationImport,
 }) {
   if (isMessageDefinitionsFile(filename)) {
     debug(`Processing ${filename} as a definitions file`);
-    database.processDefinitionsFileContent(filename, src);
-    const sourceFile = database.getSourceFile(filename);
-    if (sourceFile.type !== 'definition') {
-      throw new Error(
-        'Expected an intl messages definition file, but found a translation file instead.',
-      );
-    }
-
-    const locales = database.getKnownLocales();
-    debug(`Creating locale map to translations at path: ${sourceFile.meta.translations_path}`);
-    /** @type {Record<string, string>} */
-    const localeMap = {};
-    for (const locale of locales) {
-      localeMap[locale] =
-        `${sourceFile.meta.translations_path}/${locale}.${getTranslationAssetExtension()}`;
-    }
-    const compiledSourcePath = filename.replace(/\.messages\.js$/, '.compiled.messages.jsona');
-    debug(`Resolving source file ${filename} to compiled translations file ${compiledSourcePath}`);
-    localeMap['en-US'] = compiledSourcePath;
-
-    const transformer = new MessageDefinitionsTransformer(
-      database.getSourceFileHashedKeys(filename),
-      localeMap,
-      createAssetImport,
-      getPrelude,
+    const result = processDefinitionsFile(filename, src);
+    const compiledSourcePath = filename.replace(
+      /\.messages\.js$/,
+      `.compiled.messages.${getTranslationAssetExtension()}`,
     );
 
-    return transformer.getOutput();
+    debug(`Resolving source file ${filename} to compiled translations file ${compiledSourcePath}`);
+    result.translationsLocaleMap['en-US'] = compiledSourcePath;
+
+    return new MessageDefinitionsTransformer({
+      messageKeys: result.hashedMessageKeys,
+      localeMap: result.translationsLocaleMap,
+      getTranslationImport,
+      getPrelude,
+    }).getOutput();
   } else if (isMessageTranslationsFile(filename)) {
     debug(`Processing ${filename} as a translations file`);
-    const localeName = path.basename(filename).split('.')[0];
-    database.processTranslationFileContent(filename, localeName, src);
-    return database.precompileToBuffer(filename, localeName);
+    const result = processTranslationsFile(filename, src);
+    // @ts-expect-error Without the `outputFile` option, this always returns a Buffer, but the
+    // option allows the function to return void instead.
+    return precompileFileForLocale(filename, result.locale);
   }
 
   return src;

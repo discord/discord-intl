@@ -1,6 +1,7 @@
 const { database } = require('./src/database');
 const { MessageDefinitionsTransformer } = require('./src/transformer');
 const {
+  hashMessageKey,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
   IntlCompiledMessageFormat,
@@ -71,6 +72,12 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   }
 
   const sourceFile = database.getSourceFile(sourcePath);
+  if (sourceFile.type !== 'definition') {
+    throw new Error(
+      `Expected ${sourcePath} to be a message definitions file, but it resulted in ${sourceFile.type} instead.`,
+    );
+  }
+
   const hashedMessageKeys = database.getSourceFileHashedKeys(sourcePath);
   const translationsPath = path.resolve(path.dirname(sourcePath), sourceFile.meta.translationsPath);
   const translationsLocaleMap = findAllTranslationFiles(translationsPath);
@@ -105,8 +112,16 @@ function processTranslationsFile(sourcePath, sourceContent, options = {}) {
     database.processTranslationFile(sourcePath, locale);
   }
 
+  const sourceFile = database.getSourceFile(sourcePath);
+  if (sourceFile.type !== 'translation') {
+    throw new Error(
+      `Expected ${sourcePath} to be a message translations file, but it resulted in ${sourceFile.type} instead.`,
+    );
+  }
+
   return {
-    sourceFile: database.getSourceFile(sourcePath),
+    sourceFile,
+    locale,
     hashedMessageKeys: database.getSourceFileHashedKeys(sourcePath),
   };
 }
@@ -170,6 +185,7 @@ module.exports = {
   findAllTranslationFiles,
   getLocaleFromTranslationsFileName,
   generateTypeDefinitions,
+  hashMessageKey,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
   processDefinitionsFile,

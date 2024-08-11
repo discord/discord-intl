@@ -4,11 +4,11 @@ const chokidar = require('chokidar');
 const fg = require('fast-glob');
 const debug = require('debug')('intl:metro-intl-transformer:watcher');
 
-const { database } = require('./src/database');
 const {
-  IntlCompiledMessageFormat,
+  database,
   isMessageDefinitionsFile,
-} = require('@discord/intl-message-database');
+  IntlCompiledMessageFormat,
+} = require('@discord/intl-loader-core');
 
 const ALWAYS_IGNORE_PATTERNS = [
   // Ignore our own compiled message files, even though they shouldn't have a matching extension.

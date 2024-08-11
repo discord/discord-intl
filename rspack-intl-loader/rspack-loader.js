@@ -24,7 +24,7 @@ const intlLoader = function intlLoader(source) {
   const forceTranslation = this.resourceQuery === '?forceTranslation';
 
   if (isMessageDefinitionsFile(sourcePath) && !forceTranslation) {
-    const result = processDefinitionsFile(sourcePath, source, { processTranslations: true });
+    const result = processDefinitionsFile(sourcePath, source);
 
     // Ensure that rspack knows to watch all of the translations files, even though they aren't
     // directly imported from a source. Without this, even though the compiled loader references the

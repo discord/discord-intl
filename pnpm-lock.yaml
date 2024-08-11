@@ -128,9 +128,9 @@ importers:
 
   metro-intl-transformer:
     dependencies:
-      '@discord/intl-message-database':
+      '@discord/intl-loader-core':
         specifier: workspace:*
-        version: link:../intl_message_database
+        version: link:../intl-loader-core
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
