@@ -19,7 +19,6 @@ on:
         choices:
           - latest
           - canary
-          - beta
       fail-fast:
         required: false
         type: boolean
@@ -94,7 +93,13 @@ jobs:
         run: |
           pnpm intl-cli util move-gh-artifacts ~/artifacts
 
-      - name: Check package versions
+      - name: Set ${{inputs.tag}} version for all packages
+        if: ${{inputs.tag == 'canary'}}
+        run: |
+          pnpm intl-cli ecosystem version bump canary
+
+      - name: Check package version equality
+        if: ${{inputs.tag != 'canary'}}
         run: |
           pnpm intl-cli ecosystem version check
 

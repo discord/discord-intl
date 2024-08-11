@@ -73,6 +73,19 @@ importers:
       '@discord/intl-message-database':
         specifier: workspace:*
         version: link:../intl_message_database
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
+      debug:
+        specifier: ^4.3.6
+        version: 4.3.6
+      fast-glob:
+        specifier: ^3.3.2
+        version: 3.3.2
+    devDependencies:
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
 
   intl_message_database:
     optionalDependencies:
@@ -131,15 +144,6 @@ importers:
       '@discord/intl-loader-core':
         specifier: workspace:*
         version: link:../intl-loader-core
-      chokidar:
-        specifier: ^3.6.0
-        version: 3.6.0
-      debug:
-        specifier: ^4.3.6
-        version: 4.3.6
-      fast-glob:
-        specifier: ^3.3.2
-        version: 3.3.2
     devDependencies:
       '@babel/types':
         specifier: ^7.24.9
@@ -147,9 +151,6 @@ importers:
       '@types/babel__traverse':
         specifier: 7.20.6
         version: 7.20.6
-      '@types/debug':
-        specifier: ^4.1.12
-        version: 4.1.12
 
   rspack-intl-loader:
     dependencies:

@@ -39,6 +39,11 @@ export interface ProcessDefinitionsResult {
    */
   sourceFile: IntlSourceFile;
   /**
+   * The locale that was either determined from the sourceFile name or overridden by the options
+   * provided to this call.
+   */
+  locale: string;
+  /**
    * The full list of message keys contained by the processed source file. While `sourceFile`
    * contains a list of key _symbols_, this list contains all of the resolved strings for the
    * hashed message keys.
@@ -70,7 +75,7 @@ export interface ProcessTranslationsResult {
   sourceFile: IntlSourceFile;
   /**
    * The locale that was either determined from the sourceFile name or overridden by the options
-   * provided to `processTranslationsFile`.
+   * provided to this call.
    */
   locale: string;
   /**

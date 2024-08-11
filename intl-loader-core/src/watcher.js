@@ -3,24 +3,28 @@ const path = require('node:path');
 const chokidar = require('chokidar');
 const fg = require('fast-glob');
 const debug = require('debug')('intl:metro-intl-transformer:watcher');
-
 const {
-  database,
   isMessageDefinitionsFile,
   IntlCompiledMessageFormat,
-} = require('@discord/intl-loader-core');
+} = require('@discord/intl-message-database');
+
+const { database } = require('./database');
+const { processDefinitionsFile, precompileFileForLocale } = require('../index');
 
 const ALWAYS_IGNORE_PATTERNS = [
   // Ignore our own compiled message files, even though they shouldn't have a matching extension.
   '*.compiled.messages.*',
 ];
+// TODO: This should come from the database extension? Or Utilities? Unsure, but the extensions
+// should have some centralized location in general
 const MESSAGE_DEFINITION_FILE_PATTERNS = ['**/*.messages.js'];
 const DEFAULT_LOCALE = 'en-US';
 
 /**
  * @param {string} filePath
+ * @param {string} assetExtension
  */
-function processFile(filePath) {
+function processFile(filePath, assetExtension) {
   debug(`Processing file: ${filePath}`);
   if (!isMessageDefinitionsFile(filePath)) {
     debug(`${filePath} is not a definitions file. Skipping processing`);
@@ -29,7 +33,9 @@ function processFile(filePath) {
 
   try {
     // Convert the file name from `.messages.js` to `.compiled.messages.jsona` for output.
-    const outputPath = filePath.replace(/\.messages\.js$/, '.compiled.messages.jsona');
+    const outputPath = filePath.replace(/\.messages\.js$/, `.compiled.messages.${assetExtension}`);
+    const result = processDefinitionsFile(filePath);
+    precompileFileForLocale(filePath, result.locale, { format: IntlCompiledMessageFormat.Json });
 
     database.processDefinitionsFile(filePath);
     database.precompile(filePath, DEFAULT_LOCALE, outputPath, IntlCompiledMessageFormat.Json);
@@ -44,10 +50,14 @@ function processFile(filePath) {
  * @param {string[]} watchedFolders
  * @param {{
  *  watch?: boolean,
- *  ignore?: string[]
+ *  ignore?: string[],
+ *  assetExtension?: string
  * }} options
  */
-async function compileIntlMessageFiles(watchedFolders, { watch = true, ignore = [] } = {}) {
+async function compileIntlMessageFiles(
+  watchedFolders,
+  { watch = true, ignore = [], assetExtension = 'json' } = {},
+) {
   const ignoredPatterns = ignore.concat(ALWAYS_IGNORE_PATTERNS);
   const globs = watchedFolders.flatMap((folder) =>
     MESSAGE_DEFINITION_FILE_PATTERNS.map((pattern) => path.join(folder, pattern)),
@@ -62,7 +72,7 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true, ignore = 
     absolute: true,
     onlyFiles: true,
   })) {
-    processFile(filePath.toString());
+    processFile(filePath.toString(), assetExtension);
   }
   debug('Initial message scan completed.');
 
@@ -72,7 +82,7 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true, ignore = 
       .watch(globs, { ignored: ignoredPatterns, ignoreInitial: true })
       .on('all', (event, filePath) => {
         debug(`Got event ${event} for ${filePath}`);
-        processFile(filePath);
+        processFile(filePath, assetExtension);
       });
   } else {
     debug('Not watching files because `watch` option was false');

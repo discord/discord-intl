@@ -5,18 +5,13 @@
   "description": "Metro/Babel transformer plugin for compiling, bundling, and minifying intl message definitions and usages using intl-message-database.",
   "exports": {
     ".": "./index.js",
-    "./babel-plugin": "./babel-plugin.js",
-    "./watcher": "./watcher.js"
+    "./babel-plugin": "./babel-plugin.js"
   },
   "dependencies": {
-    "@discord/intl-loader-core": "workspace:*",
-    "chokidar": "^3.6.0",
-    "debug": "^4.3.6",
-    "fast-glob": "^3.3.2"
+    "@discord/intl-loader-core": "workspace:*"
   },
   "devDependencies": {
     "@babel/types": "^7.24.9",
-    "@types/babel__traverse": "7.20.6",
-    "@types/debug": "^4.1.12"
+    "@types/babel__traverse": "7.20.6"
   }
 }
