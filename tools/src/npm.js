@@ -1,5 +1,7 @@
-import { $ } from 'zx';
 import { Command, Option } from 'commander';
+import { $ } from 'zx';
+
+import { pnpm } from './pnpm.js';
 
 /**
  * Create a bare `publish` command, with all of the flags used for passing to `npmPublish`
@@ -24,9 +26,10 @@ export function npmPublishCommand(commandName = 'publish', pack) {
     )
     .option('--provenance', 'Use provenance when publishing the package.')
     .option(
-      '--git-checks, --no-git-checks',
-      'Whether to enforce a clean git state before publishing.',
+      '--skip-existing',
+      'Skip publishing packages where the current version has already been published.',
     )
+    .option('--no-git-checks', 'Whether to enforce a clean git state before publishing.')
     .addOption(
       new Option('--access <access>', 'Whether this is publishing a public or private package.')
         .default('public')
@@ -50,10 +53,20 @@ export function npmPublishCommand(commandName = 'publish', pack) {
  *   access?: 'public' | 'restricted',
  *   useProvenance?: boolean,
  *   gitChecks?: boolean
- *   tag?: string
+ *   tag?: string,
+ *   skipExisting?: boolean,
  * }} options
  */
-export async function npmPublish(pack, { dryRun, access, useProvenance, gitChecks, tag }) {
+export async function npmPublish(pack, options) {
+  const { dryRun, access, useProvenance, gitChecks, tag, skipExisting = false } = options;
+
+  // Only check the existing package versions if the caller is allowing it to be skipped. Otherwise,
+  // NPM will error out on a version conflict, which we want to propagate directly.
+  if (skipExisting && (await isVersionAlreadyPublished(pack))) {
+    console.log('Checking if package already exists');
+    return;
+  }
+
   const publishArgs = [
     dryRun ? '--dry-run' : undefined,
     access != null ? `--access=${access}` : undefined,

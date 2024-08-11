@@ -45,7 +45,8 @@ jobs:
       - name: Publish all @discord/intl-message-database* packages
         run: |
           pnpm intl-cli ecosystem publish-only ${{inputs.packages}} \
-              --yes --provenance --access public --no-git-checks \
-              --tag canary ${{inputs.strict && '--strict' || ''}}
+              --tag canary ${{inputs.strict && '--strict' || ''}} \
+              --yes --skip-existing --no-git-checks \
+              --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
