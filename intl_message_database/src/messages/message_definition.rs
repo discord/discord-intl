@@ -1,7 +1,10 @@
-use super::{KeySymbol, MessageMeta, MessageValue, MessageVariables};
-use crate::messages::symbols::KeySymbolMap;
 use serde::Serialize;
+
 use intl_message_utils::hash_message_key;
+
+use crate::messages::symbols::KeySymbolMap;
+
+use super::{KeySymbol, MessageMeta, MessageValue, MessageVariables};
 
 pub type MessageKey = String;
 
@@ -27,10 +30,12 @@ pub struct Message {
     /// Original, plain text name of the message given in its definition.
     key: MessageKey,
     /// Hashed version of the key, used everywhere for minification and obfuscation.
+    #[serde(rename = "hashedKey")]
     hashed_key: String,
     /// Map of all translations for this message, including the default.
     translations: KeySymbolMap<MessageValue>,
     /// The source definition information for this message (locale and location).
+    #[serde(rename = "sourceLocale")]
     source_locale: Option<KeySymbol>,
     /// Meta information about how to handle and process this message.
     meta: MessageMeta,

@@ -60,16 +60,15 @@ impl SourceFile {
         }
     }
 
-    pub fn set_message_keys(&mut self, new_keys: FxHashSet<KeySymbol>) {
+    #[inline(always)]
+    pub fn message_keys_mut(&mut self) -> &mut FxHashSet<KeySymbol> {
         match self {
-            SourceFile::Definition {
-                ref mut message_keys,
-                ..
-            } => *message_keys = new_keys,
-            SourceFile::Translation {
-                ref mut message_keys,
-                ..
-            } => *message_keys = new_keys,
+            SourceFile::Definition { message_keys, .. } => message_keys,
+            SourceFile::Translation { message_keys, .. } => message_keys,
         }
+    }
+
+    pub fn set_message_keys(&mut self, new_keys: FxHashSet<KeySymbol>) {
+        *self.message_keys_mut() = new_keys;
     }
 }

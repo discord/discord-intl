@@ -121,6 +121,16 @@ impl IntlMessagesDatabase {
     }
 
     #[napi]
+    pub fn process_translation_file(
+        &mut self,
+        file_path: String,
+        locale: String,
+    ) -> anyhow::Result<u32> {
+        let content = std::fs::read_to_string(&file_path)?;
+        self.process_translation_file_content(file_path, locale, content)
+    }
+
+    #[napi]
     pub fn process_translation_file_content(
         &mut self,
         file_path: String,

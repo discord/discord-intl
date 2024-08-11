@@ -21,8 +21,10 @@ pub struct MessageMeta {
     /// be fully obfuscated in built output. Setting to `true` allows for
     /// testing builds with secret content as they will appear once the message
     /// becomes non-secret.
+    #[serde(rename = "bundleSecrets")]
     pub bundle_secrets: bool,
     /// A full path to a directory where translations for the message should be found.
+    #[serde(rename = "translationsPath")]
     pub translations_path: String,
 }
 

@@ -5,6 +5,7 @@ export declare class IntlMessagesDatabase {
   processDefinitionsFile(filePath: string): number
   processDefinitionsFileContent(filePath: string, content: string): number
   processAllTranslationFiles(localeMap: Record<string, string>): void
+  processTranslationFile(filePath: string, locale: string): number
   processTranslationFileContent(filePath: string, locale: string, content: string): number
   getKnownLocales(): Array<string>
   getSourceFile(filePath: string): IntlSourceFile
