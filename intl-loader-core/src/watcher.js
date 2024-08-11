@@ -9,7 +9,7 @@ const {
 } = require('@discord/intl-message-database');
 
 const { database } = require('./database');
-const { processDefinitionsFile, precompileFileForLocale } = require('../index');
+const { processDefinitionsFile, precompileFileForLocale } = require('./processing');
 
 const ALWAYS_IGNORE_PATTERNS = [
   // Ignore our own compiled message files, even though they shouldn't have a matching extension.
