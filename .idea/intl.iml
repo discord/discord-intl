@@ -15,6 +15,7 @@
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/intl_message_database/data" />
       <excludeFolder url="file://$MODULE_DIR$/runtime-bench/data" />
+      <excludeFolder url="file://$MODULE_DIR$/intl/dist" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

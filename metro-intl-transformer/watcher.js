@@ -10,17 +10,9 @@ const {
   isMessageDefinitionsFile,
 } = require('@discord/intl-message-database');
 
-const IGNORE_PATTERNS = [
+const ALWAYS_IGNORE_PATTERNS = [
   // Ignore our own compiled message files, even though they shouldn't have a matching extension.
   '*.compiled.messages.*',
-  // Also ignore a bunch of default folders that just make globs/watches take forever.
-  '**/node_modules/**',
-  '**/target/**',
-  '**/dist/**',
-  '**/build/**',
-  '**/cache/**',
-  '**/.cache/**',
-  '**/__pycache__/**',
 ];
 const MESSAGE_DEFINITION_FILE_PATTERNS = ['**/*.messages.js'];
 const DEFAULT_LOCALE = 'en-US';
@@ -51,10 +43,12 @@ function processFile(filePath) {
 /**
  * @param {string[]} watchedFolders
  * @param {{
- *  watch?: boolean
+ *  watch?: boolean,
+ *  ignore?: string[]
  * }} options
  */
-async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
+async function compileIntlMessageFiles(watchedFolders, { watch = true, ignore = [] } = {}) {
+  const ignoredPatterns = ignore.concat(ALWAYS_IGNORE_PATTERNS);
   const globs = watchedFolders.flatMap((folder) =>
     MESSAGE_DEFINITION_FILE_PATTERNS.map((pattern) => path.join(folder, pattern)),
   );
@@ -64,7 +58,7 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
   // resolve them.
   debug('Scanning for initial messages files');
   for await (const filePath of fg.stream(globs, {
-    ignore: IGNORE_PATTERNS,
+    ignore: ignoredPatterns,
     absolute: true,
     onlyFiles: true,
   })) {
@@ -75,7 +69,7 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
   if (watch) {
     debug(`Setting up file watching for configured paths`);
     chokidar
-      .watch(globs, { ignored: IGNORE_PATTERNS, ignoreInitial: true })
+      .watch(globs, { ignored: ignoredPatterns, ignoreInitial: true })
       .on('all', (event, filePath) => {
         debug(`Got event ${event} for ${filePath}`);
         processFile(filePath);
@@ -85,4 +79,4 @@ async function compileIntlMessageFiles(watchedFolders, { watch = true } = {}) {
   }
 }
 
-module.exports = { compileIntlMessageFiles };
+module.exports = { compileIntlMessageFiles, ALWAYS_IGNORE_PATTERNS };
