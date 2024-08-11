@@ -68,6 +68,12 @@ importers:
         specifier: 5.5.4
         version: 5.5.4
 
+  intl-loader-core:
+    dependencies:
+      '@discord/intl-message-database':
+        specifier: workspace:*
+        version: link:../intl_message_database
+
   intl_message_database:
     optionalDependencies:
       '@discord/intl-message-database-darwin-arm64':
@@ -147,9 +153,9 @@ importers:
 
   rspack-intl-loader:
     dependencies:
-      '@discord/intl-message-database':
+      '@discord/intl-loader-core':
         specifier: workspace:*
-        version: link:../intl_message_database
+        version: link:../intl-loader-core
       '@rspack/core':
         specifier: 0.x || 1.x
         version: 0.7.5

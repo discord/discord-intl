@@ -1,10 +1,10 @@
 /**
  * Common class for parsing and transforming the content of a messages
  * definition file (e.g., "SomeFeature.messages.js") into a production-ready
- * version, with string keys obfuscated, loading harnesses configured, and
+ * version, with message keys obfuscated, loading harnesses configured, and
  * more.
  *
- * This transformation is intended to be used alongside the consumer
+ * This transformation is intended to be used alongside the _consumer_
  * transforms implemented as SWC and Babel plugins, which transform the
  * callsites for messages into matching formats. Consider this input example:
  *
@@ -26,13 +26,15 @@
  *
  * ```typescript
  * const {i18n} = require('@discord/intl');
- * const MESSAGE_KEYS = ["a9fn23"]
- * const loader = createLoader(MESSAGE_KEYS, {"en-US": () => require('./messages/en-US.messages.jsona')});
- * export default MESSAGE_KEYS.reduce((acc, k) => {acc[k] = loader.bindFor(k); return acc}, {});
+ * const _keys = ["a9fn23"];
+ * const _locales = {"en-US": () => require('./messages/en-US.messages.json')};
+ * const loader = createLoader(_keys, _locales);
+ * export default loader.getBinds();
  * ```
  *
  * Notice how the message keys have been hashed into short keys, and the
- * dynamic imports for each locale's data have been inserted automatically.
+ * dynamic imports for each locale's data have been inserted automatically. In
+ * this example, the only locale is the source locale.
  *
  * The SWC and Babel transformers then take care of the second file,
  * transforming the usage to use the hashed keys:
@@ -44,12 +46,10 @@
  */
 class MessageDefinitionsTransformer {
   /**
-   * @param {string[]} messageKeys The list of hashed message keys that this file manages.
-   * @param {Record<string, string>} localeMap A map of locale names to paths used for importing translations.
+   * @param {import('./types.d.ts').MessageDefinitionsTransformerOptions} options
    */
-  constructor(messageKeys, localeMap) {
-    this.messageKeys = messageKeys;
-    this.localeMap = localeMap;
+  constructor(options) {
+    this.options = options;
   }
 
   /**
@@ -59,7 +59,7 @@ class MessageDefinitionsTransformer {
    *
    * ```typescript
    * {
-   *   "en-US": () => import("path/to/en-US.messages.json"),
+   *   "en-US": () => import("path/to/en-US.json"),
    * }
    * ```
    *
@@ -67,14 +67,11 @@ class MessageDefinitionsTransformer {
    */
   getLocaleRequireMap() {
     const localeProperties = [];
-    for (const [locale, importPath] of Object.entries(this.localeMap)) {
-      // leading `./`, which is necessary for the bundler to be able to
-      // NOTE: This doesn't use `path.join` because it will remove any
-      // resolve the import as a relative path.
-      // This also assumes that the author has specified `translationsPath`
+    for (const [locale, importPath] of Object.entries(this.options.localeMap)) {
+      // This assumes that the author has specified `importPath`
       // as a properly-resolvable path for the bundler, which we can't easily
       // enforce, unfortunately.
-      localeProperties.push(`"${locale}": () => import("${importPath}")`);
+      localeProperties.push(`"${locale}": () => ${this.options.getTranslationImport(importPath)}`);
     }
 
     return `{${localeProperties.join(',')}}`;
@@ -84,19 +81,18 @@ class MessageDefinitionsTransformer {
    * Returns the reduced, transformed output for this file. Currently not
    * configurable, but could be told to include default messages or preserve
    * information as necessary.
+   *
+   * @returns {string}
    */
   getOutput() {
-    const messageKeys = this.messageKeys;
-
-    const i18nImport = `const {createLoader} = require('@discord/intl');`;
-    const keysDefinition = `const _keys = ${JSON.stringify(messageKeys)};`;
-    const localeMapDefinition = `const _locales = ${this.getLocaleRequireMap()};`;
-    const loaderDefinition = 'const loader = createLoader(_keys, _locales);';
-    const messagesExport = 'export default loader.getBinds();';
-
-    return [i18nImport, keysDefinition, localeMapDefinition, loaderDefinition, messagesExport].join(
-      '\n',
-    );
+    return [
+      this.options.getPrelude?.() ?? '// No additional prelude was configured.',
+      `const {createLoader} = require('@discord/intl');`,
+      `const _keys = ${JSON.stringify(this.options.messageKeys)};`,
+      `const _locales = ${this.getLocaleRequireMap()};`,
+      'const loader = createLoader(_keys, _locales);',
+      'export default loader.getBinds();',
+    ].join('\n');
   }
 }
 

@@ -21,6 +21,6 @@
     }
   },
   "dependencies": {
-    "@discord/intl-message-database": "workspace:*"
+    "@discord/intl-loader-core": "workspace:*"
   }
 }

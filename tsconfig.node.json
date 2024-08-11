@@ -10,6 +10,7 @@
     "noEmit": true
   },
   "include": [
+    "intl-loader-core/",
     "intl_message_database/",
     "metro-intl-transformer/",
     "rspack-intl-loader/",

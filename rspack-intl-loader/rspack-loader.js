@@ -1,24 +1,14 @@
-const fs = require('node:fs');
-const path = require('node:path');
 const {
+  IntlCompiledMessageFormat,
+  MessageDefinitionsTransformer,
+  database,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
-} = require('@discord/intl-message-database');
-
-const { database } = require('./src/database');
-const { MessageDefinitionsTransformer } = require('./src/transformer');
-
-/**
- * Return the presumed locale for a translations file from it's name. The convention follows the
- * format: `some/path/to/<locale>.messages.jsona`, so the locale is determined by taking the content
- * of the basename up until the first `.`.
- *
- * @param {string} fileName
- * @returns {string}
- */
-function getLocaleFromTranslationsFileName(fileName) {
-  return path.basename(fileName).split('.')[0];
-}
+  processDefinitionsFile,
+  getLocaleFromTranslationsFileName,
+  processTranslationsFile,
+  precompileFileForLocale,
+} = require('@discord/intl-loader-core');
 
 /**
  * Take in a file that contains message definitions (e.g., calls to
@@ -34,67 +24,43 @@ const intlLoader = function intlLoader(source) {
   const forceTranslation = this.resourceQuery === '?forceTranslation';
 
   if (isMessageDefinitionsFile(sourcePath) && !forceTranslation) {
-    database.processDefinitionsFileContent(sourcePath, source);
-    const sourceFile = database.getSourceFile(sourcePath);
-    if (sourceFile.type !== 'definition') {
-      throw new Error(
-        'Expected an intl messages definition file, but found a translation file instead.',
-      );
+    const result = processDefinitionsFile(sourcePath, source, { processTranslations: true });
+
+    // Ensure that rspack knows to watch all of the translations files, even though they aren't
+    // directly imported from a source. Without this, even though the compiled loader references the
+    // transpiled message files, it won't trigger refreshes when those files change.
+    for (const translationsFile of Object.values(result.translationsLocaleMap)) {
+      this.addDependency(translationsFile);
     }
 
-    const translationsPath = path.resolve(
-      path.dirname(sourcePath),
-      sourceFile.meta.translations_path,
-    );
+    result.translationsLocaleMap['en-US'] = sourcePath + '?forceTranslation';
 
-    /** @type {Record<string, string>} */
-    const localeMap = {};
-    try {
-      const translationFiles = fs.readdirSync(translationsPath, { encoding: 'utf-8' });
-      for (const foundFile of translationFiles) {
-        const filePath = path.join(translationsPath, foundFile);
-        if (!isMessageTranslationsFile(filePath)) continue;
-
-        const locale = getLocaleFromTranslationsFileName(filePath);
-        localeMap[locale] = filePath;
-        this.addDependency(filePath);
-      }
-    } catch (e) {
-      this.emitWarning(
-        new Error(
-          `The translations directory ${translationsPath} was not found. No translations will be loaded for these messages`,
-        ),
-      );
-    }
-
-    delete localeMap['en-US'];
-    database.processAllTranslationFiles(localeMap);
-    localeMap['en-US'] = sourcePath + '?forceTranslation';
-
-    const transformer = new MessageDefinitionsTransformer(
-      database.getSourceFileHashedKeys(sourcePath),
-      localeMap,
-    );
-    return transformer.getOutput();
+    return new MessageDefinitionsTransformer({
+      messageKeys: result.hashedMessageKeys,
+      localeMap: result.translationsLocaleMap,
+      getTranslationImport: (importPath) => `import("${importPath}")`,
+    }).getOutput();
   } else {
-    const localeName = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
+    const locale = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
     if (isMessageTranslationsFile(sourcePath)) {
-      database.processTranslationFileContent(sourcePath, localeName, source);
+      database.processTranslationFileContent(sourcePath, locale, source);
     } else if (!forceTranslation) {
       throw new Error(
         'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
       );
     }
+
+    processTranslationsFile(sourcePath, source, { locale });
+    const compiledResult = precompileFileForLocale(sourcePath, locale, {
+      format: IntlCompiledMessageFormat.Json,
+    });
+
     // Translations are still treated as JS files that need to be pre-parsed.
     // Rspack will handle parsing for the actual JSON file requests.
     if (forceTranslation) {
-      return (
-        'export default JSON.parse(' +
-        JSON.stringify(database.precompileToBuffer(sourcePath, localeName).toString()) +
-        ')'
-      );
+      return 'export default JSON.parse(' + compiledResult + ')';
     } else {
-      return database.precompileToBuffer(sourcePath, localeName);
+      return compiledResult;
     }
   }
 };

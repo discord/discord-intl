@@ -1,8 +1,9 @@
-// @ts-check
 const path = require('node:path');
-const { isMessageDefinitionsFile } = require('@discord/intl-message-database');
-
-const { database } = require('./src/database');
+const {
+  database,
+  isMessageDefinitionsFile,
+  generateTypeDefinitions,
+} = require('@discord/intl-loader-core');
 
 /**
  * A plugin that watches for changes to I18n strings and updates messages.d.ts (and its sourcemap) automatically.
@@ -14,13 +15,7 @@ class IntlTypeGeneratorPlugin {
    */
   generateTypeDefinitions(filePath) {
     const start = performance.now();
-    const baseDir = path.dirname(filePath);
-    const outputFileName = path.basename(filePath).replace('.js', '.d.ts');
-    // Ensure that the database knows about the file before trying to get its content.
-    const paths = database.getAllSourceFilePaths();
-    if (paths.includes(filePath)) {
-      database.generateTypes(filePath, path.join(baseDir, outputFileName));
-    }
+    generateTypeDefinitions(filePath);
     const end = performance.now();
 
     return end - start;
