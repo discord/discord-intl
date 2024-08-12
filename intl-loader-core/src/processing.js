@@ -128,7 +128,7 @@ function generateTypeDefinitions(sourcePath, outputFile) {
   const paths = database.getAllSourceFilePaths();
   if (!paths.includes(sourcePath)) return false;
 
-  database.generateTypes(sourcePath, outputFile ?? sourcePath.replace(/\.[^.]+/, '.d.ts'));
+  database.generateTypes(sourcePath, outputFile ?? sourcePath.replace(/\.[^.]+$/, '.d.ts'));
   return true;
 }
 
