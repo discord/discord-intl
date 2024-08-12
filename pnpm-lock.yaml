@@ -160,9 +160,16 @@ importers:
       '@rspack/core':
         specifier: 0.x || 1.x
         version: 0.7.5
+      debug:
+        specifier: ^4.3.6
+        version: 4.3.6
       webpack:
         specifier: ^5.0.0
         version: 5.93.0
+    devDependencies:
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
 
   swc-intl-message-transformer: {}
 
