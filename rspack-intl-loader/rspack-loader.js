@@ -64,6 +64,8 @@ const intlLoader = function intlLoader(source) {
       );
     }
 
+    debug(`Locale map created: ${result.translationsLocaleMap}`);
+
     debug(
       `${sourcePath} will compile itself into translations as ${result.translationsLocaleMap['en-US']}`,
     );
