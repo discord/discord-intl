@@ -43,14 +43,13 @@ const intlLoader = function intlLoader(source) {
   } else {
     const locale = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
     if (isMessageTranslationsFile(sourcePath)) {
-      database.processTranslationFileContent(sourcePath, locale, source);
+      processTranslationsFile(sourcePath, source, { locale });
     } else if (!forceTranslation) {
       throw new Error(
         'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
       );
     }
 
-    processTranslationsFile(sourcePath, source, { locale });
     const compiledResult = precompileFileForLocale(sourcePath, locale, {
       format: IntlCompiledMessageFormat.Json,
     });
