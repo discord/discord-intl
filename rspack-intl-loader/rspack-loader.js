@@ -1,3 +1,5 @@
+const path = require('node:path');
+
 const {
   IntlCompiledMessageFormat,
   MessageDefinitionsTransformer,
@@ -37,7 +39,7 @@ const intlLoader = function intlLoader(source) {
       this.addDependency(translationsFile);
     }
 
-    result.translationsLocaleMap['en-US'] = sourcePath + '?forceTranslation';
+    result.translationsLocaleMap['en-US'] = './' + path.basename(sourcePath) + '?forceTranslation';
     debug(
       `${sourcePath} will compile itself into translations as ${result.translationsLocaleMap['en-US']}`,
     );
