@@ -12,7 +12,7 @@ const {
 } = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:rspack-intl-loader');
 
-const FILE_PATH_SEPARATOR_MATCH = new RegExp(`${path.sep}`, 'g');
+const FILE_PATH_SEPARATOR_MATCH = new RegExp(`[\\\\\\/]`, 'g');
 
 /**
  * @param {string} source
