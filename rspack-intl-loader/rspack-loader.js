@@ -3,7 +3,6 @@ const path = require('node:path');
 const {
   IntlCompiledMessageFormat,
   MessageDefinitionsTransformer,
-  database,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
   processDefinitionsFile,
@@ -12,6 +11,20 @@ const {
   precompileFileForLocale,
 } = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:rspack-intl-loader');
+
+const FILE_PATH_SEPARATOR_MATCH = new RegExp(`${path.sep}`, 'g');
+
+/**
+ * @param {string} source
+ * @param {string} file
+ * @returns {string}
+ */
+function makePosixRelativePath(source, file) {
+  return (
+    './' +
+    path.relative(path.dirname(source), file).replace(FILE_PATH_SEPARATOR_MATCH, path.posix.sep)
+  );
+}
 
 /**
  * Take in a file that contains message definitions (e.g., calls to
@@ -39,7 +52,18 @@ const intlLoader = function intlLoader(source) {
       this.addDependency(translationsFile);
     }
 
-    result.translationsLocaleMap['en-US'] = './' + path.basename(sourcePath) + '?forceTranslation';
+    // Normalize the path to a POSIX-like JS path. Using absolute paths on Windows, rspack currently
+    // considers the leading drive name (like `C:\`) as a scheme, which is incorrect. It also
+    // appears to process all paths as the posix style, meaning backlashes aren't preserved (e.g.,
+    // the output of `C:\path\to\file` is interpreted as `C:\pathtofile`.
+    result.translationsLocaleMap['en-US'] = sourcePath + '?forceTranslation';
+    for (const locale in result.translationsLocaleMap) {
+      result.translationsLocaleMap[locale] = makePosixRelativePath(
+        sourcePath,
+        result.translationsLocaleMap[locale],
+      );
+    }
+
     debug(
       `${sourcePath} will compile itself into translations as ${result.translationsLocaleMap['en-US']}`,
     );
@@ -68,9 +92,9 @@ const intlLoader = function intlLoader(source) {
 
     // Translations are still treated as JS files that need to be pre-parsed.
     // Rspack will handle parsing for the actual JSON file requests.
-    if (forceTranslation) {
+    if (forceTranslation && compiledResult != null) {
       debug(`Emitting JS module for ${sourcePath} because forceTranslation was true`);
-      return 'export default JSON.parse(' + compiledResult + ')';
+      return 'export default JSON.parse(' + JSON.stringify(compiledResult.toString()) + ')';
     } else {
       debug(`Emitting plain JS for ${sourcePath} because forceTranslation was false`);
       return compiledResult;
