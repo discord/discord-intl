@@ -128,9 +128,6 @@ export class MessageLoader {
     this.messages[locale] = (await loadingPromise).default;
     delete this._localeLoadingPromises[locale];
     const loadEnd = performance.now();
-    console.warn(
-      `[INTL] Took ${loadEnd - loadStart}ms to load ${locale} with ${Object.keys(this.messages[locale]).length} keys`,
-    );
     this.emitChange();
   }
 
