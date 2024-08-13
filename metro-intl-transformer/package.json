@@ -5,6 +5,7 @@
   "description": "Metro/Babel transformer plugin for compiling, bundling, and minifying intl message definitions and usages using intl-message-database.",
   "exports": {
     ".": "./index.js",
+    "./asset-plugin": "./asset-plugin.js",
     "./babel-plugin": "./babel-plugin.js"
   },
   "dependencies": {

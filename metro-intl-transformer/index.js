@@ -5,6 +5,7 @@ const {
   MessageDefinitionsTransformer,
   processTranslationsFile,
   precompileFileForLocale,
+  IntlCompiledMessageFormat,
 } = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:metro-intl-transformer');
 
@@ -26,7 +27,7 @@ function transformToString({
   getTranslationImport,
 }) {
   if (isMessageDefinitionsFile(filename)) {
-    debug(`Processing ${filename} as a definitions file`);
+    debug(`[${filename}] Processing as a definitions file`);
     const result = processDefinitionsFile(filename, src, {
       // TODO: Make this more configurable
       locale: 'en-US',
@@ -36,7 +37,10 @@ function transformToString({
       `.compiled.messages.${getTranslationAssetExtension()}`,
     );
 
-    debug(`Resolving source file ${filename} to compiled translations file ${compiledSourcePath}`);
+    debug('Locale map created: %O', result.translationsLocaleMap);
+    debug(
+      `[${filename}] Resolving source file to compiled translations file ${compiledSourcePath}`,
+    );
     result.translationsLocaleMap['en-US'] = compiledSourcePath;
 
     return new MessageDefinitionsTransformer({
@@ -48,11 +52,13 @@ function transformToString({
       debug: process.env.NODE_ENV === 'development',
     }).getOutput();
   } else if (isMessageTranslationsFile(filename)) {
-    debug(`Processing ${filename} as a translations file`);
+    debug(`[${filename}] Processing as a translations file`);
     const result = processTranslationsFile(filename, src);
     // @ts-expect-error Without the `outputFile` option, this always returns a Buffer, but the
     // option allows the function to return void instead.
-    return precompileFileForLocale(filename, result.locale);
+    return precompileFileForLocale(filename, result.locale, {
+      format: IntlCompiledMessageFormat.Json,
+    });
   }
 
   return src;
