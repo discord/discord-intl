@@ -2,13 +2,20 @@ import { IntlSourceFile } from '@discord/intl-message-database';
 
 export interface MessageDefinitionsTransformerOptions {
   /**
-   * The list of hashed message keys that this file manages.
+   * The map of message keys that this file manages to their original values. By default, only the
+   * keys of this map are used (the hashed names), but in debug mode the values will also be
+   * included in the transformed file to provide context in errors and warnings.
    */
-  messageKeys: string[];
+  messageKeys: Record<string, string>;
   /**
    * Map of locale names to import paths used for loading translations.
    */
   localeMap: Record<string, string>;
+  /**
+   * Default locale to use for the runtime loader. This is almost always the locale of the source
+   * file being transformed, but can be set explicitly to something else for special cases.
+   */
+  defaultLocale: string;
   /**
    * Function to create a prelude that gets injected at the start of the transformed file to set up
    * anything needed for other injections later on.
@@ -27,6 +34,12 @@ export interface MessageDefinitionsTransformerOptions {
    * may need to wrap the result with the `default` key, like `.then((data) => ({default: data}))`.
    */
   getTranslationImport(importPath: string): string;
+
+  /**
+   * Whether to include additional information about keys and source files in the transformed loader
+   * code to provide context for debugging in errors and warning messages.
+   */
+  debug?: boolean;
 }
 
 /**
@@ -44,11 +57,11 @@ export interface ProcessDefinitionsResult {
    */
   locale: string;
   /**
-   * The full list of message keys contained by the processed source file. While `sourceFile`
-   * contains a list of key _symbols_, this list contains all of the resolved strings for the
-   * hashed message keys.
+   * The full map of message keys contained by the processed source file to their original values.
+   * While `sourceFile` contains a list of key _symbols_, this list contains all of the
+   * resolved strings for the hashed message keys.
    */
-  hashedMessageKeys: string[];
+  messageKeys: Record<string, string>;
   /**
    * Fully-resolved path to the translations directory that was scanned for entries for the
    * source file.
@@ -74,14 +87,14 @@ export interface ProcessTranslationsResult {
    */
   sourceFile: IntlSourceFile;
   /**
+   * The full map of message keys contained by the processed source file to their original values.
+   * While `sourceFile` contains a list of key _symbols_, this list contains all of the
+   * resolved strings for the hashed message keys.
+   */
+  messageKeys: Record<string, string>;
+  /**
    * The locale that was either determined from the sourceFile name or overridden by the options
    * provided to this call.
    */
   locale: string;
-  /**
-   * The full list of message keys contained by the processed source file. While `sourceFile`
-   * contains a list of key _symbols_, this list contains all of the resolved strings for the
-   * hashed message keys.
-   */
-  hashedMessageKeys: string[];
 }

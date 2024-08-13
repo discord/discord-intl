@@ -73,9 +73,11 @@ const intlLoader = function intlLoader(source) {
     );
 
     return new MessageDefinitionsTransformer({
-      messageKeys: result.hashedMessageKeys,
+      messageKeys: result.messageKeys,
       localeMap: result.translationsLocaleMap,
+      defaultLocale: result.locale,
       getTranslationImport: (importPath) => `import("${importPath}")`,
+      debug: process.env.NODE_ENV === 'development',
     }).getOutput();
   } else {
     const locale = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);

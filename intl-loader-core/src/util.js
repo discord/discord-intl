@@ -21,7 +21,7 @@ function getLocaleFromTranslationsFileName(fileName) {
  * as a map from locale name to the path for importing.
  *
  * @param {string} translationsPath
- * @returns {Record<string, string>}
+ * @returns {Record<string, string> | Error}
  */
 function findAllTranslationFiles(translationsPath) {
   /** @type {Record<string, string>} */
@@ -40,7 +40,7 @@ function findAllTranslationFiles(translationsPath) {
       localeMap[locale] = filePath;
     }
   } catch (e) {
-    throw new Error(
+    return new Error(
       `The translations directory ${translationsPath} was not found. No translations will be loaded for these messages`,
     );
   }

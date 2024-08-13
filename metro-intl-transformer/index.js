@@ -42,8 +42,10 @@ function transformToString({
     return new MessageDefinitionsTransformer({
       messageKeys: result.messageKeys,
       localeMap: result.translationsLocaleMap,
+      defaultLocale: result.locale,
       getTranslationImport,
       getPrelude,
+      debug: process.env.NODE_ENV === 'development',
     }).getOutput();
   } else if (isMessageTranslationsFile(filename)) {
     debug(`Processing ${filename} as a translations file`);

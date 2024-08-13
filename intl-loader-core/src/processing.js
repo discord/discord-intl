@@ -47,7 +47,7 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
     );
   }
 
-  const hashedMessageKeys = database.getSourceFileHashedKeys(sourcePath);
+  const messageKeys = database.getSourceFileKeyMap(sourcePath);
   const translationsPath = path.resolve(path.dirname(sourcePath), sourceFile.meta.translationsPath);
   let translationsLocaleMap = findAllTranslationFiles(translationsPath);
   if (translationsLocaleMap instanceof Error) {
@@ -64,7 +64,7 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   return {
     sourceFile,
     locale,
-    hashedMessageKeys,
+    messageKeys,
     translationsPath,
     translationsLocaleMap,
   };
@@ -98,7 +98,7 @@ function processTranslationsFile(sourcePath, sourceContent, options = {}) {
   return {
     sourceFile,
     locale,
-    hashedMessageKeys: database.getSourceFileHashedKeys(sourcePath),
+    messageKeys: database.getSourceFileKeyMap(sourcePath),
   };
 }
 

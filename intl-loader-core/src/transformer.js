@@ -78,6 +78,20 @@ class MessageDefinitionsTransformer {
   }
 
   /**
+   * Return a map of key hashes to their original values, as well as a plain-text map of locales
+   * to the file names that they import from.
+   *
+   * @returns {string[]}
+   */
+  debugModeSetup() {
+    if (!this.options.debug) return [];
+
+    return [
+      `loader.withDebugValues(${JSON.stringify(this.options.messageKeys)}, ${JSON.stringify(this.options.localeMap)})`,
+    ];
+  }
+
+  /**
    * Returns the reduced, transformed output for this file. Currently not
    * configurable, but could be told to include default messages or preserve
    * information as necessary.
@@ -90,7 +104,9 @@ class MessageDefinitionsTransformer {
       `const {createLoader} = require('@discord/intl');`,
       `const _keys = ${JSON.stringify(this.options.messageKeys)};`,
       `const _locales = ${this.getLocaleRequireMap()};`,
-      'const loader = createLoader(_keys, _locales);',
+      `const _defaultLocale = ${JSON.stringify(this.options.defaultLocale)};`,
+      'const loader = createLoader(_keys, _locales, _defaultLocale);',
+      ...this.debugModeSetup(),
       'export default loader.getBinds();',
     ].join('\n');
   }

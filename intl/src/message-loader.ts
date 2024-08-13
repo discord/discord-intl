@@ -12,7 +12,7 @@ export interface IntlMessageGetter extends IntlMessageGetterAdditions {
   (locale: LocaleId): InternalIntlMessage;
 }
 
-type LocaleId = string;
+export type LocaleId = string;
 
 export type LocaleImportMap = Record<LocaleId, () => Promise<{ default: MessagesData }>>;
 
@@ -22,6 +22,12 @@ export class MessageLoader {
   messages: Record<LocaleId, MessagesData>;
   localeImportMap: LocaleImportMap;
   supportedLocales: LocaleId[];
+  /**
+   * Fallback locale where messages will try to be looked up if they don't exist in the requested
+   * locale in a given call. This locale will also be immediately loaded when this loader is
+   * constructed to ensure the contents are available as soon as possible.
+   */
+  defaultLocale: LocaleId;
 
   /**
    * Promise representing the current locale being loaded. If this is non-null,
@@ -41,37 +47,126 @@ export class MessageLoader {
    */
   _subscribers: Set<() => void>;
 
+  /**
+   * Message to show as a fallback when the requested message is unavailable.
+   */
   fallbackMessage: InternalIntlMessage;
 
-  constructor(messageKeys: string[], localeImportMap: LocaleImportMap) {
+  ///
+  // Debug mode values
+  ///
+
+  /**
+   * Map from hashed message keys to their original values, to provide context in error messages
+   * that would otherwise be obfuscated.
+   *
+   * Consumers should only provide this value in developer or debug environments.
+   *
+   * @private
+   */
+  _debugKeyMap: Record<string, string>;
+  /**
+   * Map of locale names to source file names, used to provide context for where messages are
+   * imported from during development.
+   *
+   * Consumers should only provide this value in developer or debug environments.
+   *
+   * @private
+   */
+  _localeFileMap: Record<string, string>;
+
+  constructor(messageKeys: string[], localeImportMap: LocaleImportMap, defaultLocale: LocaleId) {
     this.messageKeys = messageKeys;
     this.messages = {};
     this.localeImportMap = localeImportMap;
     this.supportedLocales = Object.keys(localeImportMap);
+    this.defaultLocale = defaultLocale;
 
     this._localeLoadingPromises = {};
     this._parseCache = new Map();
     this._subscribers = new Set();
 
+    this._loadLocale(this.defaultLocale);
     this.fallbackMessage = new InternalIntlMessage('THIS MESSAGE FAILED TO LOAD', 'en-US');
+
+    // In cases where hot module replacement is available, set up cache clearing whenever the
+    // targets change so that values are always replaced.
+    // @ts-expect-error `hot` not defined in types.
+    if (module.hot) {
+      for (const [locale, file] of Object.entries(localeImportMap)) {
+        // @ts-expect-error `hot` not defined in types.
+        module.hot.accept(file, () => {
+          this._parseCache.clear();
+          this._loadLocale(locale);
+        });
+      }
+    }
+  }
+
+  /**
+   * Provide additional debug information to use during development, providing additional context
+   * for console error messages.
+   *
+   * @param {Record<string, string>} keyMap
+   * @param {Record<string, string>} localeFileMap
+   */
+  withDebugValues(keyMap: Record<string, string>, localeFileMap: Record<string, string>) {
+    this._debugKeyMap = keyMap;
+    this._localeFileMap = localeFileMap;
   }
 
   get(key: string, locale: LocaleId): InternalIntlMessage {
+    const value =
+      this.getMessageValue(key, locale) ?? this.getMessageValue(key, this.defaultLocale);
+    if (value != null) {
+      return value;
+    }
+
+    // If the message couldn't be found in either the requested nor the default locale, then
+    // nothing can be done.
+    const errorKey = this._debugKeyMap != null ? `"${this._debugKeyMap[key]}" (${key})` : undefined;
+    const requestedLocale =
+      this._localeFileMap != null ? `${locale} (${this._localeFileMap[locale]})` : locale;
+    const defaultLocale =
+      this._localeFileMap != null
+        ? `${this.defaultLocale} (${this._localeFileMap[this.defaultLocale]})`
+        : this.defaultLocale;
+    console.warn(
+      `Requested message ${errorKey} does not have a value in the requested locale ${requestedLocale} nor the default locale ${defaultLocale}`,
+    );
+    return this.fallbackMessage;
+  }
+
+  /**
+   * Return the value of the message with the given `key` in the given `locale`. If the message has
+   * no value in that locale, this function returns `undefined`.
+   *
+   * This function will first check the cache to see if it has already been loaded, and will later
+   * set the cache after parsing if not. If the requested locale has not yet been loaded, this
+   * function will trigger a load for that locale, but will not wait for it to resolve before
+   * returning.
+   */
+  getMessageValue(key: string, locale: LocaleId): InternalIntlMessage | undefined {
     const cacheKey = key + '@' + locale;
     const cachedValue = this._parseCache.get(cacheKey);
     if (cachedValue != null) return cachedValue;
 
+    // Return early if this locale is still in the process of being loaded.
+    if (this._localeLoadingPromises[locale] != null) {
+      return undefined;
+    }
+
+    // If not, check whether it's been loaded and trigger a load if not.
     if (this.messages[locale] == null) {
       // Ensure the locale is loaded, if it is supported
       if (this.supportedLocales.includes(locale)) {
         this._loadLocale(locale);
       }
 
-      // Otherwise, fallback to just the key value in the meantime.
-      return this.fallbackMessage;
+      return undefined;
     }
 
-    // Then try to return the loaded message
+    // Then try to return the loaded message.
     if (key in this.messages[locale]) {
       const content = this.messages[locale][key];
       const message = new InternalIntlMessage(content, locale);
@@ -79,10 +174,8 @@ export class MessageLoader {
       return message;
     }
 
-    // And finally throw if there's no match whatsoever
-    throw new Error(
-      `Requested message ${key} does not have a value in the requested locale nor the default locale`,
-    );
+    // Otherwise just assume it doesn't exist.
+    return undefined;
   }
 
   /**
@@ -93,7 +186,7 @@ export class MessageLoader {
    */
   getBinds(): Record<string, IntlMessageGetter> {
     const onChange = this.onChange.bind(this);
-    return this.messageKeys.reduce(
+    return Object.keys(this.messageKeys).reduce(
       (acc, key) => {
         const bound = this.get.bind(this, key) as IntlMessageGetter;
         bound.onChange = onChange;
@@ -122,12 +215,10 @@ export class MessageLoader {
     // If the locale is already set in `messages`, then it doesn't need to be loaded again.
     if (this.messages[locale] != null) return;
 
-    const loadStart = performance.now();
     const loadingPromise = this.localeImportMap[locale]();
     this._localeLoadingPromises[locale] = loadingPromise;
     this.messages[locale] = (await loadingPromise).default;
     delete this._localeLoadingPromises[locale];
-    const loadEnd = performance.now();
     this.emitChange();
   }
 

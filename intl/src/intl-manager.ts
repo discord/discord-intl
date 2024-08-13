@@ -6,7 +6,7 @@ import {
   IntlMessageFormat,
 } from 'intl-messageformat';
 
-import { LocaleImportMap, MessageLoader } from './message-loader';
+import { LocaleImportMap, LocaleId, MessageLoader } from './message-loader';
 
 import type { TypedIntlMessageGetter, FormatValuesFor, RichTextElementMap } from './types';
 
@@ -161,6 +161,10 @@ export class IntlManager<
  * different locales and sanity checks as needed to provide accessors for each
  * message defined in `messageKeys`.
  */
-export function createLoader(messageKeys: string[], localeImportMap: LocaleImportMap) {
-  return new MessageLoader(messageKeys, localeImportMap);
+export function createLoader(
+  messageKeys: string[],
+  localeImportMap: LocaleImportMap,
+  defaultLocale: LocaleId,
+) {
+  return new MessageLoader(messageKeys, localeImportMap, defaultLocale);
 }

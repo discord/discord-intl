@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use napi::{JsNumber, JsUnknown};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
+use rustc_hash::FxHashMap;
 
 use crate::messages::{
     global_get_symbol, global_intern_string, KeySymbol, MessagesDatabase, MessagesError,
@@ -198,8 +199,10 @@ impl IntlMessagesDatabase {
         Ok(paths)
     }
 
-    #[napi(ts_return_type = "string[]")]
-    pub fn get_source_file_hashed_keys(
+    #[napi(ts_return_type = "Record<string, string>")]
+    /// Return a map of all message keys contained in the given source file, where the key of the
+    /// map is the hashed name and the value is the original.
+    pub fn get_source_file_key_map(
         &self,
         env: Env,
         file_path: String,
@@ -209,11 +212,12 @@ impl IntlMessagesDatabase {
             return Err(MessagesError::SymbolNotFound(file_symbol).into());
         };
 
-        let mut hashes = Vec::with_capacity(source.message_keys().len());
+        let mut hashes = FxHashMap::default();
+        hashes.reserve(source.message_keys().len());
 
         for key in source.message_keys() {
             if let Some(message) = self.database.messages.get(key) {
-                hashes.push(message.hashed_key());
+                hashes.insert(message.hashed_key(), message.key());
             }
         }
 

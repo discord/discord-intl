@@ -10,7 +10,11 @@ export declare class IntlMessagesDatabase {
   getKnownLocales(): Array<string>
   getSourceFile(filePath: string): IntlSourceFile
   getAllSourceFilePaths(): Array<string>
-  getSourceFileHashedKeys(filePath: string): string[]
+  /**
+   * Return a map of all message keys contained in the given source file, where the key of the
+   * map is the hashed name and the value is the original.
+   */
+  getSourceFileKeyMap(filePath: string): Record<string, string>
   getMessage(key: string): unknown
   generateTypes(sourceFilePath: string, outputFilePath: string): void
   precompile(sourcePath: string, locale: string, outputPath: string, format?: IntlCompiledMessageFormat | undefined | null): void
