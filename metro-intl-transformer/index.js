@@ -27,7 +27,10 @@ function transformToString({
 }) {
   if (isMessageDefinitionsFile(filename)) {
     debug(`Processing ${filename} as a definitions file`);
-    const result = processDefinitionsFile(filename, src);
+    const result = processDefinitionsFile(filename, src, {
+      // TODO: Make this more configurable
+      locale: 'en-US',
+    });
     const compiledSourcePath = filename.replace(
       /\.messages\.js$/,
       `.compiled.messages.${getTranslationAssetExtension()}`,
@@ -37,7 +40,7 @@ function transformToString({
     result.translationsLocaleMap['en-US'] = compiledSourcePath;
 
     return new MessageDefinitionsTransformer({
-      messageKeys: result.hashedMessageKeys,
+      messageKeys: result.messageKeys,
       localeMap: result.translationsLocaleMap,
       getTranslationImport,
       getPrelude,

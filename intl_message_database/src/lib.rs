@@ -12,3 +12,6 @@ pub mod napi;
 
 #[cfg(test)]
 pub mod test;
+
+// TODO: Allow this to be configurable, or determined by source files themselves through `meta`.
+static TEMP_DEFAULT_LOCALE: &str = "en-US";

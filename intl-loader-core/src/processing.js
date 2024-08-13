@@ -1,9 +1,20 @@
 const path = require('node:path');
 
+const debug = require('debug')('intl:loader-core');
 const { IntlCompiledMessageFormat } = require('@discord/intl-message-database');
 
 const { database } = require('./database');
 const { findAllTranslationFiles, getLocaleFromTranslationsFileName } = require('./util');
+
+/**
+ * @param {string} sourcePath
+ * @param {import('@discord/intl-message-database').IntlSourceFile} sourceFile
+ */
+function debugSourceFile(sourcePath, sourceFile) {
+  debug(
+    `[${sourcePath}] Parsed messages file: type=${sourceFile.type}, locale=${sourceFile.locale}, messageCount=${sourceFile.messageKeys.length}, meta=${JSON.stringify(sourceFile.meta)}`,
+  );
+}
 
 /**
  * @param {string} sourcePath
@@ -20,6 +31,8 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
     // TODO: Make this more configurable/automatically determined.
     locale = 'en-US',
   } = options;
+  debug(`[${sourcePath}] Processing definitions with locale "${locale}"`);
+
   if (sourceContent != null) {
     database.processDefinitionsFileContent(sourcePath, sourceContent);
   } else {
@@ -27,6 +40,7 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   }
 
   const sourceFile = database.getSourceFile(sourcePath);
+  debugSourceFile(sourcePath, sourceFile);
   if (sourceFile.type !== 'definition') {
     throw new Error(
       `Expected ${sourcePath} to be a message definitions file, but it resulted in ${sourceFile.type} instead.`,
@@ -35,7 +49,13 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
 
   const hashedMessageKeys = database.getSourceFileHashedKeys(sourcePath);
   const translationsPath = path.resolve(path.dirname(sourcePath), sourceFile.meta.translationsPath);
-  const translationsLocaleMap = findAllTranslationFiles(translationsPath);
+  let translationsLocaleMap = findAllTranslationFiles(translationsPath);
+  if (translationsLocaleMap instanceof Error) {
+    debug(
+      `[${sourcePath}] Failed to build translations locale map: [${translationsLocaleMap.name}] ${translationsLocaleMap.message}`,
+    );
+    translationsLocaleMap = {};
+  }
 
   if (processTranslations) {
     database.processAllTranslationFiles(translationsLocaleMap);
@@ -56,12 +76,11 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
  * @param {string=} sourceContent
  * @param {{
  *   locale?: string,
- *   outputFile?: string
  * }=} options
  * @returns {import('./types').ProcessTranslationsResult}
  */
 function processTranslationsFile(sourcePath, sourceContent, options = {}) {
-  const { locale = getLocaleFromTranslationsFileName(sourcePath), outputFile } = options;
+  const { locale = getLocaleFromTranslationsFileName(sourcePath) } = options;
   if (sourceContent) {
     database.processTranslationFileContent(sourcePath, locale, sourceContent);
   } else {
@@ -69,6 +88,7 @@ function processTranslationsFile(sourcePath, sourceContent, options = {}) {
   }
 
   const sourceFile = database.getSourceFile(sourcePath);
+  debugSourceFile(sourcePath, sourceFile);
   if (sourceFile.type !== 'translation') {
     throw new Error(
       `Expected ${sourcePath} to be a message translations file, but it resulted in ${sourceFile.type} instead.`,

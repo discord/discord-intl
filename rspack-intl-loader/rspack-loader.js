@@ -39,11 +39,14 @@ const intlLoader = function intlLoader(source) {
   const sourcePath = this.resourcePath;
   const forceTranslation = this.resourceQuery === '?forceTranslation';
 
-  debug(`Processing ${sourcePath} as an intl messages file (forceTranslation=${forceTranslation})`);
+  debug(`[${sourcePath}] Processing intl messages file (forceTranslation=${forceTranslation})`);
 
   if (isMessageDefinitionsFile(sourcePath) && !forceTranslation) {
-    debug(`${sourcePath} determined to be a definitions file`);
-    const result = processDefinitionsFile(sourcePath, source);
+    debug(`[${sourcePath}] Determined to be a definitions file`);
+    const result = processDefinitionsFile(sourcePath, source, {
+      // TODO: Make this more configurable
+      locale: 'en-US',
+    });
 
     // Ensure that rspack knows to watch all of the translations files, even though they aren't
     // directly imported from a source. Without this, even though the compiled loader references the
@@ -64,10 +67,9 @@ const intlLoader = function intlLoader(source) {
       );
     }
 
-    debug(`Locale map created: ${result.translationsLocaleMap}`);
-
+    debug('Locale map created: %O', result.translationsLocaleMap);
     debug(
-      `${sourcePath} will compile itself into translations as ${result.translationsLocaleMap['en-US']}`,
+      `[${sourcePath}] Compiled translations file will be: ${result.translationsLocaleMap['en-US']}`,
     );
 
     return new MessageDefinitionsTransformer({
@@ -78,10 +80,10 @@ const intlLoader = function intlLoader(source) {
   } else {
     const locale = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
     if (isMessageTranslationsFile(sourcePath)) {
-      debug(`${sourcePath} determined to be a definitions file`);
+      debug(`[${sourcePath}] Determined to be a translations file`);
       processTranslationsFile(sourcePath, source, { locale });
     } else if (forceTranslation) {
-      debug(`${sourcePath} is being forced as a translation file`);
+      debug(`[${sourcePath}] Forcing processing as a translation file`);
     } else {
       throw new Error(
         'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
@@ -94,11 +96,11 @@ const intlLoader = function intlLoader(source) {
 
     // Translations are still treated as JS files that need to be pre-parsed.
     // Rspack will handle parsing for the actual JSON file requests.
-    if (forceTranslation && compiledResult != null) {
-      debug(`Emitting JS module for ${sourcePath} because forceTranslation was true`);
-      return 'export default JSON.parse(' + JSON.stringify(compiledResult.toString()) + ')';
+    if (forceTranslation) {
+      debug(`[${sourcePath}] Emitting JS module because forceTranslation was true`);
+      return 'export default JSON.parse(' + JSON.stringify(compiledResult?.toString()) + ')';
     } else {
-      debug(`Emitting plain JS for ${sourcePath} because forceTranslation was false`);
+      debug(`[${sourcePath}] Emitting plain JSON because forceTranslation was false`);
       return compiledResult;
     }
   }

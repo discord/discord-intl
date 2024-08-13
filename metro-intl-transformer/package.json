@@ -8,10 +8,12 @@
     "./babel-plugin": "./babel-plugin.js"
   },
   "dependencies": {
-    "@discord/intl-loader-core": "workspace:*"
+    "@discord/intl-loader-core": "workspace:*",
+    "debug": "^4.3.6"
   },
   "devDependencies": {
     "@babel/types": "^7.24.9",
-    "@types/babel__traverse": "7.20.6"
+    "@types/babel__traverse": "7.20.6",
+    "@types/debug": "^4.1.12"
   }
 }

@@ -19,6 +19,7 @@ use crate::services::precompile::{CompiledMessageFormat, IntlMessagePreCompiler}
 use crate::services::types::IntlTypesGenerator;
 use crate::services::validator;
 use crate::sources::extract_message_translations;
+use crate::TEMP_DEFAULT_LOCALE;
 use crate::threading::run_in_thread_pool;
 
 #[napi]
@@ -79,12 +80,13 @@ impl IntlMessagesDatabase {
     }
 
     #[napi]
-    pub fn process_definitions_file(&mut self, file_path: String) -> anyhow::Result<u32> {
+    pub fn process_definitions_file(
+        &mut self,
+        file_path: String,
+        locale: Option<String>,
+    ) -> anyhow::Result<u32> {
         let content = std::fs::read_to_string(&file_path)?;
-
-        let source_file =
-            crate::sources::process_definitions_file(&mut self.database, &file_path, &content)?;
-        Ok(source_file.value() as u32)
+        self.process_definitions_file_content(file_path, content, locale)
     }
 
     #[napi]
@@ -92,9 +94,16 @@ impl IntlMessagesDatabase {
         &mut self,
         file_path: String,
         content: String,
+        locale: Option<String>,
     ) -> anyhow::Result<u32> {
-        let source_file =
-            crate::sources::process_definitions_file(&mut self.database, &file_path, &content)?;
+        let source_file = crate::sources::process_definitions_file(
+            &mut self.database,
+            &file_path,
+            &content,
+            locale
+                .as_ref()
+                .map_or(TEMP_DEFAULT_LOCALE, |locale| &locale),
+        )?;
         Ok(source_file.value() as u32)
     }
 

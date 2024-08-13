@@ -2,8 +2,8 @@
 /* eslint-disable */
 export declare class IntlMessagesDatabase {
   constructor()
-  processDefinitionsFile(filePath: string): number
-  processDefinitionsFileContent(filePath: string, content: string): number
+  processDefinitionsFile(filePath: string, locale?: string | undefined | null): number
+  processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): number
   processAllTranslationFiles(localeMap: Record<string, string>): void
   processTranslationFile(filePath: string, locale: string): number
   processTranslationFileContent(filePath: string, locale: string, content: string): number
