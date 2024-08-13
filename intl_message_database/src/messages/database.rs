@@ -4,8 +4,8 @@ use crate::messages::symbols::KeySymbolMap;
 use crate::sources::Translations;
 
 use super::{
-    FilePosition, global_get_symbol, global_intern_string, KeySymbol, LocaleId,
-    Message, MessageMeta, MessagesError, MessagesResult, MessageValue, read_global_symbol_store, SourceFile,
+    global_get_symbol, global_intern_string, read_global_symbol_store, FilePosition, KeySymbol,
+    LocaleId, Message, MessageMeta, MessageValue, MessagesError, MessagesResult, SourceFile,
 };
 
 #[derive(Debug)]
@@ -210,7 +210,7 @@ impl MessagesDatabase {
                 file: file_key,
                 offset: entry.start_offset as u32,
             });
-            if let Ok(inserted) = self.insert_translation(entry.key, locale_symbol, value, false) {
+            if let Ok(inserted) = self.insert_translation(entry.key, locale_symbol, value, true) {
                 inserted_translations.insert(inserted.key_symbol());
             }
         }
