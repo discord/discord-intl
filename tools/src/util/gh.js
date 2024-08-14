@@ -1,6 +1,7 @@
 /**
  * Utility functions for working around the `gh` cli.
  */
+import path from 'node:path';
 import { $ } from 'zx';
 
 /**
@@ -25,13 +26,13 @@ async function getWorkflowIdFromPath(filePath) {
 }
 
 /**
- * Run a workflow specified at `yamlPath` (relative to the `.github/workflows` folder), with the
+ * Use the `gh` CLI to trigger a new workflow run of the workflow at the given path, using the
  * given arguments supplied as JSON fields for the dispatch event.
  *
  * @param {string} yamlPath
  * @param {Record<string, string>} args
  */
-async function runWorkflow(yamlPath, args) {
+async function triggerWorkflow(yamlPath, args) {
   return await $`echo ${JSON.stringify(args)} | gh workflow run ${yamlPath} --json`;
 }
 
@@ -73,9 +74,35 @@ async function waitForNextRunResponse(workflowId, previousRunNumber) {
   return undefined;
 }
 
+/**
+ * Fetch, trigger, and wait for a new run of the workflow defined at `filePath` in this repository
+ * to run on GitHub Actions.
+ *
+ * @param {string} filePath
+ * @param {Record<string, string>} args
+ * @returns {Promise<WorkflowRun | undefined>}
+ */
+async function runWorkflow(filePath, args) {
+  const fullPath = path.join('.', '.github', 'workflows', filePath);
+  console.log('Gathering workflow information from GitHub...');
+  const workflowId = await getWorkflowIdFromPath(fullPath);
+  const previousRun = await getLatestWorkflowRun(workflowId);
+
+  console.log('Triggering workflow...');
+  await triggerWorkflow(path.basename(filePath), args);
+  console.log('Waiting for run request to be registered...');
+  const latestRun = await gh.waitForNextRunResponse(workflowId, previousRun.number);
+  if (latestRun == null) {
+    console.error("Couldn't get a response from GitHub about the latest run. Check manually");
+  }
+
+  return latestRun;
+}
+
 export const gh = {
   getWorkflowIdFromPath,
-  runWorkflow,
+  triggerWorkflow,
   getLatestWorkflowRun,
   waitForNextRunResponse,
+  runWorkflow,
 };

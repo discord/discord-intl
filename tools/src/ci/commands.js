@@ -12,6 +12,18 @@ import { gh } from '../util/gh.js';
 import { git } from '../util/git.js';
 import { pnpm } from '../pnpm.js';
 
+/**
+ * @param {import('../util/gh.js').WorkflowRun | undefined} run
+ */
+function logWorkflowRunResponseOrExit(run) {
+  if (run == null) {
+    console.error("Couldn't get a response from GitHub about the latest run. Check manually");
+    process.exit(1);
+  }
+
+  console.log(`Created #${run.number} (${run.status}). View the run here: ${run.url}`);
+}
+
 export default async function () {
   const group = new Command('ci').description(
     'Automate running pre-configured workflows on CI (Github Actions)',
@@ -31,12 +43,7 @@ export default async function () {
     )
     .option('--loose', 'Disable strict mode')
     .action(async (packs, { loose }) => {
-      if (await git.hasChanges()) {
-        console.log(
-          'There are uncommited changes. Commit and push them before running this command',
-        );
-        process.exit(1);
-      }
+      await git.rejectIfHasChanges(true);
 
       const chosenPackages =
         packs.length > 0
@@ -47,26 +54,41 @@ export default async function () {
               required: true,
             });
 
-      console.log('Fetching workflow information from GitHub...');
-      const workflowId = await gh.getWorkflowIdFromPath('.github/workflows/publish-canary.yaml');
-      const previousRun = await gh.getLatestWorkflowRun(workflowId);
-      const ref = git.currentHead();
-      console.log('Triggering workflow...');
-      await gh.runWorkflow('publish-canary.yaml', {
-        commit: ref,
+      const run = await gh.runWorkflow('publish-canary.yaml', {
+        commit: git.currentHead(),
         strict: loose ? 'false' : 'true',
         packages: chosenPackages.join(' '),
       });
-      console.log('Waiting for run request to be registered...');
-      const latestRun = await gh.waitForNextRunResponse(workflowId, previousRun.number);
-      if (latestRun == null) {
-        console.error("Couldn't get a response from GitHub about the latest run. Check manually");
-        process.exit(1);
-      }
 
-      console.log(
-        `Created #${latestRun.number} (${latestRun.status}). View the run here: ${latestRun.url}`,
-      );
+      logWorkflowRunResponseOrExit(run);
+    });
+
+  group
+    .command('release')
+    .description('Run the "Release" workflow, publishing a new version of the entire ecosystem.')
+    .option('--dry-run', "Run the workflow, but don't actually publish packages.")
+    .option(
+      '--tag <tag>',
+      'Tag to additionally apply to the published package. Defaults to `latest`.',
+      'latest',
+    )
+    .option('--fail-fast', 'Cancel the rest of the build after the first failure')
+    .action(async ({ dryRun, tag, failFast }) => {
+      await git.rejectIfHasChanges(true);
+
+      console.log({
+        commit: git.currentHead(),
+        publish: dryRun ? 'false' : 'true',
+        'fail-fast': failFast ? 'true' : 'false',
+        tag,
+      });
+
+      const run = await gh.runWorkflow('release.yaml', {
+        commit: git.currentHead(),
+        publish: dryRun ? 'false' : 'true',
+      });
+
+      logWorkflowRunResponseOrExit(run);
     });
 
   return group;
