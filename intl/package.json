@@ -22,7 +22,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "pnpm build"
+    "build:release": "tsc && cp ./src/*.d.ts dist/",
+    "prepublishOnly": "pnpm build:release"
   },
   "dependencies": {
     "@formatjs/icu-messageformat-parser": "^2.7.6",
