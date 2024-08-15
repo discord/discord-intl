@@ -1,15 +1,16 @@
 use test_case::test_case;
 
-mod harness;
 use harness::run_icu_string_test;
+
+mod harness;
 
 #[test_case("{username}","{username}"; "basic_icu")]
 #[test_case("{  username\n}","{username}"; "icu_whitespace")]
 #[test_case("**hello**","<b>hello</b>"; "basic_markdown")]
 #[test_case("***hello** this has more content*","<i><b>hello</b> this has more content</i>"; "nested_markdown")]
-#[test_case("[a link](to/somewhere)","<link>to/somewhere{empty}a link</link>"; "static_link")]
+#[test_case("[a link](to/somewhere)","<link>to/somewhere{_}a link</link>"; "static_link")]
 #[test_case("[a link]({variable})","<link>{variable}a link</link>"; "dynamic_link")]
-#[test_case("<https://example.com>","<link>https://example.com{empty}https://example.com</link>"; "autolink")]
+#[test_case("<https://example.com>","<link>https://example.com{_}https://example.com</link>"; "autolink")]
 #[test_case("# false heading","# false heading"; "no_block_atx_heading")]
 #[test_case("false setext\n---","false setext\n---"; "no_block_setext_heading")]
 fn icu_inline(input: &str, output: &str) {

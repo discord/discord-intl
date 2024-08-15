@@ -146,7 +146,7 @@ impl Message {
             .is_some_and(|variables| variables.len() > 0)
     }
 
-    /// Returns
+    /// Returns a set of variables present in the source translation of this message.
     pub fn main_variables(&self) -> Option<&MessageVariables> {
         match self.get_source_translation() {
             Some(translation) => translation.variables.as_ref(),

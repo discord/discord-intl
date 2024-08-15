@@ -26,13 +26,6 @@ export class InternalIntlMessage {
     this.locale = locale;
 
     if (typeof messageOrAst === 'string') {
-      // TODO: This part should pre-parse our Markdown shorthand, too, so that
-      // the AST that comes out of this is a standardized format, and we don't
-      // have to do any special handling after calling `format`. That also
-      // removes the need for handling "unsafe" values, since they'll be
-      // parsed before values get interpolated. We can actually do that in the
-      // loader, too, and avoid any runtime cost for it.
-
       this.message = messageOrAst;
       this.ast = parseMessageFormat(messageOrAst);
     } else {

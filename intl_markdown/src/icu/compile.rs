@@ -72,6 +72,13 @@ impl<'a> FormatJsSingleNode<'a> {
             .with_value(name)
     }
 
+    /// Create an "empty" node, an ICU variable what will should always resolve to an empty string
+    /// at runtime and can be used as a marker to separate adjacent text nodes, such as in links
+    /// with static destinations.
+    fn empty() -> Self {
+        Self::variable("_")
+    }
+
     fn with_type(mut self, ty: FormatJsElementType) -> Self {
         self.ty = Some(ty);
         self
@@ -259,12 +266,14 @@ fn compile_link_children<'a>(
     label: &'a Vec<InlineContent>,
 ) -> FormatJsNode<'a> {
     let destination = match destination {
-        TextOrPlaceholder::Text(text) => FormatJsNode::from(text),
-        TextOrPlaceholder::Placeholder(icu) => FormatJsNode::from(icu),
+        TextOrPlaceholder::Text(text) => {
+            vec![FormatJsNode::from(text), FormatJsSingleNode::empty().into()]
+        }
+        TextOrPlaceholder::Placeholder(icu) => vec![FormatJsNode::from(icu)],
     };
 
-    let mut children = Vec::with_capacity(label.len() + 1);
-    children.insert(0, destination.into());
+    let mut children = Vec::with_capacity(destination.len() + label.len());
+    children.extend(destination);
     children.extend(label.iter().map(FormatJsNode::from));
     FormatJsNode::list(children)
 }
@@ -382,6 +391,12 @@ mod tests {
 
     }
 
+    macro_rules! empty {
+        () => {
+            FormatJsSingleNode::empty()
+        };
+    }
+
     macro_rules! lit {
         ($name:literal) => {
             FormatJsSingleNode::literal($name)
@@ -428,7 +443,12 @@ mod tests {
             compiled,
             list!(tag!(
                 "link",
-                [lit!("./somewhere.png"), lit!("a "), tag!("i", ["link"])]
+                [
+                    lit!("./somewhere.png"),
+                    empty!(),
+                    lit!("a "),
+                    tag!("i", ["link"])
+                ]
             ))
         )
     }

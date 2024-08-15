@@ -64,6 +64,7 @@ impl MessageVariables {
             variables: KeySymbolMap::default(),
         }
     }
+
     /// Add a new instance of a variable to the set of variables in a message.
     /// If this is the first instance of that variable, a new entry will be
     /// allocated for it, otherwise it will be appended to the list of
@@ -243,7 +244,18 @@ impl MessageVariablesVisitor {
                 Self::visit_inline_children(link.label(), variables)?;
                 match link.destination() {
                     TextOrPlaceholder::Placeholder(icu) => Self::visit_icu(icu, variables),
-                    _ => Ok(()),
+                    TextOrPlaceholder::Text(_) => {
+                        // When the link has a static text destination, an empty sentinel value is
+                        // used to separate the destination from the content text. This is a special
+                        // `_` variable that must be provided at render time, so it counts as a
+                        // variable for the message.
+                        variables.add_instance(
+                            global_intern_string("_")?,
+                            MessageVariableType::Any,
+                            None,
+                        );
+                        Ok(())
+                    }
                 }
             }
         }

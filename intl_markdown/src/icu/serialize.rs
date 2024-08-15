@@ -79,6 +79,19 @@ fn serialize_tag<S: Serializer, T: Serialize>(
     tag.end()
 }
 
+struct SerializeEmpty;
+impl Serialize for SerializeEmpty {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut variable = serializer.serialize_struct("IcuVariable", 2)?;
+        variable.serialize_field(fjs_types::TYPE, &FormatJsElementType::Argument)?;
+        variable.serialize_field(fjs_types::VALUE, "_")?;
+        variable.end()
+    }
+}
+
 impl Serialize for Document {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -150,11 +163,20 @@ impl Serialize for SerializeLinkChildren<'_> {
     where
         S: Serializer,
     {
-        let mut children = serializer.serialize_seq(Some(self.1.len() + 1))?;
-        // Insert the link destination as the first child of the link element.
+        let destination_len = if matches!(self.0, TextOrPlaceholder::Text(_)) {
+            2
+        } else {
+            1
+        };
+
+        let mut children = serializer.serialize_seq(Some(self.1.len() + destination_len))?;
+        // Insert the link destination as the first child of the link element. Static (plain text)
+        // destinations get serialized as a custom tag `_`, which is used as a simple separator to
+        // prevent FormatJS from joining adjacent text pieces together.
         match self.0 {
             TextOrPlaceholder::Text(text) => {
-                children.serialize_element(&InlineContent::Text(text.clone()))?
+                children.serialize_element(&InlineContent::Text(text.clone()))?;
+                children.serialize_element(&SerializeEmpty)?
             }
             TextOrPlaceholder::Placeholder(icu) => children.serialize_element(&icu)?,
         }

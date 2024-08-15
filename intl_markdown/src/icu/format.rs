@@ -175,7 +175,6 @@ impl<F: Fn(&str) -> String> FormatIcuString for FormatTextOrPlaceholder<'_, F> {
 impl FormatIcuString for Link {
     fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         let destination = format_text_or_placeholder(self.destination(), escape_href);
-
         match self.kind() {
             LinkKind::Image => {
                 write!(f, ["<img>", destination, "</img>"])
@@ -189,7 +188,7 @@ impl FormatIcuString for Link {
                         // Insert a delimiter between the destination and the label in case the
                         // destination is a plain string. Otherwise they would get merged together
                         // when parsing with FormatJS.
-                        self.destination().is_text().then_some("{empty}"),
+                        self.destination().is_text().then_some("{_}"),
                         self.label(),
                         "</link>"
                     ]
