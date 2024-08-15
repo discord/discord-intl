@@ -187,6 +187,9 @@ importers:
       '@napi-rs/cli':
         specifier: 3.0.0-alpha.62
         version: 3.0.0-alpha.62(@emnapi/runtime@1.2.0)
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
       commander:
         specifier: ^12.1.0
         version: 12.1.0

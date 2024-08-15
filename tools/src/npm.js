@@ -1,8 +1,6 @@
 import { Command, Option } from 'commander';
 import { $ } from 'zx';
 
-import { pnpm } from './pnpm.js';
-
 /**
  * Create a bare `publish` command, with all of the flags used for passing to `npmPublish`
  * separately. This command does not include any action by default, but the basic action can be

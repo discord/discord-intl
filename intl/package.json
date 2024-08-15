@@ -21,7 +21,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc && cp -r ./src/*.d.ts dist/",
+    "build": "tsc",
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {

@@ -20,7 +20,13 @@ cd(REPO_ROOT);
     .addCommand(await utilCommands())
     .addCommand(await createJsPackageCommands('metro-intl-transformer', { aliases: ['metro'] }))
     .addCommand(await createJsPackageCommands('rspack-intl-loader', { aliases: ['rspack'] }))
-    .addCommand(await createJsPackageCommands('intl', { aliases: ['rt'], build: true }))
+    .addCommand(
+      await createJsPackageCommands('intl', {
+        aliases: ['rt', 'runtime'],
+        build: true,
+        watch: true,
+      }),
+    )
     .addCommand(await createJsPackageCommands('intl-loader-core', { aliases: ['lc'] }))
     .addCommand(
       await createJsPackageCommands('swc-intl-message-transformer', {
