@@ -29,6 +29,7 @@ pub fn process_definitions_file(
     let file_meta = extracted.root_meta.unwrap_or(MessageMeta::default());
 
     let definitions = extracted.message_definitions;
+    let mut inserted_keys = FxHashSet::default();
 
     // Check if this file has already been processed into the database before. If it has, this
     // becomes an Update operation, which allows definitions to be overridden. Otherwise, it is
@@ -42,6 +43,7 @@ pub fn process_definitions_file(
         for definition in definitions.into_iter() {
             let message = handle_definition(db, file_key, definition, file_locale)?;
             to_remove.remove(&message.key_symbol());
+            inserted_keys.insert(message.key_symbol());
         }
 
         for key in to_remove {
@@ -51,15 +53,13 @@ pub fn process_definitions_file(
         db.create_source_file(file_key, file_name, file_meta);
         // An insert operation doesn't need to track any existing behavior, so it can just insert
         // incrementally. The interior will track adding the keys to the set.
-        // TODO: fix this
-        let mut inserted_keys = FxHashSet::default();
         for definition in definitions.into_iter() {
             let message = handle_definition(db, file_key, definition, file_locale)?;
             inserted_keys.insert(message.key_symbol());
         }
-        db.set_source_file_keys(file_key, inserted_keys)?;
     }
 
+    db.set_source_file_keys(file_key, inserted_keys)?;
     Ok(file_key)
 }
 
