@@ -91,7 +91,7 @@ async function transformAsset(assetData) {
 
   const outputDir = path.resolve(assetData.fileSystemLocation, cacheDir);
   const outputName = `${assetData.name}.${assetData.hash}.compiled.messages`;
-  const outputFile = path.join(outputDir, outputName);
+  const outputFile = path.join(outputDir, outputName) + '.' + assetExtension;
   debug(`[${filename}] Output file path: ${outputFile}`);
 
   if (!fs.existsSync(outputDir)) {
@@ -102,7 +102,7 @@ async function transformAsset(assetData) {
   const result = processTranslationsFile(filename);
   precompileFileForLocale(filename, result.locale, {
     format: IntlCompiledMessageFormat.Json,
-    outputFile: `${outputFile}.${assetExtension}`,
+    outputFile,
   });
 
   return {
