@@ -1,14 +1,14 @@
-import { IntlShape, createIntl } from '@formatjs/intl';
+import { createIntl, IntlShape } from '@formatjs/intl';
 import {
-  PART_TYPE as FormatPartType,
   Formats,
   Formatters,
   IntlMessageFormat,
+  PART_TYPE as FormatPartType,
 } from 'intl-messageformat';
 
-import { LocaleImportMap, LocaleId, MessageLoader } from './message-loader';
+import { LocaleId, LocaleImportMap, MessageLoader } from './message-loader';
 
-import type { TypedIntlMessageGetter, FormatValuesFor, RichTextElementMap } from './types';
+import type { FormatValuesFor, RichTextElementMap, TypedIntlMessageGetter } from './types';
 
 /**
  * Fallback locale used for all internationalization when an operation in the
@@ -127,6 +127,20 @@ export class IntlManager<
     }
 
     return result;
+  }
+
+  /**
+   * For messages with no formatting values (i.e., plain strings, they can skip
+   * a majority of the processing work and just resolve the message itself for
+   * the current locale, then return the plain string directly.
+   *
+   * This is separate from `formatToPlainString`, which still allows for
+   * formatting variables and other elements but reduces the output to only
+   * include textual elements in a plain string.
+   */
+  string(message: TypedIntlMessageGetter<undefined>): string {
+    // TODO(faulty): Optimize this so that plain strings are hotpathed even faster.
+    return this.formatToPlainString(message);
   }
 
   /**

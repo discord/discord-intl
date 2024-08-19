@@ -21,19 +21,21 @@ export class IntlManagerReact<
     // Use the locale from this point in the application, which may be
     // different from the global locale.
     const locale = React.useSyncExternalStore(this.onLocaleChange, () => this.currentLocale);
-    // Source the actual message to render for that locale from its loader.
     // TODO(faulty): This can and should be replaced by a
     // `use(messagesLoadedPromise)` once `use` is shipped to stable.
+    // Source the actual message to render for that locale from its loader.
     React.useSyncExternalStore(message.onChange, () => message(locale));
     // If there are no object parts in the message, it has no formatting and can just be returned as
     // a plain string.
-    return typeof message === 'string'
-      ? message
-      : React.createElement(
-          React.Fragment,
-          undefined,
-          this.formatToParts(message, values as Omit<FormatValuesFor<T>, DefaultValues>),
-        );
+    if (typeof message === 'string') return message;
+
+    const parts = this.formatToParts(message, values as Omit<FormatValuesFor<T>, DefaultValues>);
+    if (parts.length === 1 && typeof parts[0] === 'string') return parts[0];
+    return React.createElement(
+      React.Fragment,
+      undefined,
+      this.formatToParts(message, values as Omit<FormatValuesFor<T>, DefaultValues>),
+    );
   };
 
   /**

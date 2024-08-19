@@ -36,7 +36,7 @@ type TypedIntlMessage<FormatValues extends object> = InternalIntlMessage & {
 };
 
 type AnyIntlMessage<FormatValues extends object | undefined = undefined> =
-  FormatValues extends object ? TypedIntlMessage<FormatValues> : PlainIntlMessage;
+  FormatValues extends undefined ? PlainIntlMessage : TypedIntlMessage<FormatValues>;
 
 /**
  * Getter function that retrieves a message that best matches the requested
@@ -45,10 +45,10 @@ type AnyIntlMessage<FormatValues extends object | undefined = undefined> =
  * represent that there are no values required and the message is a plain
  * string.
  */
-export type TypedIntlMessageGetter<FormatValues extends object | undefined> =
-  IntlMessageGetterAdditions & {
-    (locale: string): AnyIntlMessage<FormatValues>;
-  };
+export interface TypedIntlMessageGetter<FormatValues extends object | undefined>
+  extends IntlMessageGetterAdditions {
+  (locale: string): AnyIntlMessage<FormatValues>;
+}
 
 /**
  * Common utility type for converting a union type to an intersection of all
