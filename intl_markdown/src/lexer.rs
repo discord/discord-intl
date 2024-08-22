@@ -856,6 +856,7 @@ impl<'source> Lexer<'source> {
 
         loop {
             match self.current() {
+                b'_' => self.advance(),
                 c if c.is_ascii_alphanumeric() => self.advance(),
                 _ => break,
             }
