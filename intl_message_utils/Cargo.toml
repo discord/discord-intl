@@ -7,3 +7,5 @@ publish = false
 
 [dependencies]
 xxhash-rust = { version = "0.8.10", features = ["xxh64"] }
+memchr = "2.7.4"
+once_cell = "1.19.0"

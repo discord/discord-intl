@@ -1,6 +1,9 @@
-use crate::messages::FilePosition;
-use intl_markdown::{parse_intl_message, Document};
 use serde::Serialize;
+
+use intl_markdown::{Document, parse_intl_message};
+use intl_message_utils::message_may_have_blocks;
+
+use crate::messages::FilePosition;
 
 use super::message_variables_visitor::{MessageVariables, MessageVariablesVisitor};
 
@@ -16,11 +19,7 @@ impl MessageValue {
     /// Creates a new value including the original raw content as given and
     /// parsing the content to a compiled AST.
     pub fn from_raw(content: &str) -> Self {
-        // By convention, messages starting immediately with a newline character are considered
-        // blocks and have paragraphs parsed in their content, while normal messages with no leading
-        // newline are treated as fully-inline.
-        let include_blocks = content.starts_with("\n");
-        let document = parse_intl_message(&content, include_blocks);
+        let document = parse_intl_message(&content, message_may_have_blocks(content));
 
         let mut variables = MessageVariables::new();
         let variables = match MessageVariablesVisitor::visit(&document, &mut variables) {

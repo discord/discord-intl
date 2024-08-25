@@ -1,3 +1,6 @@
+use memchr::memmem;
+use once_cell::sync::Lazy;
+
 /// Name of the JS runtime package that should be used for all generated code or parsing for imports
 /// that read from the package.
 pub static RUNTIME_PACKAGE_NAME: &str = "@discord/intl";
@@ -31,7 +34,7 @@ pub fn hash_message_key(content: &str) -> String {
     unsafe { String::from_utf8_unchecked(output) }
 }
 
-/// Returns true if the given file name is considered a message definitions file.
+/// Returns true if the given `file_name` is considered a message definitions file.
 pub fn is_message_definitions_file(file_name: &str) -> bool {
     // `.messages` is the path used when importing, like:
     //     import {messages} from 'Somewhere.messages';
@@ -45,4 +48,13 @@ pub fn is_message_definitions_file(file_name: &str) -> bool {
 
 pub fn is_message_translations_file(file_name: &str) -> bool {
     file_name.ends_with(".messages.json") || file_name.ends_with(".messages.jsona")
+}
+
+static DOUBLE_NEWLINE_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"\n\n"));
+
+/// Returns true if the given `message` contains block-like content and should
+/// be parsed with blocks included. For now, this requires that the message
+/// contains a double newline anywhere inside it.
+pub fn message_may_have_blocks(message: &str) -> bool {
+    DOUBLE_NEWLINE_FINDER.find(message.as_bytes()).is_some()
 }

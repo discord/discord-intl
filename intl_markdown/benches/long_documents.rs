@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 
-use intl_markdown::{format_ast, ICUMarkdownParser, process_cst_to_ast};
+use intl_markdown::{format_ast, process_cst_to_ast, ICUMarkdownParser};
 
 /// NOTE: To run this test, copy the commonmark spec text from
 /// https://github.com/commonmark/commonmark-spec/blob/master/spec.txt into
@@ -45,6 +45,17 @@ fn short_inlines(c: &mut Criterion) {
             format_ast(&ast)
         })
     });
+    group.bench_function("intl-markdown no blocks", |b| {
+        b.iter(|| {
+            let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
+
+            let mut parser = ICUMarkdownParser::new(content, false);
+            parser.parse();
+            let document = parser.into_cst();
+            let ast = process_cst_to_ast(&document);
+            format_ast(&ast)
+        })
+    });
     group.bench_function("pulldown_cmark", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
@@ -68,6 +79,17 @@ fn real_messages(c: &mut Criterion) {
         b.iter(|| {
             for message in messages.values() {
                 let mut parser = ICUMarkdownParser::new(&message, true);
+                parser.parse();
+                let document = parser.into_cst();
+                let ast = process_cst_to_ast(&document);
+                format_ast(&ast).ok();
+            }
+        })
+    });
+    group.bench_function("intl-markdown no blocks", |b| {
+        b.iter(|| {
+            for message in messages.values() {
+                let mut parser = ICUMarkdownParser::new(&message, false);
                 parser.parse();
                 let document = parser.into_cst();
                 let ast = process_cst_to_ast(&document);
