@@ -16,6 +16,14 @@ export const NAPI_TARGET_MAP = {
   'win32-ia32-msvc': 'i686-pc-windows-msvc',
   'win32-x64-msvc': 'x86_64-pc-windows-msvc',
   wasm: 'wasm32-unknown-unknown',
+  'android-arm-eabi': 'invalid',
+  'android-arm64': 'invalid',
+  'freebsd-x64': 'invalid',
+  'linux-arm-gnueabihf': 'invalid',
+  'linux-arm-musleabihf': 'invalid',
+  'linux-riscv64-gnu': 'invalid',
+  'linux-riscv64-musl': 'invalid',
+  'linux-s390x-gnu': 'invalid',
 };
 
 /**

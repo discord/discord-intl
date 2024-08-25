@@ -24,7 +24,7 @@ function isMusl() {
   }
 }
 
-/** @type {Record<string, Record<string, string>>} */
+/** @type {Record<string, Record<string, keyof NAPI_TARGET_MAP>>} */
 const PACKAGE_NAMES = {
   android: { arm: 'android-arm-eabi', arm64: 'android-arm64' },
   win32: { arm64: 'win32-arm64-msvc', ia32: 'win32-ia32-msvc', x64: 'win32-x64-msvc' },
@@ -50,7 +50,7 @@ const platform =
 const arch = process.arch;
 
 /**
- * @returns {string}
+ * @returns {keyof NAPI_TARGET_MAP}
  */
 function getPackageName() {
   if (!(platform in PACKAGE_NAMES)) {
@@ -72,7 +72,7 @@ const packagePath = `@discord/intl-message-database-${packageName}`;
 /**
  * Information about the host system that's running this command, usable for creating default
  * targets and argument values that rely on a target platform or package.
- * @type {{packagePath: string, triple: *, localPath: string, target: string}}
+ * @type {{packagePath: string, triple: *, localPath: string, target: keyof NAPI_TARGET_MAP}}
  */
 const hostPlatform = {
   target: packageName,

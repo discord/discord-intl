@@ -81,6 +81,19 @@ export async function updatePackageJson(pack, mutator) {
   return updated;
 }
 
+/**
+ * Run the given `script` in given `pack`.
+ *
+ * @param {PnpmPackage} pack
+ * @param {string} script
+ * @returns {Promise<any>}
+ */
+async function runScriptInPackage(pack, script) {
+  return $({ cwd: pack.path, stdio: 'inherit' })`pnpm ${script}`;
+}
+
 export const pnpm = {
   getPublicPackages,
+  getPackage,
+  runScriptInPackage,
 };

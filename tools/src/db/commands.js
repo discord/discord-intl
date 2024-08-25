@@ -1,7 +1,7 @@
 import { Command, Option } from 'commander';
 
 import { npmPublish, npmPublishCommand } from '../npm.js';
-import { getPackage } from '../pnpm.js';
+import { pnpm } from '../pnpm.js';
 import { buildNapiPackage, NAPI_TARGET_MAP } from '../napi.js';
 import { checkAllVersionsEqual, getPackageFamily, versionCommand } from '../versioning.js';
 import { hostPlatform } from '../util/platform.js';
@@ -27,7 +27,7 @@ export function buildTargetOption() {
 const DB_PACKAGE_NAME = '@discord/intl-message-database';
 
 export default async function () {
-  const dbPackage = await getPackage(DB_PACKAGE_NAME);
+  const dbPackage = await pnpm.getPackage(DB_PACKAGE_NAME);
   const dbFamily = await getPackageFamily(dbPackage);
 
   const group = new Command('db')
@@ -42,6 +42,17 @@ export default async function () {
       await buildNapiPackage(dbPackage, target);
     });
 
+  group
+    .command('bench')
+    .description('Run the database benchmark in `bench/native.js`')
+    .option('--build', 'Rebuild the crate locally before running the bench')
+    .action(async ({ build }) => {
+      if (build) {
+        await buildNapiPackage(dbPackage, hostPlatform.target);
+      }
+      await pnpm.runScriptInPackage(dbPackage, 'bench:native');
+    });
+
   group.addCommand(versionCommand('version', dbPackage, dbFamily));
   group.addCommand(npmPublishCommand('publish-root', dbPackage));
   group.addCommand(
@@ -49,7 +60,9 @@ export default async function () {
       .description('Publish a platform-specific package for intl-message-database to npm')
       .addOption(buildTargetOption())
       .action(async (options) => {
-        const targetPackage = await getPackage(`@discord/intl-message-database-${options.target}`);
+        const targetPackage = await pnpm.getPackage(
+          `@discord/intl-message-database-${options.target}`,
+        );
         await npmPublish(targetPackage, options);
       }),
   );
