@@ -59,6 +59,7 @@ pub fn test() {
             &database,
             &mut buffer,
             locale_key,
+            locale_key,
             CompiledMessageFormat::Json,
         )
         .run()

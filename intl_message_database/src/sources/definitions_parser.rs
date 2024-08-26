@@ -334,14 +334,15 @@ mod tests {
             "testing.js",
             &format!(
                 r#"
-        import {{defineMessages}} from '{RUNTIME_PACKAGE_NAME}';
+        import {{defineMessages}} from '{}';
 
         export default defineMessages({{
             TEMPLATED: `this is a template`,
             INVALID: `this is an ${{invalidTemplate}}`,
             'string-key': 'this has a stringy key',
         }});
-        "#
+        "#,
+                intl_message_utils::RUNTIME_PACKAGE_NAME
             ),
         )
         .expect("failed to parse source code");

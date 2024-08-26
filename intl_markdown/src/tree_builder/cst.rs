@@ -343,6 +343,8 @@ pub struct Icu {
 pub enum IcuPlaceholder {
     IcuVariable(IcuVariable),
     IcuPlural(IcuPlural),
+    IcuSelectOrdinal(IcuSelectOrdinal),
+    IcuSelect(IcuSelect),
     IcuDate(IcuDate),
     IcuTime(IcuTime),
     IcuNumber(IcuNumber),
@@ -355,6 +357,24 @@ pub struct IcuVariable {
 
 #[derive(Debug, ReadFromEvents)]
 pub struct IcuPlural {
+    pub variable: IcuVariable,
+    pub variable_comma: Token,
+    pub format_token: Token,
+    pub format_comma: Token,
+    pub arms: Vec<IcuPluralArm>,
+}
+
+#[derive(Debug, ReadFromEvents)]
+pub struct IcuSelect {
+    pub variable: IcuVariable,
+    pub variable_comma: Token,
+    pub format_token: Token,
+    pub format_comma: Token,
+    pub arms: Vec<IcuPluralArm>,
+}
+
+#[derive(Debug, ReadFromEvents)]
+pub struct IcuSelectOrdinal {
     pub variable: IcuVariable,
     pub variable_comma: Token,
     pub format_token: Token,

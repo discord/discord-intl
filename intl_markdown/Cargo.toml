@@ -8,6 +8,8 @@ publish = false
 [lib]
 crate-type = ["lib"]
 bench = false
+# Not using doctests currently
+doctest = false
 
 [dependencies]
 arcstr = "1"

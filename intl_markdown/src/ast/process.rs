@@ -533,9 +533,23 @@ pub fn process_icu(context: &mut AstProcessingContext, icu: &cst::Icu) -> ast::I
         cst::IcuPlaceholder::IcuVariable(variable) => {
             ast::Icu::IcuVariable(process_icu_variable(context, variable, is_unsafe))
         }
-        cst::IcuPlaceholder::IcuPlural(plural) => {
-            ast::Icu::IcuPlural(process_icu_plural(context, plural, is_unsafe))
+        cst::IcuPlaceholder::IcuSelect(select) => {
+            ast::Icu::IcuSelect(process_icu_select(context, select, is_unsafe))
         }
+        cst::IcuPlaceholder::IcuPlural(plural) => ast::Icu::IcuPlural(process_icu_plural(
+            context,
+            &plural.variable,
+            &plural.arms,
+            IcuPluralKind::Plural,
+            is_unsafe,
+        )),
+        cst::IcuPlaceholder::IcuSelectOrdinal(select) => ast::Icu::IcuPlural(process_icu_plural(
+            context,
+            &select.variable,
+            &select.arms,
+            IcuPluralKind::SelectOrdinal,
+            is_unsafe,
+        )),
         cst::IcuPlaceholder::IcuDate(date) => {
             ast::Icu::IcuDate(process_icu_date(context, date, is_unsafe))
         }
@@ -609,17 +623,34 @@ pub fn process_icu_number_style(style: &cst::IcuNumberStyle) -> ast::IcuNumberSt
 
 pub fn process_icu_plural(
     context: &mut AstProcessingContext,
-    plural: &cst::IcuPlural,
+    variable: &cst::IcuVariable,
+    arms: &Vec<cst::IcuPluralArm>,
+    kind: IcuPluralKind,
     is_unsafe: bool,
 ) -> ast::IcuPlural {
-    let arms = plural
-        .arms
+    let arms = arms
         .iter()
         .map(|arm| process_plural_arm(context, arm))
         .collect();
     ast::IcuPlural {
-        variable: process_icu_variable(context, &plural.variable, is_unsafe),
-        kind: IcuPluralKind::Plural,
+        variable: process_icu_variable(context, &variable, is_unsafe),
+        kind,
+        arms,
+        is_unsafe,
+    }
+}
+pub fn process_icu_select(
+    context: &mut AstProcessingContext,
+    select: &cst::IcuSelect,
+    is_unsafe: bool,
+) -> ast::IcuSelect {
+    let arms = select
+        .arms
+        .iter()
+        .map(|arm| process_plural_arm(context, arm))
+        .collect();
+    ast::IcuSelect {
+        variable: process_icu_variable(context, &select.variable, is_unsafe),
         arms,
         is_unsafe,
     }

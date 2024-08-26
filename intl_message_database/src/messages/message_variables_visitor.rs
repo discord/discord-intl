@@ -282,6 +282,18 @@ impl MessageVariablesVisitor {
                 }
                 Ok(())
             }
+            Icu::IcuSelect(select) => {
+                variables.add_instance(
+                    global_intern_string(select.name())?,
+                    // TODO(faulty): change this to ::Enum.
+                    MessageVariableType::Plural,
+                    None,
+                );
+                for arm in select.arms() {
+                    Self::visit_inline_children(arm.content(), variables)?;
+                }
+                Ok(())
+            }
             Icu::IcuDate(date) => {
                 variables.add_instance(
                     global_intern_string(date.name())?,

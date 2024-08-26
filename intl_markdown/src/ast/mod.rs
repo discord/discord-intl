@@ -226,6 +226,7 @@ impl CodeSpan {
 pub enum Icu {
     IcuVariable(IcuVariable),
     IcuPlural(IcuPlural),
+    IcuSelect(IcuSelect),
     IcuDate(IcuDate),
     IcuTime(IcuTime),
     IcuNumber(IcuNumber),
@@ -237,6 +238,7 @@ impl Icu {
         match self {
             Icu::IcuVariable(variable) => variable.is_unsafe(),
             Icu::IcuPlural(plural) => plural.is_unsafe(),
+            Icu::IcuSelect(select) => select.is_unsafe(),
             Icu::IcuDate(date) => date.is_unsafe(),
             Icu::IcuTime(time) => time.is_unsafe(),
             Icu::IcuNumber(number) => number.is_unsafe(),
@@ -262,7 +264,6 @@ impl IcuVariable {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IcuPluralKind {
     Plural,
-    Select,
     SelectOrdinal,
 }
 
@@ -284,6 +285,30 @@ impl IcuPlural {
 
     pub fn kind(&self) -> &IcuPluralKind {
         &self.kind
+    }
+
+    pub fn arms(&self) -> &Vec<IcuPluralArm> {
+        &self.arms
+    }
+
+    pub fn is_unsafe(&self) -> bool {
+        self.is_unsafe
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcuSelect {
+    variable: IcuVariable,
+    arms: Vec<IcuPluralArm>,
+    is_unsafe: bool,
+}
+impl IcuSelect {
+    pub fn variable(&self) -> &IcuVariable {
+        &self.variable
+    }
+
+    pub fn name(&self) -> &String {
+        self.variable.name()
     }
 
     pub fn arms(&self) -> &Vec<IcuPluralArm> {

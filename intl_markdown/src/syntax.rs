@@ -184,12 +184,12 @@ pub enum SyntaxKind {
     ICU,        // The overall container node for any ICU content.
     ICU_UNSAFE, // An additional wrapping node for the `!!{...}!!` syntax.
     // ICU keywords
-    ICU_NUMBER_KW,        // number
-    ICU_DATE_KW,          // date
-    ICU_TIME_KW,          // time
-    ICU_SELECT_KW,        // select
-    ICU_SELECTORDINAL_KW, // selectordinal
-    ICU_PLURAL_KW,        // plural
+    ICU_NUMBER_KW,         // number
+    ICU_DATE_KW,           // date
+    ICU_TIME_KW,           // time
+    ICU_SELECT_KW,         // select
+    ICU_SELECT_ORDINAL_KW, // selectordinal
+    ICU_PLURAL_KW,         // plural
     // ICU tokens
     ICU_DOUBLE_COLON, // ::
     // ICU literals
@@ -201,13 +201,14 @@ pub enum SyntaxKind {
     ICU_DATE_TIME_STYLE, // Either a keyword like `short` or a skeleton like `::hmsGy`
     ICU_NUMBER_STYLE,    // A number style argument, almost always a skeleton like `::.##`.
     // ICU Nodes
-    ICU_DATE,        // {var, date} or {var, date, format}
-    ICU_TIME,        // {var, time} or {var, time, format}
-    ICU_NUMBER,      // {var, number} or {var, number, format}
-    ICU_PLACEHOLDER, // {var}
-    ICU_PLURAL,      // {var, plural, ...}
-    ICU_SELECT,      // {var, select, ...}
-    ICU_VARIABLE,    // `var` in `{var}` or `{var, plural}` and so on.
+    ICU_DATE,           // {var, date} or {var, date, format}
+    ICU_TIME,           // {var, time} or {var, time, format}
+    ICU_NUMBER,         // {var, number} or {var, number, format}
+    ICU_PLACEHOLDER,    // {var}
+    ICU_PLURAL,         // {var, plural, ...}
+    ICU_SELECT,         // {var, select, ...}
+    ICU_SELECT_ORDINAL, // {var, selectordinal, ...}
+    ICU_VARIABLE,       // `var` in `{var}` or `{var, plural}` and so on.
     // ICU_PLURAL_ARMS,  // The list of arms in a plural or select node.
     ICU_PLURAL_ARM,   // The `one {inner}` in `{var, plural, one {inner}}`
     ICU_PLURAL_VALUE, // The `inner` in `{var, plural, one {inner}}`
@@ -263,7 +264,7 @@ impl SyntaxKind {
                 | SyntaxKind::ICU_DATE_KW
                 | SyntaxKind::ICU_TIME_KW
                 | SyntaxKind::ICU_SELECT_KW
-                | SyntaxKind::ICU_SELECTORDINAL_KW
+                | SyntaxKind::ICU_SELECT_ORDINAL_KW
                 | SyntaxKind::ICU_PLURAL_KW
         )
     }

@@ -18,6 +18,7 @@ fn icu_inline(input: &str, output: &str) {
 }
 
 #[test_case("{today, date, short}","{today, date, short}"; "date_word_format")]
+#[test_case("{count, number, currency/USD}","{count, number, currency/USD}"; "number_currency_format")]
 fn icu_variable_formats(input: &str, output: &str) {
     run_icu_string_test(input, output, false);
 }
@@ -38,6 +39,7 @@ fn icu_markdown_blocks(input: &str, output: &str) {
 #[test_case("paragraph one {\n\nvariable\n\n} still paragraph one","<p>paragraph one {variable} still paragraph one</p>"; "continuation_blank_line_inside_var")]
 #[test_case("paragraph one {count,\n\n    plural,\n\n one {same par} other\n\n{same paragraph}} still paragraph one","<p>paragraph one {count, plural, one {same par} other {same paragraph}} still paragraph one</p>"; "continuation_blank_line_inside_plural_control")]
 #[test_case("paragraph one {count, plural, one {\n\n# false heading\n\n ends with paragraph}} still paragraph one","<p>paragraph one {count, plural, one {# false heading\nends with paragraph}} still paragraph one</p>"; "continuation_blank_line_inside_plural_value")]
+#[test_case("this cat is {color, select, orange {orange flavored\n\n} black {void}}","<p>this cat is {color, select, orange {orange flavored} black {void}}</p>"; "continuation_blank_line_inside_select_value")]
 fn icu_blocks(input: &str, output: &str) {
     run_icu_string_test(input, output, true);
 }

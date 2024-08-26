@@ -8,8 +8,8 @@ use serde::ser::SerializeMap;
 
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
-    IcuPlural, IcuPluralArm, IcuPluralKind, IcuTime, IcuVariable, InlineContent, Link, Paragraph,
-    Strikethrough, Strong, TextOrPlaceholder,
+    IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
+    Paragraph, Strikethrough, Strong, TextOrPlaceholder,
 };
 use crate::icu::serialize::{fjs_types, FormatJsElementType};
 
@@ -313,6 +313,7 @@ impl<'a> From<&'a Icu> for FormatJsNode<'a> {
         match value {
             Icu::IcuVariable(variable) => FormatJsNode::from(variable),
             Icu::IcuPlural(plural) => FormatJsNode::from(plural),
+            Icu::IcuSelect(select) => FormatJsNode::from(select),
             Icu::IcuDate(date) => FormatJsNode::from(date),
             Icu::IcuTime(time) => FormatJsNode::from(time),
             Icu::IcuNumber(number) => FormatJsNode::from(number),
@@ -349,6 +350,16 @@ impl<'a> From<&'a IcuPlural> for FormatJsNode<'a> {
             // TODO: Implement offset in parsing
             .with_offset(0)
             .with_plural_type(*value.kind())
+            .into()
+    }
+}
+
+impl<'a> From<&'a IcuSelect> for FormatJsNode<'a> {
+    fn from(value: &'a IcuSelect) -> Self {
+        FormatJsSingleNode::default()
+            .with_type(FormatJsElementType::Select)
+            .with_value(value.name())
+            .with_options(FormatJsNodeOptions(value.arms()))
             .into()
     }
 }

@@ -2,8 +2,8 @@ use std::fmt::Write;
 
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
-    IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuTime,
-    IcuVariable, InlineContent, Link, LinkKind, Paragraph, Strikethrough, Strong,
+    IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect,
+    IcuTime, IcuVariable, InlineContent, Link, LinkKind, Paragraph, Strikethrough, Strong,
     TextOrPlaceholder,
 };
 use crate::ast::util::{escape_body_text, escape_href};
@@ -224,6 +224,7 @@ impl FormatIcuString for Icu {
         match self {
             Icu::IcuVariable(variable) => write!(f, [variable])?,
             Icu::IcuPlural(plural) => write!(f, [plural])?,
+            Icu::IcuSelect(select) => write!(f, [select])?,
             Icu::IcuDate(date) => write!(f, [date])?,
             Icu::IcuTime(time) => write!(f, [time])?,
             Icu::IcuNumber(number) => write!(f, [number])?,
@@ -242,11 +243,16 @@ impl FormatIcuString for IcuPlural {
     fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
         let kind_str = match self.kind() {
             IcuPluralKind::Plural => "plural",
-            IcuPluralKind::Select => "select",
             IcuPluralKind::SelectOrdinal => "selectordinal",
         };
 
         write!(f, [self.name(), ", ", kind_str, ",", self.arms()])
+    }
+}
+
+impl FormatIcuString for IcuSelect {
+    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+        write!(f, [self.name(), ", select,", self.arms()])
     }
 }
 

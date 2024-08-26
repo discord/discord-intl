@@ -442,7 +442,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "[Learn more]({help_me})\n";
+        let content = "{color, select, orange {fluffy}}";
         let mut parser = ICUMarkdownParser::new(content, true);
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
 

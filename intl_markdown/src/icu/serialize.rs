@@ -1,10 +1,10 @@
-use serde::{Serialize, Serializer};
 use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
+use serde::{Serialize, Serializer};
 
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
-    IcuPlural, IcuPluralArm, IcuPluralKind, IcuTime, IcuVariable, InlineContent, Link, Paragraph,
-    Strikethrough, Strong, TextOrPlaceholder,
+    IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
+    Paragraph, Strikethrough, Strong, TextOrPlaceholder,
 };
 
 /// The order of these types matches the order that FormatJS serializes in. This ordering is
@@ -28,7 +28,6 @@ impl Serialize for IcuPluralKind {
         serializer.serialize_str(match self {
             IcuPluralKind::Plural => "cardinal",
             IcuPluralKind::SelectOrdinal => "ordinal",
-            _ => unreachable!(),
         })
     }
 }
@@ -42,7 +41,6 @@ pub enum FormatJsElementType {
     Number,
     Date,
     Time,
-    #[allow(unused)]
     Select,
     Plural,
     Pound,
@@ -245,6 +243,7 @@ impl Serialize for Icu {
         match self {
             Icu::IcuVariable(variable) => variable.serialize(serializer),
             Icu::IcuPlural(plural) => plural.serialize(serializer),
+            Icu::IcuSelect(select) => select.serialize(serializer),
             Icu::IcuDate(date) => date.serialize(serializer),
             Icu::IcuTime(time) => time.serialize(serializer),
             Icu::IcuNumber(number) => number.serialize(serializer),
@@ -303,6 +302,19 @@ impl Serialize for IcuPlural {
         plural.serialize_field(fjs_types::OFFSET, &0)?;
         plural.serialize_field(fjs_types::PLURAL_TYPE, self.kind())?;
         plural.end()
+    }
+}
+
+impl Serialize for IcuSelect {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut select = serializer.serialize_struct("IcuSelect", 3)?;
+        select.serialize_field(fjs_types::TYPE, &FormatJsElementType::Select)?;
+        select.serialize_field(fjs_types::VALUE, self.name())?;
+        select.serialize_field(fjs_types::OPTIONS, &SerializePluralArms(self.arms()))?;
+        select.end()
     }
 }
 

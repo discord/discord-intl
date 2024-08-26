@@ -817,7 +817,7 @@ impl<'source> Lexer<'source> {
         match ident {
             "plural" => SyntaxKind::ICU_PLURAL_KW,
             "select" => SyntaxKind::ICU_SELECT_KW,
-            "selectordinal" => SyntaxKind::ICU_SELECTORDINAL_KW,
+            "selectordinal" => SyntaxKind::ICU_SELECT_ORDINAL_KW,
             "date" => SyntaxKind::ICU_DATE_KW,
             "time" => SyntaxKind::ICU_TIME_KW,
             "number" => SyntaxKind::ICU_NUMBER_KW,
