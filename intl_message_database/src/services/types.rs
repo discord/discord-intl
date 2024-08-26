@@ -259,6 +259,24 @@ fn get_variable_type_name(kind: &MessageVariableType) -> &str {
     }
 }
 
+/// Returns the set of message keys as a list, sorted alphabetically by the key's resolved value.
+/// This is annoyingly inefficient with two vector allocations, but it works.
+fn get_sorted_message_keys(keys: &FxHashSet<KeySymbol>) -> anyhow::Result<Vec<&KeySymbol>> {
+    let symbol_store = read_global_symbol_store()?;
+
+    let mut sorted_keys = Vec::with_capacity(keys.len());
+    for key in keys {
+        sorted_keys.push((
+            key,
+            symbol_store
+                .resolve(*key)
+                .ok_or(MessagesError::SymbolNotFound(*key))?,
+        ));
+    }
+    sorted_keys.sort_by_key(|(_, name)| name.to_owned());
+    Ok(sorted_keys.into_iter().map(|(key, _)| key).collect())
+}
+
 #[derive(Debug, Error)]
 pub enum IntlTypesGeneratorError {
     #[error("Requested source file '{0}' does not exist.")]
@@ -289,8 +307,8 @@ declare const messages: {{
         let source_file = self.database.sources.get(&self.source_file_key).ok_or(
             IntlTypesGeneratorError::SourceFileNotFound(self.source_file_key),
         )?;
-        let source_message_keys = source_file.message_keys();
 
+        let source_message_keys = get_sorted_message_keys(source_file.message_keys())?;
         for message_key in source_message_keys {
             let Some(message) = self.database.messages.get(message_key) else {
                 return Err(IntlTypesGeneratorError::SourceFileMessageNotFound(

@@ -68,7 +68,7 @@ macro_rules! resolve_symbol {
 /// copied value. This is not the same as hashing a message key, which creates
 /// a short _string_ representation, while this symbol is just a lightweight
 /// integer handle for use as keys and references internally.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct KeySymbol(DefaultSymbol);
 
 impl KeySymbol {
