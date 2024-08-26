@@ -16,6 +16,7 @@ codespan-reporting = { version = "0.11.1", features = ["serialization"] }
 intl_markdown = { path = "../intl_markdown" }
 intl_message_utils = { path = "../intl_message_utils" }
 keyless_json = { path = "../keyless_json" }
+mimalloc = "0.1"
 napi = { version = "3.0.0-alpha.8", features = ["error_anyhow", "serde-json"] }
 napi-derive = "3.0.0-alpha.7"
 num_cpus = "1"
@@ -31,8 +32,8 @@ swc_core = { version = "0.90.x", features = [
 ] }
 thiserror = "1"
 threadpool = "1.8.1"
+unescape_zero_copy = "2.1.1"
 xxhash-rust = { version = "0.8.10", features = ["xxh64"] }
-mimalloc = "0.1"
 
 [build-dependencies]
 napi-build = "2"

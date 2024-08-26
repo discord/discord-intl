@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 
 use swc_common::{FileName, SourceMap, Spanned};
 use swc_common::sync::Lrc;
@@ -7,6 +7,7 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::parser::{lexer::Lexer, Parser, PResult, StringInput, Syntax};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use unescape_zero_copy::unescape_default;
 
 use intl_message_utils::RUNTIME_PACKAGE_NAME;
 
@@ -157,7 +158,7 @@ impl MessageDefinitionsExtractor {
     ) -> MessagesResult<ExtractedMessage> {
         Ok(ExtractedMessage {
             name: key.into(),
-            value: value.to_string(),
+            value: self.apply_string_escapes(value).to_string(),
             offset,
             meta: self.clone_meta(),
         })
@@ -227,9 +228,14 @@ impl MessageDefinitionsExtractor {
     /// is returned. Any other expression will return None.
     fn parse_string_value(&self, expr: &Expr) -> Option<String> {
         match expr.as_lit() {
-            Some(Lit::Str(string)) => Some(string.value.to_owned().to_string()),
+            Some(Lit::Str(string)) => Some(self.apply_string_escapes(&string.value).to_string()),
             _ => None,
         }
+    }
+
+    /// Apply literal escape sequences like `\n` from the string value.
+    fn apply_string_escapes<'a>(&self, value: &'a str) -> Cow<'a, str> {
+        unescape_default(value).unwrap_or(Cow::from(value))
     }
 }
 
@@ -312,8 +318,6 @@ impl Visit for MessageDefinitionsExtractor {
 
 #[cfg(test)]
 mod tests {
-    use intl_message_utils::RUNTIME_PACKAGE_NAME;
-
     use crate::messages::global_intern_string;
 
     use super::parse_message_definitions_file;
