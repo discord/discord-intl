@@ -832,7 +832,12 @@ impl<'source> Lexer<'source> {
         }
 
         if !self.current().is_ascii_digit() {
-            return SyntaxKind::EQUAL;
+            // Allow negative numbers using a `-` prefix.
+            if self.current() == b'-' && self.peek().is_some_and(u8::is_ascii_digit) {
+                self.advance();
+            } else {
+                return SyntaxKind::EQUAL;
+            }
         }
 
         while self.current().is_ascii_digit() {

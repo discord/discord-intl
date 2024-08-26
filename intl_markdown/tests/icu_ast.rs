@@ -15,6 +15,7 @@ mod harness;
 #[test_case("{rightNow, time, short}",r#"[{"type":4,"value":"rightNow","style":"short"}]"#; "time_style")]
 #[test_case("{rightNow, time, ::GMDY}",r#"[{"type":4,"value":"rightNow","style":"::GMDY"}]"#; "time_skeleton")]
 #[test_case("{count, plural, one {#}}",r#"[{"type":6,"value":"count","options":{"one":{"value":[{"type":7}]}},"offset":0,"pluralType":"cardinal"}]"#; "plural")]
+#[test_case("{count, plural, =-1 {#} =5 {five}}",r#"[{"type":6,"value":"count","options":{"=-1":{"value":[{"type":7}]},"=5":{"value":[{"type":0,"value":"five"}]}},"offset":0,"pluralType":"cardinal"}]"#; "plural_exact")]
 #[test_case("{count, selectordinal, one {#}}",r#"[{"type":6,"value":"count","options":{"one":{"value":[{"type":7}]}},"offset":0,"pluralType":"ordinal"}]"#; "selectordinal")]
 #[test_case("{color, select, orange {fluffy}}",r#"[{"type":5,"value":"color","options":{"orange":{"value":[{"type":0,"value":"fluffy"}]}}}]"#; "select")]
 #[test_case("{time, number}",r#"[{"type":2,"value":"time"}]"#; "keyword_as_name")]
