@@ -64,7 +64,7 @@ export class MessageLoader {
    *
    * @private
    */
-  _debugKeyMap: Record<string, string>;
+  _debugKeyMap?: Record<string, string>;
   /**
    * Map of locale names to source file names, used to provide context for where messages are
    * imported from during development.
@@ -73,7 +73,7 @@ export class MessageLoader {
    *
    * @private
    */
-  _localeFileMap: Record<string, string>;
+  _localeFileMap?: Record<string, string>;
 
   constructor(messageKeys: string[], localeImportMap: LocaleImportMap, defaultLocale: LocaleId) {
     this.messageKeys = messageKeys;
