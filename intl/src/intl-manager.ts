@@ -168,6 +168,36 @@ export class IntlManager<
       values,
     );
   }
+
+  /**
+   * Similar to `formatToPlainString`, format the given message with the provided
+   * values, but convert all rich text formatting back to Markdown syntax rather
+   * than rendering the actual rich content. The result is a plain string that
+   * can be sent through a separate Markdown renderer to get an equivalent
+   * result to formatting this message directly.
+   */
+  formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(message: T): string;
+  formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(
+    message: T,
+    values: Omit<FormatValuesFor<T>, DefaultValues>,
+  ): string;
+  formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(
+    message: T,
+    values?: Omit<FormatValuesFor<T>, DefaultValues>,
+  ) {
+    // TODO(faulty): Implement the markdown syntax conversion here.
+    if (typeof message === 'string') return message;
+    const resolvedMessage = message(this.currentLocale);
+    if (typeof resolvedMessage === 'string') return resolvedMessage;
+
+    // No need to pass in `defaultRichTextElements`, since the stylistic tags
+    // will be removed from the string anyway.
+    return resolvedMessage.formatToPlainString(
+      this.intl.formatters as Formatters,
+      this.intl.formats as Formats,
+      values,
+    );
+  }
 }
 
 /**
