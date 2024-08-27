@@ -12,6 +12,7 @@ use crate::ast::{
     Paragraph, Strikethrough, Strong, TextOrPlaceholder,
 };
 use crate::icu::serialize::{fjs_types, FormatJsElementType};
+use crate::icu::tags::DEFAULT_TAG_NAMES;
 
 /// Compile a parsed ICU-Markdown document into a FormatJS Node tree, that can then be directly
 /// serialized to any format and back with any other FormatJS-compatible tools.
@@ -76,7 +77,7 @@ impl<'a> FormatJsSingleNode<'a> {
     /// at runtime and can be used as a marker to separate adjacent text nodes, such as in links
     /// with static destinations.
     fn empty() -> Self {
-        Self::variable("_")
+        Self::variable("$_")
     }
 
     fn with_type(mut self, ty: FormatJsElementType) -> Self {
@@ -196,7 +197,7 @@ impl<'a> From<&'a InlineContent> for FormatJsNode<'a> {
             InlineContent::Strong(strong) => FormatJsNode::from(strong),
             InlineContent::Link(link) => FormatJsNode::from(link),
             InlineContent::CodeSpan(code_span) => FormatJsNode::from(code_span),
-            InlineContent::HardLineBreak => FormatJsSingleNode::tag("br")
+            InlineContent::HardLineBreak => FormatJsSingleNode::tag(DEFAULT_TAG_NAMES.br())
                 .with_children(FormatJsNode::list(vec![]))
                 .into(),
             InlineContent::Hook(hook) => FormatJsNode::from(hook),
@@ -216,7 +217,7 @@ impl<'a> From<&'a Vec<InlineContent>> for FormatJsNode<'a> {
 }
 
 macro_rules! impl_from_for_tag_node {
-    ($struct:ident, $tag:literal, $method:ident) => {
+    ($struct:ident, $tag:expr, $method:ident) => {
         impl<'a> From<&'a $struct> for FormatJsNode<'a> {
             fn from(value: &'a $struct) -> Self {
                 FormatJsSingleNode::tag($tag)
@@ -227,15 +228,15 @@ macro_rules! impl_from_for_tag_node {
     };
 }
 
-impl_from_for_tag_node!(CodeBlock, "codeBlock", content);
-impl_from_for_tag_node!(Paragraph, "p", content);
-impl_from_for_tag_node!(Emphasis, "i", content);
-impl_from_for_tag_node!(Strong, "b", content);
-impl_from_for_tag_node!(Strikethrough, "del", content);
+impl_from_for_tag_node!(CodeBlock, DEFAULT_TAG_NAMES.code_block(), content);
+impl_from_for_tag_node!(Paragraph, DEFAULT_TAG_NAMES.paragraph(), content);
+impl_from_for_tag_node!(Emphasis, DEFAULT_TAG_NAMES.emphasis(), content);
+impl_from_for_tag_node!(Strong, DEFAULT_TAG_NAMES.strong(), content);
+impl_from_for_tag_node!(Strikethrough, DEFAULT_TAG_NAMES.strike_through(), content);
 
 impl<'a> From<&'a CodeSpan> for FormatJsNode<'a> {
     fn from(value: &'a CodeSpan) -> Self {
-        FormatJsSingleNode::tag("code")
+        FormatJsSingleNode::tag(DEFAULT_TAG_NAMES.code())
             .with_children(FormatJsNode::ListNode(vec![FormatJsSingleNode::literal(
                 &value.content(),
             )
@@ -246,16 +247,7 @@ impl<'a> From<&'a CodeSpan> for FormatJsNode<'a> {
 
 impl<'a> From<&'a Heading> for FormatJsNode<'a> {
     fn from(value: &'a Heading) -> Self {
-        let heading = match value.level() {
-            1 => "h1",
-            2 => "h2",
-            3 => "h3",
-            4 => "h4",
-            5 => "h5",
-            6 => "h6",
-            _ => unreachable!(),
-        };
-        FormatJsSingleNode::tag(heading)
+        FormatJsSingleNode::tag(DEFAULT_TAG_NAMES.heading(value.level()))
             .with_children(value.content().into())
             .into()
     }
@@ -280,7 +272,7 @@ fn compile_link_children<'a>(
 
 impl<'a> From<&'a Link> for FormatJsNode<'a> {
     fn from(value: &'a Link) -> Self {
-        FormatJsSingleNode::tag("link")
+        FormatJsSingleNode::tag(DEFAULT_TAG_NAMES.link())
             .with_children(compile_link_children(value.destination(), value.label()))
             .into()
     }
@@ -293,7 +285,7 @@ impl<'a> From<&'a BlockNode> for FormatJsNode<'a> {
             BlockNode::Heading(heading) => FormatJsNode::from(heading),
             BlockNode::CodeBlock(code_block) => FormatJsNode::from(code_block),
             BlockNode::InlineContent(inline_content) => FormatJsNode::from(inline_content),
-            BlockNode::ThematicBreak => FormatJsSingleNode::tag("hr")
+            BlockNode::ThematicBreak => FormatJsSingleNode::tag(DEFAULT_TAG_NAMES.hr())
                 .with_children(FormatJsNode::list(vec![]))
                 .into(),
         }
@@ -374,6 +366,7 @@ impl<'a> From<&'a IcuVariable> for FormatJsNode<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::icu::tags::DEFAULT_TAG_NAMES;
     use crate::parse_intl_message;
 
     use super::{compile_to_format_js, FormatJsElementType, FormatJsNode, FormatJsSingleNode};
@@ -396,7 +389,7 @@ mod tests {
     }
 
     macro_rules! tag {
-        ($name:literal, [$($content:expr),* $(,)*]) => {
+        ($name:expr, [$($content:expr),* $(,)*]) => {
             FormatJsSingleNode::tag($name).with_children(FormatJsNode::from(vec![$($content.into()),*]))
         }
 
@@ -439,8 +432,11 @@ mod tests {
         assert_formatjs(
             "***emphasized** italicized*",
             &list!(tag!(
-                "i",
-                [tag!("b", [lit!("emphasized")]), lit!(" italicized")]
+                DEFAULT_TAG_NAMES.emphasis(),
+                [
+                    tag!(DEFAULT_TAG_NAMES.strong(), [lit!("emphasized")]),
+                    lit!(" italicized")
+                ]
             )),
         );
     }
@@ -453,12 +449,12 @@ mod tests {
         assert_eq!(
             compiled,
             list!(tag!(
-                "link",
+                DEFAULT_TAG_NAMES.link(),
                 [
                     lit!("./somewhere.png"),
                     empty!(),
                     lit!("a "),
-                    tag!("i", ["link"])
+                    tag!(DEFAULT_TAG_NAMES.emphasis(), ["link"])
                 ]
             ))
         )
@@ -489,7 +485,10 @@ mod tests {
     fn paragraph_text() {
         assert_formatjs_with_blocks(
             "this paragraph has words",
-            &list!(tag!("p", [lit!("this paragraph has words")])),
+            &list!(tag!(
+                DEFAULT_TAG_NAMES.paragraph(),
+                [lit!("this paragraph has words")]
+            )),
             true,
         );
 
@@ -498,9 +497,12 @@ mod tests {
 
 and another paragraph here   includes multiple spaces"#,
             &list!(
-                tag!("p", [lit!("this paragraph has words")]),
                 tag!(
-                    "p",
+                    DEFAULT_TAG_NAMES.paragraph(),
+                    [lit!("this paragraph has words")]
+                ),
+                tag!(
+                    DEFAULT_TAG_NAMES.paragraph(),
                     [lit!(
                         "and another paragraph here   includes multiple spaces"
                     )]

@@ -1,11 +1,12 @@
-use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
 use serde::{Serialize, Serializer};
+use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
 
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
     IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
     Paragraph, Strikethrough, Strong, TextOrPlaceholder,
 };
+use crate::icu::tags::DEFAULT_TAG_NAMES;
 
 /// The order of these types matches the order that FormatJS serializes in. This ordering is
 /// important when using keyless-json serialization, and represents the expected order that struct
@@ -85,7 +86,7 @@ impl Serialize for SerializeEmpty {
     {
         let mut variable = serializer.serialize_struct("IcuVariable", 2)?;
         variable.serialize_field(fjs_types::TYPE, &FormatJsElementType::Argument)?;
-        variable.serialize_field(fjs_types::VALUE, "_")?;
+        variable.serialize_field(fjs_types::VALUE, DEFAULT_TAG_NAMES.empty())?;
         variable.end()
     }
 }
@@ -115,7 +116,7 @@ impl Serialize for Document {
 }
 
 macro_rules! tag_serializer {
-    ($struct:ident, $tag:literal, $method:ident) => {
+    ($struct:ident, $tag:expr, $method:ident) => {
         impl Serialize for $struct {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
@@ -127,11 +128,11 @@ macro_rules! tag_serializer {
     };
 }
 
-tag_serializer!(CodeBlock, "codeBlock", content);
-tag_serializer!(Paragraph, "p", content);
-tag_serializer!(Emphasis, "i", content);
-tag_serializer!(Strong, "b", content);
-tag_serializer!(Strikethrough, "del", content);
+tag_serializer!(CodeBlock, DEFAULT_TAG_NAMES.code_block(), content);
+tag_serializer!(Paragraph, DEFAULT_TAG_NAMES.paragraph(), content);
+tag_serializer!(Emphasis, DEFAULT_TAG_NAMES.emphasis(), content);
+tag_serializer!(Strong, DEFAULT_TAG_NAMES.strong(), content);
+tag_serializer!(Strikethrough, DEFAULT_TAG_NAMES.strike_through(), content);
 
 impl Serialize for CodeSpan {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -140,7 +141,7 @@ impl Serialize for CodeSpan {
     {
         serialize_tag(
             serializer,
-            "code",
+            DEFAULT_TAG_NAMES.code(),
             &[InlineContent::Text(self.content().clone())],
         )
     }
@@ -151,7 +152,11 @@ impl Serialize for Heading {
     where
         S: Serializer,
     {
-        serialize_tag(serializer, &format!("h{}", self.level()), self.content())
+        serialize_tag(
+            serializer,
+            DEFAULT_TAG_NAMES.heading(self.level()),
+            self.content(),
+        )
     }
 }
 
@@ -193,7 +198,7 @@ impl Serialize for Link {
     {
         let mut link = serializer.serialize_struct("Link", 3)?;
         link.serialize_field(fjs_types::TYPE, &FormatJsElementType::Tag)?;
-        link.serialize_field(fjs_types::VALUE, "link")?;
+        link.serialize_field(fjs_types::VALUE, DEFAULT_TAG_NAMES.link())?;
         link.serialize_field(
             fjs_types::CHILDREN,
             &SerializeLinkChildren(self.destination(), self.label()),
@@ -213,7 +218,7 @@ impl Serialize for InlineContent {
             InlineContent::Strong(strong) => strong.serialize(serializer),
             InlineContent::Link(link) => link.serialize(serializer),
             InlineContent::CodeSpan(code_span) => code_span.serialize(serializer),
-            InlineContent::HardLineBreak => serialize_tag(serializer, "br", &()),
+            InlineContent::HardLineBreak => serialize_tag(serializer, DEFAULT_TAG_NAMES.br(), &()),
             InlineContent::Hook(hook) => hook.serialize(serializer),
             InlineContent::Strikethrough(strikethrough) => strikethrough.serialize(serializer),
             InlineContent::Icu(icu) => icu.serialize(serializer),

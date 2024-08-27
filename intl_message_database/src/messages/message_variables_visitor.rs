@@ -3,7 +3,9 @@ use std::ops::Deref;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use intl_markdown::{BlockNode, Document, Icu, InlineContent, TextOrPlaceholder};
+use intl_markdown::{
+    BlockNode, DEFAULT_TAG_NAMES, Document, Icu, InlineContent, TextOrPlaceholder,
+};
 
 use crate::messages::symbols::KeySymbolMap;
 
@@ -188,7 +190,7 @@ impl MessageVariablesVisitor {
             // Everything else introduces a new tag directly before checking the inner content.
             InlineContent::Emphasis(emphasis) => {
                 variables.add_instance(
-                    global_intern_string("i")?,
+                    global_intern_string(DEFAULT_TAG_NAMES.emphasis())?,
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -196,7 +198,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::Strong(strong) => {
                 variables.add_instance(
-                    global_intern_string("b")?,
+                    global_intern_string(DEFAULT_TAG_NAMES.strong())?,
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -204,7 +206,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::Strikethrough(strikethrough) => {
                 variables.add_instance(
-                    global_intern_string("del")?,
+                    global_intern_string(DEFAULT_TAG_NAMES.strike_through())?,
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -212,7 +214,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::HardLineBreak => {
                 variables.add_instance(
-                    global_intern_string("br")?,
+                    global_intern_string(DEFAULT_TAG_NAMES.br())?,
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -220,7 +222,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::CodeSpan(_) => {
                 variables.add_instance(
-                    global_intern_string("code")?,
+                    global_intern_string(DEFAULT_TAG_NAMES.code())?,
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -237,7 +239,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::Link(link) => {
                 variables.add_instance(
-                    global_intern_string("link")?,
+                    global_intern_string(DEFAULT_TAG_NAMES.link())?,
                     MessageVariableType::LinkFunction,
                     None,
                 );
@@ -250,7 +252,7 @@ impl MessageVariablesVisitor {
                         // `_` variable that must be provided at render time, so it counts as a
                         // variable for the message.
                         variables.add_instance(
-                            global_intern_string("_")?,
+                            global_intern_string(DEFAULT_TAG_NAMES.empty())?,
                             MessageVariableType::Any,
                             None,
                         );

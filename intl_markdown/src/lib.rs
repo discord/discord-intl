@@ -3,6 +3,7 @@ pub use ast::format::format_ast;
 pub use ast::process::process_cst_to_ast;
 pub use icu::compile::compile_to_format_js;
 pub use icu::format::format_icu_string;
+pub use icu::tags::DEFAULT_TAG_NAMES;
 pub use parser::ICUMarkdownParser;
 pub use syntax::SyntaxKind;
 pub use token::SyntaxToken;
