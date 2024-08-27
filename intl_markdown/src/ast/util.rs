@@ -1,36 +1,28 @@
+use std::borrow::Cow;
+
 use crate::ast::InlineContent;
+
+fn icu_markdown_escape_handler(s: &str) -> Result<(Option<char>, &str), unescape_zero_copy::Error> {
+    let mut chars = s.chars();
+    let next = chars
+        .next()
+        .ok_or(unescape_zero_copy::Error::IncompleteSequence)?;
+    match next {
+        // ASCII punctuation is allowed to be escaped.
+        c if c.is_ascii_punctuation() => Ok((Some(c), chars.as_str())),
+        // Carriage returns are removed
+        '\r' => Ok((None, chars.as_str())),
+        // Everything else is preserved as-is.
+        _ => Ok((Some('\\'), s)),
+    }
+}
 
 // Handle unescaping backslash characters (e.g., turning `\!` into `!`) and removing carriage
 // returns from the input.
 pub(crate) fn unescape(text: &str) -> String {
-    let mut result = String::new();
-    let bytes = text.as_bytes();
-    let mut index = 0;
-    let mut plaintext_start = 0;
-    while index < bytes.len() {
-        let byte = bytes[index];
-        match byte {
-            // Only punctuation can be escaped with a backslash, all other backslashes in plain
-            // text are preserved as is.
-            b'\\' if index + 1 < bytes.len() && bytes[index + 1].is_ascii_punctuation() => {
-                // Flush the text up to (but not including) this point into the buffer.
-                result.push_str(&text[plaintext_start..index]);
-                // Then set the next pivot point to the index _after_ this escape.
-                plaintext_start = index + 1;
-                index += 1;
-            }
-            b'\r' => {
-                result.push_str(&text[plaintext_start..index]);
-                plaintext_start = index + 1;
-            }
-            // Otherwise, there's nothing to do.
-            _ => {}
-        }
-        index += 1;
-    }
-
-    result.push_str(&text[plaintext_start..index]);
-    result
+    unescape_zero_copy::unescape(icu_markdown_escape_handler, &text)
+        .unwrap_or(Cow::Borrowed(text))
+        .to_string()
 }
 
 // Taken from:

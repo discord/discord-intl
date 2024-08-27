@@ -688,6 +688,7 @@ dependencies = [
  "serde",
  "serde_json",
  "test-case",
+ "unescape_zero_copy",
  "unicode-properties",
 ]
 
