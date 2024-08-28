@@ -11,7 +11,7 @@ use unescape_zero_copy::unescape_default;
 
 use intl_message_utils::RUNTIME_PACKAGE_NAME;
 
-use crate::messages::{MessageKey, MessageMeta, MessagesError, MessagesResult};
+use crate::messages::{KeySymbol, MessageMeta, MessagesError, MessagesResult};
 
 pub fn parse_message_definitions_file(file_name: &str, source: &str) -> PResult<Module> {
     let cm: Lrc<SourceMap> = Default::default();
@@ -39,7 +39,7 @@ pub fn extract_message_definitions(module: Module) -> MessageDefinitionsExtracto
 /// [NormalMessage], but does _not_ do any parsing or processing of the data
 /// beyond that, since that would create intertwined lifetime dependencies.
 pub struct ExtractedMessage {
-    pub name: MessageKey,
+    pub name: KeySymbol,
     pub offset: u32,
     pub value: String,
     pub meta: MessageMeta,
@@ -347,6 +347,6 @@ mod tests {
         )
         .expect("failed to parse source code");
 
-        let file_symbol = global_intern_string("testing.js").expect("couldn't intern symbol");
+        let file_symbol = global_intern_string("testing.js");
     }
 }

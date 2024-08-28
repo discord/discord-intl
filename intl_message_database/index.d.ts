@@ -2,11 +2,11 @@
 /* eslint-disable */
 export declare class IntlMessagesDatabase {
   constructor()
-  processDefinitionsFile(filePath: string, locale?: string | undefined | null): number
-  processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): number
+  processDefinitionsFile(filePath: string, locale?: string | undefined | null): string
+  processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): string
   processAllTranslationFiles(localeMap: Record<string, string>): void
-  processTranslationFile(filePath: string, locale: string): number
-  processTranslationFileContent(filePath: string, locale: string, content: string): number
+  processTranslationFile(filePath: string, locale: string): string
+  processTranslationFileContent(filePath: string, locale: string, content: string): string
   getKnownLocales(): Array<string>
   getSourceFile(filePath: string): IntlSourceFile
   getAllSourceFilePaths(): Array<string>
@@ -52,6 +52,4 @@ export interface IntlSourceFile {
 export declare function isMessageDefinitionsFile(key: string): boolean
 
 export declare function isMessageTranslationsFile(key: string): boolean
-
-export declare function resolveSymbol(symbol: number): string | null
 

@@ -1,14 +1,13 @@
 pub use database::MessagesDatabase;
 pub use error::MessagesError;
-pub use message_definition::{FilePosition, Message, MessageKey};
+pub use message_definition::{FilePosition, Message};
 pub use message_variables_visitor::{
     MessageVariableInstance, MessageVariables, MessageVariablesVisitor, MessageVariableType,
 };
 pub use meta::MessageMeta;
 pub use source_file::SourceFile;
 pub use symbols::{
-    global_get_symbol, global_intern_string, global_symbol_store, KeySymbol,
-    KeySymbolMap, read_global_symbol_store,
+    global_get_symbol, global_get_symbol_or_error, global_intern_string, KeySymbol, KeySymbolMap,
 };
 pub use translation::{create_translation_map, Translation, TranslationsMap};
 pub use value::MessageValue;

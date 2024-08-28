@@ -1,5 +1,6 @@
-use crate::messages::source_file::SourceFileKind;
 use thiserror::Error;
+
+use crate::messages::source_file::SourceFileKind;
 
 use super::symbols::KeySymbol;
 
@@ -19,7 +20,7 @@ pub enum MessagesError {
     #[error("{0} has already been defined in this source file and cannot be defined again")]
     AlreadyDefined(KeySymbol),
     #[error("{0} already has a translation in the locale {1} and cannot be set again")]
-    TranslationAlreadySet(String, KeySymbol),
+    TranslationAlreadySet(KeySymbol, KeySymbol),
 
     // Translation file errors
     #[error(transparent)]

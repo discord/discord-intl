@@ -1,4 +1,3 @@
-use rustc_hash::FxHashSet;
 use swc_core::ecma::ast::Module;
 
 pub use definitions_parser::{extract_message_definitions, parse_message_definitions_file};
@@ -8,6 +7,7 @@ use crate::messages::{
     FilePosition, global_intern_string, KeySymbol, Message, MessageMeta, MessagesDatabase,
     MessagesError, MessagesResult, MessageValue,
 };
+use crate::messages::symbols::KeySymbolSet;
 use crate::sources::definitions_parser::ExtractedMessage;
 
 mod definitions_parser;
@@ -23,13 +23,13 @@ pub fn process_definitions_file(
     content: &str,
     locale: &str,
 ) -> MessagesResult<KeySymbol> {
-    let file_key = global_intern_string(file_name)?;
-    let file_locale = global_intern_string(locale)?;
+    let file_key = global_intern_string(file_name);
+    let file_locale = global_intern_string(locale);
     let extracted = parse_definitions_file(file_name, content).map(extract_message_definitions)?;
     let file_meta = extracted.root_meta.unwrap_or(MessageMeta::default());
 
     let definitions = extracted.message_definitions;
-    let mut inserted_keys = FxHashSet::default();
+    let mut inserted_keys = KeySymbolSet::default();
 
     // Check if this file has already been processed into the database before. If it has, this
     // becomes an Update operation, which allows definitions to be overridden. Otherwise, it is
@@ -42,8 +42,8 @@ pub fn process_definitions_file(
         let mut to_remove = existing_source_file.message_keys().clone();
         for definition in definitions.into_iter() {
             let message = handle_definition(db, file_key, definition, file_locale)?;
-            to_remove.remove(&message.key_symbol());
-            inserted_keys.insert(message.key_symbol());
+            to_remove.remove(&message.key());
+            inserted_keys.insert(message.key());
         }
 
         for key in to_remove {
@@ -55,7 +55,7 @@ pub fn process_definitions_file(
         // incrementally. The interior will track adding the keys to the set.
         for definition in definitions.into_iter() {
             let message = handle_definition(db, file_key, definition, file_locale)?;
-            inserted_keys.insert(message.key_symbol());
+            inserted_keys.insert(message.key());
         }
     }
 

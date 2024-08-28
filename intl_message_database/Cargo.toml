@@ -23,7 +23,6 @@ num_cpus = "1"
 rustc-hash = "2"
 serde = "1"
 serde_json = "1"
-string-interner = "0.17"
 swc_common = "0.33.25"
 swc_core = { version = "0.90.x", features = [
     "ecma_parser",
@@ -34,6 +33,7 @@ thiserror = "1"
 threadpool = "1.8.1"
 unescape_zero_copy = "2.1.1"
 xxhash-rust = { version = "0.8.10", features = ["xxh64"] }
+ustr = { version = "1.0.0", features = ["serde"] }
 
 [build-dependencies]
 napi-build = "2"

@@ -6,22 +6,21 @@
 //! This is the preferred way of using the library wherever possible.
 use std::collections::HashMap;
 
-use napi::{JsNumber, JsUnknown};
 use napi::bindgen_prelude::*;
+use napi::{JsNumber, JsUnknown};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 
 use crate::messages::{
-    global_get_symbol, global_intern_string, KeySymbol, MessagesDatabase, MessagesError,
-    read_global_symbol_store,
+    global_get_symbol_or_error, global_intern_string, KeySymbol, MessagesDatabase, MessagesError,
 };
-use crate::services::IntlService;
 use crate::services::precompile::{CompiledMessageFormat, IntlMessagePreCompiler};
 use crate::services::types::IntlTypesGenerator;
 use crate::services::validator;
+use crate::services::IntlService;
 use crate::sources::extract_message_translations;
-use crate::TEMP_DEFAULT_LOCALE;
 use crate::threading::run_in_thread_pool;
+use crate::TEMP_DEFAULT_LOCALE;
 
 #[napi]
 pub struct IntlMessagesDatabase {
@@ -85,7 +84,7 @@ impl IntlMessagesDatabase {
         &mut self,
         file_path: String,
         locale: Option<String>,
-    ) -> anyhow::Result<u32> {
+    ) -> anyhow::Result<String> {
         let content = std::fs::read_to_string(&file_path)?;
         self.process_definitions_file_content(file_path, content, locale)
     }
@@ -96,7 +95,7 @@ impl IntlMessagesDatabase {
         file_path: String,
         content: String,
         locale: Option<String>,
-    ) -> anyhow::Result<u32> {
+    ) -> anyhow::Result<String> {
         let source_file = crate::sources::process_definitions_file(
             &mut self.database,
             &file_path,
@@ -105,7 +104,7 @@ impl IntlMessagesDatabase {
                 .as_ref()
                 .map_or(TEMP_DEFAULT_LOCALE, |locale| &locale),
         )?;
-        Ok(source_file.value() as u32)
+        Ok(source_file.to_string())
     }
 
     #[napi]
@@ -135,7 +134,7 @@ impl IntlMessagesDatabase {
         &mut self,
         file_path: String,
         locale: String,
-    ) -> anyhow::Result<u32> {
+    ) -> anyhow::Result<String> {
         let content = std::fs::read_to_string(&file_path)?;
         self.process_translation_file_content(file_path, locale, content)
     }
@@ -146,39 +145,23 @@ impl IntlMessagesDatabase {
         file_path: String,
         locale: String,
         content: String,
-    ) -> anyhow::Result<u32> {
+    ) -> anyhow::Result<String> {
         let translations = extract_message_translations(&content)?;
         self.database
             .insert_translations_from_file(&file_path, &locale, translations)?;
-        let file_key = global_intern_string(&file_path)?;
-        Ok(file_key.value() as u32)
+        Ok(global_intern_string(&file_path).to_string())
     }
 
     #[napi]
-    pub fn get_known_locales(&self) -> anyhow::Result<Vec<String>> {
+    pub fn get_known_locales(&self) -> Vec<String> {
         let locales = &self.database.known_locales;
 
-        let mut result = vec![];
-
-        for locale in locales.iter() {
-            // Safety: We _shouldn't_ be able to have a locale symbol without that
-            // locale being interned already. If we do, something must be very
-            // corrupt, so we can just panic.
-            let store = read_global_symbol_store()?;
-
-            let locale = store
-                .resolve(*locale)
-                .ok_or_else(|| MessagesError::SymbolNotFound(*locale))?;
-
-            result.push(locale.into());
-        }
-
-        Ok(result)
+        Vec::from_iter(locales.iter().map(|locale| locale.to_string()))
     }
 
     #[napi(ts_return_type = "IntlSourceFile")]
     pub fn get_source_file(&self, env: Env, file_path: String) -> anyhow::Result<JsUnknown> {
-        let file_symbol = global_get_symbol(&file_path)?;
+        let file_symbol = global_get_symbol_or_error(&file_path)?;
         let Some(source) = self.database.sources.get(&file_symbol) else {
             return Err(MessagesError::SymbolNotFound(file_symbol).into());
         };
@@ -188,15 +171,9 @@ impl IntlMessagesDatabase {
 
     #[napi]
     pub fn get_all_source_file_paths(&self) -> anyhow::Result<Vec<String>> {
-        let sources = self.database.sources.keys();
-        let mut paths = Vec::with_capacity(sources.len());
-        for key in sources {
-            if let Some(path) = resolve_symbol(key.value() as u32)? {
-                paths.push(path)
-            }
-        }
-
-        Ok(paths)
+        Ok(Vec::from_iter(
+            self.database.sources.keys().map(KeySymbol::to_string),
+        ))
     }
 
     #[napi(ts_return_type = "Record<string, string>")]
@@ -207,7 +184,7 @@ impl IntlMessagesDatabase {
         env: Env,
         file_path: String,
     ) -> anyhow::Result<JsUnknown> {
-        let file_symbol = global_get_symbol(&file_path)?;
+        let file_symbol = global_get_symbol_or_error(&file_path)?;
         let Some(source) = self.database.sources.get(&file_symbol) else {
             return Err(MessagesError::SymbolNotFound(file_symbol).into());
         };
@@ -241,7 +218,7 @@ impl IntlMessagesDatabase {
         output_file_path: String,
     ) -> anyhow::Result<()> {
         let mut output_file = std::fs::File::create(output_file_path)?;
-        let source_file_key = global_get_symbol(&source_file_path)?;
+        let source_file_key = global_get_symbol_or_error(&source_file_path)?;
         IntlTypesGenerator::new(&self.database, source_file_key, &mut output_file).run()
     }
 
@@ -265,8 +242,8 @@ impl IntlMessagesDatabase {
         locale: String,
         format: Option<IntlCompiledMessageFormat>,
     ) -> anyhow::Result<Buffer> {
-        let locale_key = global_get_symbol(&locale)?;
-        let source_key = global_get_symbol(&source_path)?;
+        let locale_key = global_get_symbol_or_error(&locale)?;
+        let source_key = global_get_symbol_or_error(&source_path)?;
         let keys_count = self
             .database
             .get_source_file(source_key)
@@ -285,8 +262,6 @@ impl IntlMessagesDatabase {
 
     #[napi]
     pub fn validate_messages(&self, env: Env) -> anyhow::Result<Vec<IntlDiagnostic>> {
-        let key_store = read_global_symbol_store()?;
-
         let mut results = vec![];
         for (key, message) in self.database.messages.iter() {
             let diagnostics = validator::validate_message(&message);
@@ -294,12 +269,8 @@ impl IntlMessagesDatabase {
                 continue;
             }
 
-            let key = key_store
-                .resolve(*key)
-                .ok_or_else(|| MessagesError::SymbolNotFound(*key))?;
-
             results.push(IntlDiagnostic {
-                key: key.into(),
+                key: key.to_string(),
                 diagnostics: env.to_js_value(&diagnostics)?,
             });
         }
@@ -321,13 +292,4 @@ pub fn is_message_definitions_file(key: String) -> bool {
 #[napi]
 pub fn is_message_translations_file(key: String) -> bool {
     intl_message_utils::is_message_translations_file(&key)
-}
-
-#[napi]
-pub fn resolve_symbol(symbol: u32) -> anyhow::Result<Option<String>> {
-    let store = read_global_symbol_store()?;
-
-    Ok(KeySymbol::from_usize(symbol as usize)
-        .and_then(|key| store.resolve(key))
-        .map(String::from))
 }

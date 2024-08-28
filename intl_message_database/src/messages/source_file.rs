@@ -1,9 +1,10 @@
 use std::fmt::Formatter;
 
-use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use super::{KeySymbol, LocaleId, MessageMeta};
+use crate::messages::symbols::KeySymbolSet;
+
+use super::{LocaleId, MessageMeta};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum SourceFileKind {
@@ -34,14 +35,14 @@ pub enum SourceFile {
         file: String,
         meta: MessageMeta,
         #[serde(rename = "messageKeys")]
-        message_keys: FxHashSet<KeySymbol>,
+        message_keys: KeySymbolSet,
     },
     #[serde(rename = "translation")]
     Translation {
         file: String,
         locale: LocaleId,
         #[serde(rename = "messageKeys")]
-        message_keys: FxHashSet<KeySymbol>,
+        message_keys: KeySymbolSet,
     },
 }
 
@@ -53,7 +54,7 @@ impl SourceFile {
         }
     }
 
-    pub fn message_keys(&self) -> &FxHashSet<KeySymbol> {
+    pub fn message_keys(&self) -> &KeySymbolSet {
         match self {
             SourceFile::Definition { message_keys, .. } => message_keys,
             SourceFile::Translation { message_keys, .. } => message_keys,
@@ -61,14 +62,14 @@ impl SourceFile {
     }
 
     #[inline(always)]
-    pub fn message_keys_mut(&mut self) -> &mut FxHashSet<KeySymbol> {
+    pub fn message_keys_mut(&mut self) -> &mut KeySymbolSet {
         match self {
             SourceFile::Definition { message_keys, .. } => message_keys,
             SourceFile::Translation { message_keys, .. } => message_keys,
         }
     }
 
-    pub fn set_message_keys(&mut self, new_keys: FxHashSet<KeySymbol>) {
+    pub fn set_message_keys(&mut self, new_keys: KeySymbolSet) {
         *self.message_keys_mut() = new_keys;
     }
 }

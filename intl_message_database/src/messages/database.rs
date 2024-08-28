@@ -1,11 +1,11 @@
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 
-use crate::messages::symbols::KeySymbolMap;
+use crate::messages::symbols::{KeySymbolMap, KeySymbolSet};
 use crate::sources::Translations;
 
 use super::{
-    global_get_symbol, global_intern_string, read_global_symbol_store, FilePosition, KeySymbol,
-    LocaleId, Message, MessageMeta, MessageValue, MessagesError, MessagesResult, SourceFile,
+    FilePosition, global_get_symbol, global_intern_string, KeySymbol, LocaleId, Message,
+    MessageMeta, MessagesError, MessagesResult, MessageValue, SourceFile,
 };
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub struct MessagesDatabase {
     pub messages: KeySymbolMap<Message>,
     pub sources: KeySymbolMap<SourceFile>,
     pub hash_lookup: FxHashMap<String, KeySymbol>,
-    pub known_locales: FxHashSet<KeySymbol>,
+    pub known_locales: KeySymbolSet,
 }
 
 impl MessagesDatabase {
@@ -22,34 +22,23 @@ impl MessagesDatabase {
             messages: KeySymbolMap::default(),
             sources: KeySymbolMap::default(),
             hash_lookup: FxHashMap::default(),
-            known_locales: FxHashSet::default(),
+            known_locales: KeySymbolSet::default(),
         }
     }
 
     /// Return the complete message definition under a given key.
     pub fn get_message(&self, key: &str) -> Option<&Message> {
-        global_get_symbol(key)
-            .ok()
-            .and_then(|symbol| self.messages.get(&symbol))
+        global_get_symbol(key).and_then(|symbol| self.messages.get(&symbol))
     }
 
     /// Returns owned copies of all message names that are currently in the database.
-    pub fn get_message_keys(&self) -> MessagesResult<Vec<String>> {
-        let store = read_global_symbol_store()?;
-
-        let mut result = vec![];
-        for key in self.messages.keys() {
-            match store.resolve(*key) {
-                Some(value) => result.push(value.into()),
-                _ => {}
-            }
-        }
-        Ok(result)
+    pub fn get_message_keys(&self) -> Vec<String> {
+        Vec::from_iter(self.messages.keys().map(KeySymbol::to_string))
     }
 
     /// Return the string value of a Symbol that has been interned.
     /// If the value is not known.
-    pub fn get_symbol(&self, value: &str) -> MessagesResult<KeySymbol> {
+    pub fn get_symbol(&self, value: &str) -> Option<KeySymbol> {
         global_get_symbol(value)
     }
 
@@ -64,10 +53,10 @@ impl MessagesDatabase {
         meta: MessageMeta,
     ) -> &SourceFile {
         self.sources.insert(
-            file_key,
+            file_key.into(),
             SourceFile::Definition {
                 file: file_name.into(),
-                message_keys: FxHashSet::default(),
+                message_keys: KeySymbolSet::default(),
                 meta,
             },
         );
@@ -77,7 +66,7 @@ impl MessagesDatabase {
     pub fn set_source_file_keys(
         &mut self,
         file_key: KeySymbol,
-        keys: FxHashSet<KeySymbol>,
+        keys: KeySymbolSet,
     ) -> MessagesResult<()> {
         self.sources
             .get_mut(&file_key)
@@ -100,7 +89,7 @@ impl MessagesDatabase {
         meta: MessageMeta,
         replace_existing: bool,
     ) -> MessagesResult<&Message> {
-        let key = global_intern_string(name)?;
+        let key = global_intern_string(name);
         match self.messages.get_mut(&key) {
             Some(existing) => {
                 // Complete messages that already exist can not be re-added, since
@@ -114,7 +103,7 @@ impl MessagesDatabase {
             }
             _ => {
                 // Otherwise this is an entirely new message that gets created.
-                let message = Message::from_definition(key, name.into(), value, locale, meta);
+                let message = Message::from_definition(key, value, locale, meta);
                 self.known_locales.insert(locale);
                 self.hash_lookup.insert(message.hashed_key().clone(), key);
                 self.messages.insert(key, message);
@@ -153,11 +142,7 @@ impl MessagesDatabase {
             // change here.
             Some(message) => {
                 if message.translations().contains_key(&locale) && !replace_existing {
-                    let store = read_global_symbol_store()?;
-                    let name = store
-                        .resolve(key)
-                        .ok_or_else(|| MessagesError::SymbolNotFound(key))?;
-                    return Err(MessagesError::TranslationAlreadySet(name.into(), locale));
+                    return Err(MessagesError::TranslationAlreadySet(key, locale));
                 }
 
                 self.known_locales.insert(locale);
@@ -167,14 +152,10 @@ impl MessagesDatabase {
             // the translation until a definition is found.
             _ => {
                 // Otherwise this is an entirely new message that gets created.
-                let store = read_global_symbol_store()?;
-                let name = store
-                    .resolve(key)
-                    .ok_or_else(|| MessagesError::SymbolNotFound(key))?;
-                let message = Message::from_translation(key, name.into(), locale, value);
+                let message = Message::from_translation(key, locale, value);
                 self.known_locales.insert(locale);
                 self.hash_lookup.insert(message.hashed_key().clone(), key);
-                self.messages.insert(key, message);
+                self.messages.insert(key.into(), message);
             }
         }
 
@@ -200,10 +181,10 @@ impl MessagesDatabase {
         locale: &LocaleId,
         translations: Translations,
     ) -> MessagesResult<&SourceFile> {
-        let file_key = global_intern_string(file_name)?;
-        let locale_symbol = global_intern_string(&locale)?;
+        let file_key = global_intern_string(file_name);
+        let locale_symbol = global_intern_string(&locale);
 
-        let mut inserted_translations = FxHashSet::default();
+        let mut inserted_translations = KeySymbolSet::default();
 
         for entry in translations.entries {
             let value = entry.value.with_file_position(FilePosition {
@@ -211,7 +192,7 @@ impl MessagesDatabase {
                 offset: entry.start_offset as u32,
             });
             if let Ok(inserted) = self.insert_translation(entry.key, locale_symbol, value, true) {
-                inserted_translations.insert(inserted.key_symbol());
+                inserted_translations.insert(inserted.key());
             }
         }
 

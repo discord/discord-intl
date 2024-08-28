@@ -76,7 +76,6 @@ const {
   hashMessageKey,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
-  resolveSymbol,
   IntlMessagesDatabase,
   IntlCompiledMessageFormat,
 } = nativeBinding;
@@ -85,7 +84,6 @@ module.exports = {
   hashMessageKey,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
-  resolveSymbol,
   IntlMessagesDatabase,
   IntlCompiledMessageFormat,
 };

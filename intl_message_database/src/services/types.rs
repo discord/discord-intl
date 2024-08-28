@@ -4,13 +4,11 @@ use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 use crate::{
-    messages::{
-        KeySymbol, KeySymbolMap, Message, MessagesDatabase, MessagesError,
-        MessageVariableType, read_global_symbol_store,
-    },
+    messages::{KeySymbol, KeySymbolMap, Message, MessagesDatabase, MessageVariableType},
     services::IntlService,
 };
 use crate::messages::MessageValue;
+use crate::messages::symbols::KeySymbolSet;
 
 pub struct IntlTypesGenerator<'a, W: std::io::Write> {
     database: &'a MessagesDatabase,
@@ -34,7 +32,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
     fn make_doc_comment(
         &self,
         message: &Message,
-        known_locales: &FxHashSet<KeySymbol>,
+        known_locales: &KeySymbolSet,
     ) -> anyhow::Result<String> {
         if message.is_defined() {
             self.make_normal_message_doc_comment(message, known_locales)
@@ -46,7 +44,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
     fn make_normal_message_doc_comment(
         &self,
         message: &Message,
-        known_locales: &FxHashSet<KeySymbol>,
+        known_locales: &KeySymbolSet,
     ) -> anyhow::Result<String> {
         let key = message.hashed_key();
         // SAFETY: The caller asserts that this message is defined, so it must have a source.
@@ -55,20 +53,13 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         let translation_links =
             self.build_translation_links(message.translations(), Some(default_translation))?;
 
-        let found_locales: FxHashSet<KeySymbol> =
-            message.translations().keys().map(Clone::clone).collect();
+        let found_locales: KeySymbolSet = message.translations().keys().map(Clone::clone).collect();
 
         let missing_locales = {
             let diff = known_locales.difference(&found_locales);
-            let symbol_store = read_global_symbol_store()?;
             let mut missing_names = vec![];
             for key in diff {
-                missing_names.push(
-                    symbol_store
-                        .resolve(*key)
-                        .map(|locale| format!("`{locale}`"))
-                        .ok_or(MessagesError::SymbolNotFound(*key))?,
-                );
+                missing_names.push(format!("`{key}`"));
             }
             missing_names
         };
@@ -113,22 +104,17 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         translations: &KeySymbolMap<MessageValue>,
         default_translation: Option<&MessageValue>,
     ) -> anyhow::Result<Vec<String>> {
-        let symbol_store = read_global_symbol_store()?;
-
         let mut links = Vec::with_capacity(translations.len() - 1);
 
         for (key, translation) in translations {
             if default_translation.is_some_and(|t| t == translation) {
                 continue;
             }
-            let locale = symbol_store
-                .resolve(*key)
-                .ok_or(MessagesError::SymbolNotFound(*key))?;
             // let file = symbol_store
             //     .resolve(translation.file())
             //     .ok_or(MessagesError::SymbolNotFound(*key))?;
             // let link = format!("[{}]({})", locale, file);
-            links.push(locale.into())
+            links.push(key.to_string())
         }
 
         Ok(links)
@@ -153,7 +139,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         // We only care about _added_ variables, since they affect the type but
         // aren't immediately apparent from the rest of the doc comment (which
         // only shows the source message value).
-        let mut spurious_variables: KeySymbolMap<FxHashSet<KeySymbol>> = KeySymbolMap::default();
+        let mut spurious_variables: KeySymbolMap<KeySymbolSet> = KeySymbolMap::default();
 
         for (locale_key, translation) in message.translations() {
             if translation == source {
@@ -168,7 +154,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
                 if !source_variables.contains(variable) {
                     // For some reason, `entry().or_insert().and_modify()` is not available here.
                     if !spurious_variables.contains_key(variable) {
-                        spurious_variables.insert(*variable, FxHashSet::default());
+                        spurious_variables.insert(*variable, KeySymbolSet::default());
                     }
                     spurious_variables
                         .get_mut(variable)
@@ -178,23 +164,12 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
             }
         }
 
-        let symbol_store = read_global_symbol_store()?;
         let mut lines = vec![];
-        for (variable_key, locale_keys) in spurious_variables {
-            let mut locales = vec![];
-            for key in locale_keys {
-                locales.push(
-                    symbol_store
-                        .resolve(key)
-                        .ok_or(MessagesError::SymbolNotFound(key))?,
-                );
-            }
-
-            let variable_name = symbol_store
-                .resolve(variable_key)
-                .ok_or(MessagesError::SymbolNotFound(variable_key))?;
-
-            lines.push(format!("`{variable_name}` -- {}", locales.join(", ")));
+        for (variable, locales) in spurious_variables {
+            lines.push(format!(
+                "`{variable}` -- {}",
+                Vec::from_iter(locales.into_iter().map(|locale| locale.as_str())).join(", ")
+            ));
         }
         Ok(lines)
     }
@@ -202,7 +177,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
     fn make_undefined_message_doc_comment(
         &self,
         message: &Message,
-        _known_locales: &FxHashSet<KeySymbol>,
+        _known_locales: &KeySymbolSet,
     ) -> anyhow::Result<String> {
         let mut result = String::new();
         let translation_links = self.build_translation_links(message.translations(), None)?;
@@ -216,17 +191,10 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
     }
 
     fn make_getter_type_def(&self, message: &Message) -> anyhow::Result<String> {
-        let symbol_store = read_global_symbol_store()?;
-
         let name = message.key();
         let variables = message.all_variables();
         let mut entries = vec![];
         for (name, instances) in variables.iter() {
-            let name = symbol_store
-                .resolve(*name)
-                .map(String::from)
-                .ok_or(MessagesError::SymbolNotFound(*name))?;
-
             let type_names = instances
                 .iter()
                 .map(|instance| get_variable_type_name(&instance.kind))
@@ -262,20 +230,10 @@ fn get_variable_type_name(kind: &MessageVariableType) -> &str {
 
 /// Returns the set of message keys as a list, sorted alphabetically by the key's resolved value.
 /// This is annoyingly inefficient with two vector allocations, but it works.
-fn get_sorted_message_keys(keys: &FxHashSet<KeySymbol>) -> anyhow::Result<Vec<&KeySymbol>> {
-    let symbol_store = read_global_symbol_store()?;
-
-    let mut sorted_keys = Vec::with_capacity(keys.len());
-    for key in keys {
-        sorted_keys.push((
-            key,
-            symbol_store
-                .resolve(*key)
-                .ok_or(MessagesError::SymbolNotFound(*key))?,
-        ));
-    }
-    sorted_keys.sort_by_key(|(_, name)| name.to_owned());
-    Ok(sorted_keys.into_iter().map(|(key, _)| key).collect())
+fn get_sorted_message_keys(keys: &KeySymbolSet) -> Vec<&KeySymbol> {
+    let mut sorted_keys = Vec::from_iter(keys.into_iter());
+    sorted_keys.sort();
+    sorted_keys
 }
 
 #[derive(Debug, Error)]
@@ -310,7 +268,7 @@ declare const messages: {{
             IntlTypesGeneratorError::SourceFileNotFound(self.source_file_key),
         )?;
 
-        let source_message_keys = get_sorted_message_keys(source_file.message_keys())?;
+        let source_message_keys = get_sorted_message_keys(source_file.message_keys());
         for message_key in source_message_keys {
             let Some(message) = self.database.messages.get(message_key) else {
                 return Err(IntlTypesGeneratorError::SourceFileMessageNotFound(

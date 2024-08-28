@@ -1,8 +1,9 @@
-use serde::de::{Deserialize, Deserializer, Error, MapAccess, Visitor};
 use std::borrow::Cow;
 
+use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
+
 use crate::messages::{
-    global_intern_string, KeySymbol, MessageValue, MessagesError, MessagesResult,
+    global_intern_string, KeySymbol, MessagesError, MessagesResult, MessageValue,
 };
 
 /// A temporary type representing a string key and its parsed value from a
@@ -40,8 +41,7 @@ impl<'de> Visitor<'de> for TranslationEntryVisitor {
             }
             let (key, value) = entry.unwrap();
 
-            let key = global_intern_string(key)
-                .map_err(|_| Error::custom("Failed to read the global symbol store"))?;
+            let key = global_intern_string(key);
             entries.push(TranslationEntry {
                 key,
                 value: MessageValue::from_raw(&value),

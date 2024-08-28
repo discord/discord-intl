@@ -6,8 +6,6 @@ use crate::messages::symbols::KeySymbolMap;
 
 use super::{KeySymbol, MessageMeta, MessageValue, MessageVariables};
 
-pub type MessageKey = String;
-
 /// A combination of a file name and a byte offset representing a location in
 /// a file.
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Serialize)]
@@ -24,11 +22,8 @@ pub struct FilePosition {
 /// message definition.
 #[derive(Debug, PartialEq, Serialize)]
 pub struct Message {
-    /// Flyweight handle used as the key for this message in various maps.
-    #[serde(skip)]
-    key_symbol: KeySymbol,
     /// Original, plain text name of the message given in its definition.
-    key: MessageKey,
+    key: KeySymbol,
     /// Hashed version of the key, used everywhere for minification and obfuscation.
     #[serde(rename = "hashedKey")]
     hashed_key: String,
@@ -43,16 +38,14 @@ pub struct Message {
 
 impl Message {
     pub fn from_definition(
-        key_symbol: KeySymbol,
-        key: MessageKey,
+        key: KeySymbol,
         value: MessageValue,
         source_locale: KeySymbol,
         meta: MessageMeta,
     ) -> Self {
         let mut message = Self {
-            key_symbol,
-            hashed_key: hash_message_key(&key),
             key,
+            hashed_key: hash_message_key(&key),
             translations: KeySymbolMap::default(),
             source_locale: Some(source_locale),
             meta,
@@ -61,16 +54,10 @@ impl Message {
         message
     }
 
-    pub fn from_translation(
-        key_symbol: KeySymbol,
-        key: MessageKey,
-        locale: KeySymbol,
-        value: MessageValue,
-    ) -> Self {
+    pub fn from_translation(key: KeySymbol, locale: KeySymbol, value: MessageValue) -> Self {
         let mut message = Self {
-            key_symbol,
-            hashed_key: hash_message_key(&key),
             key,
+            hashed_key: hash_message_key(&key),
             translations: KeySymbolMap::default(),
             source_locale: None,
             meta: MessageMeta::default(),
@@ -88,16 +75,12 @@ impl Message {
         &self.translations
     }
 
-    pub fn key(&self) -> &String {
-        &self.key
+    pub fn key(&self) -> KeySymbol {
+        self.key
     }
 
     pub fn hashed_key(&self) -> &String {
         &self.hashed_key
-    }
-
-    pub fn key_symbol(&self) -> KeySymbol {
-        self.key_symbol
     }
 
     pub fn source_locale(&self) -> &Option<KeySymbol> {

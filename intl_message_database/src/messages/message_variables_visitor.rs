@@ -4,7 +4,7 @@ use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use intl_markdown::{
-    BlockNode, Document, Icu, InlineContent, TextOrPlaceholder, DEFAULT_TAG_NAMES,
+    BlockNode, DEFAULT_TAG_NAMES, Document, Icu, InlineContent, TextOrPlaceholder,
 };
 
 use crate::messages::symbols::KeySymbolMap;
@@ -135,7 +135,7 @@ impl MessageVariablesVisitor {
             BlockNode::InlineContent(content) => Self::visit_inline_children(content, variables),
             BlockNode::Paragraph(paragraph) => {
                 variables.add_instance(
-                    global_intern_string("p")?,
+                    global_intern_string("p"),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -144,7 +144,7 @@ impl MessageVariablesVisitor {
             BlockNode::Heading(heading) => {
                 let heading_tag = format!("h{}", heading.level());
                 variables.add_instance(
-                    global_intern_string(&heading_tag)?,
+                    global_intern_string(&heading_tag),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -153,7 +153,7 @@ impl MessageVariablesVisitor {
             // This presumes that code blocks can't contain variables, which _should_ always be true
             BlockNode::CodeBlock(_) => {
                 variables.add_instance(
-                    global_intern_string("codeBlock")?,
+                    global_intern_string("codeBlock"),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -161,7 +161,7 @@ impl MessageVariablesVisitor {
             }
             BlockNode::ThematicBreak => {
                 variables.add_instance(
-                    global_intern_string("hr")?,
+                    global_intern_string("hr"),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -193,7 +193,7 @@ impl MessageVariablesVisitor {
             // Everything else introduces a new tag directly before checking the inner content.
             InlineContent::Emphasis(emphasis) => {
                 variables.add_instance(
-                    global_intern_string(DEFAULT_TAG_NAMES.emphasis())?,
+                    global_intern_string(DEFAULT_TAG_NAMES.emphasis()),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -201,7 +201,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::Strong(strong) => {
                 variables.add_instance(
-                    global_intern_string(DEFAULT_TAG_NAMES.strong())?,
+                    global_intern_string(DEFAULT_TAG_NAMES.strong()),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -209,7 +209,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::Strikethrough(strikethrough) => {
                 variables.add_instance(
-                    global_intern_string(DEFAULT_TAG_NAMES.strike_through())?,
+                    global_intern_string(DEFAULT_TAG_NAMES.strike_through()),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -217,7 +217,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::HardLineBreak => {
                 variables.add_instance(
-                    global_intern_string(DEFAULT_TAG_NAMES.br())?,
+                    global_intern_string(DEFAULT_TAG_NAMES.br()),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -225,7 +225,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::CodeSpan(_) => {
                 variables.add_instance(
-                    global_intern_string(DEFAULT_TAG_NAMES.code())?,
+                    global_intern_string(DEFAULT_TAG_NAMES.code()),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -234,7 +234,7 @@ impl MessageVariablesVisitor {
             // Links and hooks introduce known variables.
             InlineContent::Hook(hook) => {
                 variables.add_instance(
-                    global_intern_string(hook.name())?,
+                    global_intern_string(hook.name()),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -242,7 +242,7 @@ impl MessageVariablesVisitor {
             }
             InlineContent::Link(link) => {
                 variables.add_instance(
-                    global_intern_string(DEFAULT_TAG_NAMES.link())?,
+                    global_intern_string(DEFAULT_TAG_NAMES.link()),
                     MessageVariableType::LinkFunction,
                     None,
                 );
@@ -255,7 +255,7 @@ impl MessageVariablesVisitor {
                         // `$_` variable that must be provided at render time, so it counts as a
                         // variable for the message.
                         variables.add_instance(
-                            global_intern_string(DEFAULT_TAG_NAMES.empty())?,
+                            global_intern_string(DEFAULT_TAG_NAMES.empty()),
                             MessageVariableType::Any,
                             None,
                         );
@@ -263,7 +263,7 @@ impl MessageVariablesVisitor {
                     }
                     TextOrPlaceholder::Handler(handler_name) => {
                         variables.add_instance(
-                            global_intern_string(&handler_name)?,
+                            global_intern_string(&handler_name),
                             MessageVariableType::HandlerFunction,
                             None,
                         );
@@ -278,7 +278,7 @@ impl MessageVariablesVisitor {
         match icu {
             Icu::IcuVariable(variable) => {
                 variables.add_instance(
-                    global_intern_string(variable.name())?,
+                    global_intern_string(variable.name()),
                     MessageVariableType::Any,
                     None,
                 );
@@ -286,7 +286,7 @@ impl MessageVariablesVisitor {
             }
             Icu::IcuPlural(plural) => {
                 variables.add_instance(
-                    global_intern_string(plural.name())?,
+                    global_intern_string(plural.name()),
                     MessageVariableType::Plural,
                     None,
                 );
@@ -297,7 +297,7 @@ impl MessageVariablesVisitor {
             }
             Icu::IcuSelect(select) => {
                 variables.add_instance(
-                    global_intern_string(select.name())?,
+                    global_intern_string(select.name()),
                     // TODO(faulty): change this to ::Enum.
                     MessageVariableType::Plural,
                     None,
@@ -309,7 +309,7 @@ impl MessageVariablesVisitor {
             }
             Icu::IcuDate(date) => {
                 variables.add_instance(
-                    global_intern_string(date.name())?,
+                    global_intern_string(date.name()),
                     MessageVariableType::Date,
                     None,
                 );
@@ -317,7 +317,7 @@ impl MessageVariablesVisitor {
             }
             Icu::IcuTime(time) => {
                 variables.add_instance(
-                    global_intern_string(time.name())?,
+                    global_intern_string(time.name()),
                     MessageVariableType::Time,
                     None,
                 );
@@ -325,7 +325,7 @@ impl MessageVariablesVisitor {
             }
             Icu::IcuNumber(number) => {
                 variables.add_instance(
-                    global_intern_string(number.name())?,
+                    global_intern_string(number.name()),
                     MessageVariableType::Number,
                     None,
                 );
