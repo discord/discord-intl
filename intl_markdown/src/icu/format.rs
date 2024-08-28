@@ -168,6 +168,7 @@ impl<F: Fn(&str) -> String> FormatIcuString for FormatTextOrPlaceholder<'_, F> {
         match self.node {
             TextOrPlaceholder::Text(text) => f.write_str(&(self.text_mutator)(&text)),
             TextOrPlaceholder::Placeholder(icu) => write!(f, [icu]),
+            TextOrPlaceholder::Handler(handler) => write!(f, [handler]),
         }
     }
 }

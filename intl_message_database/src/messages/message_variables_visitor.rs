@@ -4,7 +4,7 @@ use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use intl_markdown::{
-    BlockNode, DEFAULT_TAG_NAMES, Document, Icu, InlineContent, TextOrPlaceholder,
+    BlockNode, Document, Icu, InlineContent, TextOrPlaceholder, DEFAULT_TAG_NAMES,
 };
 
 use crate::messages::symbols::KeySymbolMap;
@@ -38,6 +38,9 @@ pub enum MessageVariableType {
     /// A specialization of [MessageVariableType::HookFunction] that represents
     /// a Link, which requires specific handling in most cases.
     LinkFunction,
+    /// A function that handles some action. Not used for any rendered content,
+    /// the return value of this function is ignored.
+    HandlerFunction,
 }
 
 /// A representation of a single _instance_ of a variable in a message. Each
@@ -249,11 +252,19 @@ impl MessageVariablesVisitor {
                     TextOrPlaceholder::Text(_) => {
                         // When the link has a static text destination, an empty sentinel value is
                         // used to separate the destination from the content text. This is a special
-                        // `_` variable that must be provided at render time, so it counts as a
+                        // `$_` variable that must be provided at render time, so it counts as a
                         // variable for the message.
                         variables.add_instance(
                             global_intern_string(DEFAULT_TAG_NAMES.empty())?,
                             MessageVariableType::Any,
+                            None,
+                        );
+                        Ok(())
+                    }
+                    TextOrPlaceholder::Handler(handler_name) => {
+                        variables.add_instance(
+                            global_intern_string(&handler_name)?,
+                            MessageVariableType::HandlerFunction,
                             None,
                         );
                         Ok(())

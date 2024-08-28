@@ -266,6 +266,7 @@ pub struct LinkResource {
 pub enum LinkDestination {
     StaticLinkDestination(StaticLinkDestination),
     DynamicLinkDestination(DynamicLinkDestination),
+    ClickHandlerLinkDestination(ClickHandlerLinkDestination),
 }
 
 #[derive(Debug, ReadFromEvents)]
@@ -276,6 +277,11 @@ pub struct StaticLinkDestination {
 #[derive(Debug, ReadFromEvents)]
 pub struct DynamicLinkDestination {
     pub url: Icu,
+}
+
+#[derive(Debug, ReadFromEvents)]
+pub struct ClickHandlerLinkDestination {
+    pub name: Token,
 }
 
 #[derive(Debug, ReadFromEvents)]

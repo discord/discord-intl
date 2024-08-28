@@ -262,6 +262,9 @@ fn compile_link_children<'a>(
             vec![FormatJsNode::from(text), FormatJsSingleNode::empty().into()]
         }
         TextOrPlaceholder::Placeholder(icu) => vec![FormatJsNode::from(icu)],
+        TextOrPlaceholder::Handler(handler_name) => {
+            vec![FormatJsSingleNode::variable(handler_name).into()]
+        }
     };
 
     let mut children = Vec::with_capacity(destination.len() + label.len());

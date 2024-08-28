@@ -168,6 +168,7 @@ impl FormatHtml for Link {
                 match self.destination() {
                     TextOrPlaceholder::Text(text) => write!(f, [escape_href(&text)])?,
                     TextOrPlaceholder::Placeholder(icu) => write!(f, [icu])?,
+                    TextOrPlaceholder::Handler(handler) => write!(f, [handler])?,
                 }
 
                 write!(
@@ -192,6 +193,7 @@ impl FormatHtml for Link {
                 match self.destination() {
                     TextOrPlaceholder::Text(text) => write!(f, [escape_href(&text)])?,
                     TextOrPlaceholder::Placeholder(icu) => write!(f, [icu])?,
+                    TextOrPlaceholder::Handler(handler) => write!(f, [handler])?,
                 }
                 write!(f, ['"', title, ">", self.label, "</a>"])
             }

@@ -75,6 +75,11 @@ pub struct ICUMarkdownParser<'source> {
     /// container, causing an invalid event buffer order.
     delimiter_stacks: Vec<Vec<AnyDelimiter>>,
     state: ParserState,
+
+    // Configuration
+    /// When true, the parser will first analyze the document for Blocks according to the Markdown
+    /// spec, then parse each block as inline content. When false, block parsing is skipped and the
+    /// entire block is treated as a single segment of inline content.
     include_blocks: bool,
 }
 
@@ -187,6 +192,15 @@ impl<'source> ICUMarkdownParser<'source> {
     pub fn into_cst(self) -> Document {
         let arc = ArcStr::clone(self.source());
         parser_events_to_cst(self.buffer, arc, self.trivia_list)
+    }
+
+    // Options API
+    //
+    // The following methods provide an interface for consumers to read the
+    // applied configuration of the parser.
+
+    pub fn are_blocks_included(&self) -> bool {
+        self.include_blocks
     }
 
     // Internal API
@@ -411,6 +425,10 @@ impl<'source> ICUMarkdownParser<'source> {
 
     pub(super) fn get_event_mut(&mut self, index: usize) -> Option<&mut Event> {
         self.buffer.get_mut(index)
+    }
+
+    pub(super) fn get_last_event(&self) -> Option<&Event> {
+        self.buffer.last()
     }
 
     /// Skips consecutive whitespace and newline tokens as Trivia. The resulting

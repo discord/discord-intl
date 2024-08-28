@@ -256,6 +256,7 @@ fn get_variable_type_name(kind: &MessageVariableType) -> &str {
         MessageVariableType::Time => "number | string | Date",
         MessageVariableType::HookFunction => "HookFunction",
         MessageVariableType::LinkFunction => "LinkFunction",
+        MessageVariableType::HandlerFunction => "HandlerFunction",
     }
 }
 
@@ -295,8 +296,9 @@ impl<W: std::io::Write> IntlService for IntlTypesGenerator<'_, W> {
 
 import {{TypedIntlMessageGetter}} from '{}';
 
-type LinkFunction = (content: any[]) => React.ReactNode;
-type HookFunction = (content: any[]) => React.ReactNode;
+type LinkFunction = (content: React.ReactNode | React.ReactNode[]) => React.ReactNode;
+type HookFunction = (content: React.ReactNode | React.ReactNode[]) => React.ReactNode;
+type HandlerFunction = () => void;
 
 declare const messages: {{
 ",

@@ -204,6 +204,11 @@ fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
 /// would be considered a dynamic variable, but it's still likely in the short term that strings
 /// will contain static links, like `[some link](some/url/path)`, which should _not_ be considered
 /// ICU variables.
+///
+/// With the same syntax, link destinations can also become click handlers, where a single
+/// identifier as a destination dictates a variable name to provide a handling function, such as
+/// `[click me](onClick)`. This syntax is an extension to normal Markdown rules _and_ is separate
+/// from ICU syntax.
 fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
     let marker = p.mark();
 
@@ -215,6 +220,7 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
     // Otherwise parse some text for the url. It can be any combination of
     // tokens _other_ than whitespace, newlines, or a closing parenthesis.
     let mut balance = 1;
+    let mut token_count = 0;
     loop {
         match p.current() {
             SyntaxKind::EOF | SyntaxKind::BLOCK_END => break,
@@ -225,6 +231,23 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
             _ => {}
         }
         p.bump();
+        token_count += 1;
+    }
+
+    // If there's only one token in the destination, it might be an identifier
+    // and qualify as a click handler rather than a static link.
+    if token_count == 1 {
+        // SAFETY: The condition asserts that a token was pushed, so this must
+        // be present _and_ be a token event.
+        let token = p.get_last_event().and_then(Event::as_token).unwrap();
+        // SAFETY: Token ranges are always valid, so this is safe.
+        let text = unsafe { p.source().get_unchecked(token.span()) };
+        // If the text _doesn't_ contain characters that _aren't_ alphanumeric,
+        // then it's a valid identifier in this context and counts as a click
+        // handler.
+        if !text.contains(|c: char| !c.is_ascii_alphanumeric()) {
+            return marker.complete(p, SyntaxKind::CLICK_HANDLER_LINK_DESTINATION);
+        }
     }
 
     marker.complete(p, SyntaxKind::STATIC_LINK_DESTINATION)

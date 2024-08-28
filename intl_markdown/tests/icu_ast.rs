@@ -26,7 +26,8 @@ fn icu_formatjs_types(input: &str, output: &str) {
 #[test_case("*hello*",r#"[{"type":8,"value":"$i","children":[{"type":0,"value":"hello"}]}]"#; "emphasis")]
 #[test_case("**hello**",r#"[{"type":8,"value":"$b","children":[{"type":0,"value":"hello"}]}]"#; "strong")]
 #[test_case("`hello`",r#"[{"type":8,"value":"$code","children":[{"type":0,"value":"hello"}]}]"#; "code_span")]
-#[test_case("[hello](target)",r#"[{"type":8,"value":"$link","children":[{"type":0,"value":"target"},{"type":1,"value":"$_"},{"type":0,"value":"hello"}]}]"#; "static_link")]
+#[test_case("[hello](./target)",r#"[{"type":8,"value":"$link","children":[{"type":0,"value":"./target"},{"type":1,"value":"$_"},{"type":0,"value":"hello"}]}]"#; "static_link")]
+#[test_case("[hello](onClick)",r#"[{"type":8,"value":"$link","children":[{"type":1,"value":"onClick"},{"type":0,"value":"hello"}]}]"#; "handler_link")]
 #[test_case("[hello]({target})",r#"[{"type":8,"value":"$link","children":[{"type":1,"value":"target"},{"type":0,"value":"hello"}]}]"#; "dynamic_link")]
 fn icu_markdown_types(input: &str, output: &str) {
     run_icu_ast_test(input, output, false);

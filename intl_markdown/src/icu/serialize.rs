@@ -78,6 +78,19 @@ fn serialize_tag<S: Serializer, T: Serialize>(
     tag.end()
 }
 
+struct SerializeHandler<'a>(&'a String);
+impl Serialize for SerializeHandler<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut variable = serializer.serialize_struct("IcuVariable", 2)?;
+        variable.serialize_field(fjs_types::TYPE, &FormatJsElementType::Argument)?;
+        variable.serialize_field(fjs_types::VALUE, self.0)?;
+        variable.end()
+    }
+}
+
 struct SerializeEmpty;
 impl Serialize for SerializeEmpty {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -166,10 +179,9 @@ impl Serialize for SerializeLinkChildren<'_> {
     where
         S: Serializer,
     {
-        let destination_len = if matches!(self.0, TextOrPlaceholder::Text(_)) {
-            2
-        } else {
-            1
+        let destination_len = match self.0 {
+            TextOrPlaceholder::Text(_) => 2,
+            _ => 1,
         };
 
         let mut children = serializer.serialize_seq(Some(self.1.len() + destination_len))?;
@@ -182,6 +194,9 @@ impl Serialize for SerializeLinkChildren<'_> {
                 children.serialize_element(&SerializeEmpty)?
             }
             TextOrPlaceholder::Placeholder(icu) => children.serialize_element(&icu)?,
+            TextOrPlaceholder::Handler(handler_name) => {
+                children.serialize_element(&SerializeHandler(handler_name))?
+            }
         }
         // Then add the rest of the children directly.
         for element in self.1 {

@@ -1,10 +1,10 @@
 use arcstr::Substr;
 
-use crate::{ast, SyntaxKind};
 use crate::ast::{CodeBlockKind, HeadingKind, IcuPluralKind, LinkKind, TextOrPlaceholder};
 use crate::html_entities::get_html_entity;
 use crate::token::Token;
 use crate::tree_builder::{cst, TokenSpan};
+use crate::{ast, SyntaxKind};
 
 use super::util::unescape;
 
@@ -450,6 +450,9 @@ fn process_link_destination(
         }
         Some(cst::LinkDestination::DynamicLinkDestination(destination)) => {
             TextOrPlaceholder::Placeholder(process_icu(context, &destination.url))
+        }
+        Some(cst::LinkDestination::ClickHandlerLinkDestination(destination)) => {
+            TextOrPlaceholder::Handler(destination.name.text().to_owned())
         }
         None => TextOrPlaceholder::Text("".into()),
     }

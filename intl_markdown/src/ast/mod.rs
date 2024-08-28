@@ -153,8 +153,15 @@ pub enum LinkKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TextOrPlaceholder {
+    /// Plain text, often included in the parent directly
     Text(String),
+    /// An ICU placeholder of any kind, like `{name}`, often used in the
+    /// context of a link url.
     Placeholder(Icu),
+    /// A name for a variable handler to call to resolve this value. This is
+    /// currently used only  for link click handlers, which use an implicit,
+    /// non-icu variable name  as the link target, like `[click me!](onClick)`.
+    Handler(String),
 }
 
 impl TextOrPlaceholder {
@@ -163,6 +170,9 @@ impl TextOrPlaceholder {
     }
     pub fn is_placeholder(&self) -> bool {
         matches!(self, TextOrPlaceholder::Placeholder(_))
+    }
+    pub fn is_handler(&self) -> bool {
+        matches!(self, TextOrPlaceholder::Handler(_))
     }
 }
 

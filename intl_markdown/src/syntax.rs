@@ -179,6 +179,7 @@ pub enum SyntaxKind {
     // Syntax extension nodes
     HOOK,
     HOOK_NAME,
+    CLICK_HANDLER_LINK_DESTINATION,
 
     // ICU extension nodes
     ICU,        // The overall container node for any ICU content.

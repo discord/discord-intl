@@ -91,6 +91,15 @@ impl Event {
             Event::Token(token) => token.kind(),
         }
     }
+
+    /// Return the token of this event if it is an [Event::Token], otherwise
+    /// return `None`.
+    pub(crate) fn as_token(&self) -> Option<&SyntaxToken> {
+        match self {
+            Event::Token(token) => Some(token),
+            _ => None,
+        }
+    }
 }
 
 impl std::fmt::Display for Event {

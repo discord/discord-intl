@@ -11,8 +11,8 @@ mod harness;
 
 #[test_case("$[text](someHook)","<someHook>text</someHook>"; "basic_hook")]
 #[test_case("$[](someHook)","<someHook></someHook>"; "empty_hook")]
-#[test_case("$[text [link](foo)](someHook)","<someHook>text <link>foo{_}link</link></someHook>"; "link_inside_hook")]
-#[test_case("[link $[text](someHook)](foo)","<link>foo{_}link <someHook>text</someHook></link>"; "hook_inside_link")]
+#[test_case("$[text [link](./foo)](someHook)","<someHook>text <link>./foo{_}link</link></someHook>"; "link_inside_hook")]
+#[test_case("[link $[text](someHook)](./foo)","<link>./foo{_}link <someHook>text</someHook></link>"; "hook_inside_link")]
 #[test_case("$[outer $[inner](hook1)](hook2)","<hook2>outer <hook1>inner</hook1></hook2>"; "hook_inside_hook")]
 #[test_case("$[inner]({target})","$[inner]({target})"; "disallow_dynamic_hook")]
 #[test_case("$[{target}](someHook)","<someHook>{target}</someHook>"; "allow_dynamic_content")]
