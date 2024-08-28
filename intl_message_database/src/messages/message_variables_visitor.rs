@@ -135,14 +135,14 @@ impl MessageVariablesVisitor {
             BlockNode::InlineContent(content) => Self::visit_inline_children(content, variables),
             BlockNode::Paragraph(paragraph) => {
                 variables.add_instance(
-                    global_intern_string("p"),
+                    global_intern_string(DEFAULT_TAG_NAMES.paragraph()),
                     MessageVariableType::HookFunction,
                     None,
                 );
                 Self::visit_inline_children(paragraph.content(), variables)
             }
             BlockNode::Heading(heading) => {
-                let heading_tag = format!("h{}", heading.level());
+                let heading_tag = DEFAULT_TAG_NAMES.heading(heading.level());
                 variables.add_instance(
                     global_intern_string(&heading_tag),
                     MessageVariableType::HookFunction,
@@ -153,7 +153,7 @@ impl MessageVariablesVisitor {
             // This presumes that code blocks can't contain variables, which _should_ always be true
             BlockNode::CodeBlock(_) => {
                 variables.add_instance(
-                    global_intern_string("codeBlock"),
+                    global_intern_string(DEFAULT_TAG_NAMES.code_block()),
                     MessageVariableType::HookFunction,
                     None,
                 );
@@ -161,7 +161,7 @@ impl MessageVariablesVisitor {
             }
             BlockNode::ThematicBreak => {
                 variables.add_instance(
-                    global_intern_string("hr"),
+                    global_intern_string(DEFAULT_TAG_NAMES.hr()),
                     MessageVariableType::HookFunction,
                     None,
                 );
