@@ -61,6 +61,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
             for key in diff {
                 missing_names.push(format!("`{key}`"));
             }
+            missing_names.sort();
             missing_names
         };
 
@@ -171,6 +172,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
                 Vec::from_iter(locales.into_iter().map(|locale| locale.as_str())).join(", ")
             ));
         }
+        lines.sort();
         Ok(lines)
     }
 
@@ -206,6 +208,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         if entries.is_empty() {
             Ok(format!("  '{name}': TypedIntlMessageGetter<undefined>,"))
         } else {
+            entries.sort();
             Ok(format!(
                 "  '{name}': TypedIntlMessageGetter<{{{}}}>,",
                 entries.join(", ")
