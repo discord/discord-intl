@@ -1,5 +1,5 @@
 import { program } from 'commander';
-import { cd } from 'zx';
+import { $, cd } from 'zx';
 
 import { REPO_ROOT } from './src/constants.js';
 import utilCommands from './src/util-commands.js';
@@ -7,6 +7,7 @@ import ciCommands from './src/ci/commands.js';
 import dbCommands from './src/db/commands.js';
 import ecosystemCommands from './src/ecosystem/commands.js';
 import { createJsPackageCommands } from './src/js-package.js';
+import { rustup } from './src/util/rustup.js';
 
 process.chdir(REPO_ROOT);
 cd(REPO_ROOT);
@@ -31,6 +32,7 @@ cd(REPO_ROOT);
     .addCommand(
       await createJsPackageCommands('swc-intl-message-transformer', {
         aliases: ['swc'],
+        prebuild: rustup.ensureWasmSetup,
         build: true,
       }),
     )

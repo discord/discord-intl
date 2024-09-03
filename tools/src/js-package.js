@@ -57,12 +57,13 @@ async function watchBuild(pack, watchPatterns) {
  * @param {{
  *   aliases?: string[],
  *   build?: boolean,
+ *   prebuild?: () => Promise<void>,
  *   watch?: boolean | string[]
  * }=} options
  * @returns {Promise<Command>}
  */
 export async function createJsPackageCommands(name, options) {
-  const { build = false, watch, aliases = [] } = options;
+  const { build = false, prebuild, watch, aliases = [] } = options;
   const pack = await getPackage('@discord/' + name);
 
   const group = new Command(name).aliases(aliases).description(`Operate on the ${name} package`);
@@ -74,6 +75,7 @@ export async function createJsPackageCommands(name, options) {
       .command('build')
       .description(`Build the ${name} package`)
       .action(async () => {
+        if (prebuild != null) await prebuild();
         await $({ cwd: pack.path, stdio: 'inherit' })`pnpm build`;
       });
   }
