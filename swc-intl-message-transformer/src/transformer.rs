@@ -1,25 +1,34 @@
 use std::collections::HashSet;
+
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
     ComputedPropName, Expr, Id, ImportDecl, ImportSpecifier, Lit, MemberExpr, MemberProp, Str,
 };
 use swc_core::ecma::visit::{VisitMut, VisitMutWith};
+
 use intl_message_utils::{hash_message_key, is_message_definitions_file};
 
+use crate::IntlMessageTransformerConfig;
+
+#[derive(Default)]
 pub struct IntlMessageConsumerTransformer {
     /// Set of identifiers that represent messages objects (i.e., are imported
     /// from a messages file). Id is used as the value type to ensure that the
     /// matched identifiers exactly resolve to the ones that are imported,
     /// without any other variables shadowing it from other scopes.
     messages_object_receivers: HashSet<Id>,
+    /// Configuration for the transformer to adjust which object are
+    /// transformed and other facets.
+    config: IntlMessageTransformerConfig,
 }
 
 impl IntlMessageConsumerTransformer {
-    pub fn new() -> Self {
+    pub fn new(config: IntlMessageTransformerConfig) -> Self {
         let set = HashSet::new();
 
         return Self {
             messages_object_receivers: set,
+            config,
         };
     }
 }
@@ -27,7 +36,15 @@ impl IntlMessageConsumerTransformer {
 impl VisitMut for IntlMessageConsumerTransformer {
     fn visit_mut_import_decl(&mut self, import_decl: &mut ImportDecl) {
         let import_source_path = &import_decl.src.value;
-        if !is_message_definitions_file(&import_source_path) {
+
+        let is_definitions_file = is_message_definitions_file(&import_source_path);
+        let extra_import_specifiers = self
+            .config
+            .get_configured_names_for_import_specifier(import_source_path);
+
+        // If this isn't a definitions import _and_ there's no configured specifiers for
+        // this import, then it doesn't need to be processed.
+        if !is_definitions_file && extra_import_specifiers.is_none() {
             return;
         }
 
@@ -36,6 +53,14 @@ impl VisitMut for IntlMessageConsumerTransformer {
                 ImportSpecifier::Default(default_specifier) => {
                     self.messages_object_receivers
                         .insert(default_specifier.local.to_id());
+                }
+                ImportSpecifier::Named(named_specifier) if extra_import_specifiers.is_some() => {
+                    let local_name = &named_specifier.local;
+                    if extra_import_specifiers
+                        .is_some_and(|extra| extra.contains(&local_name.as_ref().into()))
+                    {
+                        self.messages_object_receivers.insert(local_name.to_id());
+                    }
                 }
                 _ => continue,
             }
@@ -78,17 +103,19 @@ mod tests {
     use swc_core::ecma::transforms::testing::test_inline_input_output;
     use swc_core::ecma::visit::as_folder;
 
+    use crate::config::IntlMessageTransformerConfig;
+
     use super::IntlMessageConsumerTransformer;
 
     #[test]
     fn rewrite_message_keys_in_consumers() {
         test_inline_input_output(
             Default::default(),
-            |_| as_folder(IntlMessageConsumerTransformer::new()), // Input codes
+            |_| as_folder(IntlMessageConsumerTransformer::default()), // Input codes
             r#"
-        import {messages} from "some/module.messages";
-        import {messages as differentMess} from "different.messages";
-        import {other} from "another/place";
+        import messages from "some/module.messages";
+        import differentMess from "different.messages";
+        import other from "another/place";
         console.log(messages.SOME_STRING);
         console.log(other.NOT_A_STRING);
         something.messages.WHAT;
@@ -97,14 +124,45 @@ mod tests {
         "#,
             // Output codes after transformed with plugin
             r#"
-        import {messages} from "some/module.messages";
-        import {messages as differentMess} from "different.messages";
-        import {other} from "another/place";
-        console.log(messages["LvzMmy"]);
+        import messages from "some/module.messages";
+        import differentMess from "different.messages";
+        import other from "another/place";
+        console.log(messages["Q5kgoa"]);
         console.log(other.NOT_A_STRING);
         something.messages.WHAT;
-        messages["rj00eY"].anotherThing;
-        differentMess["7hnnbN"];
+        messages["nWsV4+"].anotherThing;
+        differentMess["PuzRxM"];
+        "#,
+        )
+    }
+
+    #[test]
+    fn extra_specifier_config() {
+        let config = serde_json::from_str::<IntlMessageTransformerConfig>(
+            r#"{"extraImports":{"@app/intl":["t","untranslated"]}}"#,
+        )
+        .expect("failed to parse config");
+
+        test_inline_input_output(
+            Default::default(),
+            |_| as_folder(IntlMessageConsumerTransformer::new(config)),
+            r#"
+        import {untouchedSameSpec, t} from "@app/intl";
+        import {untranslated} from "somewhere/else";
+        import messages from "some.messages";
+        console.log(t.SOME_STRING);
+        console.log(messages.SOME_STRING);
+        console.log(untranslated.SOME_STRING);
+        console.log(untouchedSameSpec.SOME_STRING);
+        "#,
+            r#"
+        import {untouchedSameSpec, t} from "@app/intl";
+        import {untranslated} from "somewhere/else";
+        import messages from "some.messages";
+        console.log(t["Q5kgoa"]);
+        console.log(messages["Q5kgoa"]);
+        console.log(untranslated.SOME_STRING);
+        console.log(untouchedSameSpec.SOME_STRING);
         "#,
         )
     }
