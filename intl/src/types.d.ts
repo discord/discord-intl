@@ -20,6 +20,22 @@ export declare function defineMessages(messages: object): object;
 export type RichTextElementMap = Record<string, (chunks: any[]) => any>;
 
 /**
+ * Placeholder type representing that this property is a Hook to be rendered
+ * while formatting.
+ */
+export type HookFunction = { __brand: 'hook-function' };
+/**
+ * Placeholder type representing that this property is a Link to be rendered
+ * while formatting.
+ */
+export type LinkFunction = { __brand: 'link-function' };
+/**
+ * Placeholder type representing that this property is a Handler function,
+ * which will be attached to some event when the message is formatted.
+ */
+export type HandlerFunction = { __brand: 'handler-function' };
+
+/**
  * Messages with no rich formatting and no value interpolations are just plain
  * strings, and are able to skip multiple formatting steps to work more
  * efficiently. This type represents those messages distinctly.
@@ -135,3 +151,81 @@ type FormatValuesFor<T> =
             ? U
             : never
       >;
+
+/**
+ * A template type for replaceable placeholder types to be defined by formatter
+ * implementations. Messages are typed using placeholder types like
+ * `HookFunction` and `HandlerFunction`, which are empty branded types
+ * indicating the _intent_ of a property, which the formatter is then able to
+ * replace with a more appropriate type. For example, a React formatter might
+ * replace a `HookFunction` with `(content: ReactNode) => ReactNode` to allow
+ * the caller to inject React elements within a string, while an AST formatter
+ * might require a specific object shape, or allow any plain object.
+ */
+interface FunctionTypeMap {
+  link: any;
+  hook: any;
+  handler: any;
+}
+
+type ReplaceKeepingNullability<T, P> = P | Exclude<T, NonNullable<T>>;
+
+/**
+ * Type implementation for applying a `FunctionTypeMap` to a given argument
+ * type `T`. For each property of `T`, if its value is one of the placeholder
+ * types, like `HookFunction`, it will be replaced by the corresponding
+ * template value from `FunctionTypes`.
+ */
+type MapFunctionTypes<T, FunctionTypes extends FunctionTypeMap> = {
+  [K in keyof T]: ReplaceKeepingNullability<
+    T[K],
+    NonNullable<T[K]> extends LinkFunction
+      ? FunctionTypes['link']
+      : NonNullable<T[K]> extends HookFunction
+        ? FunctionTypes['hook']
+        : NonNullable<T[K]> extends HandlerFunction
+          ? FunctionTypes['handler']
+          : T[K]
+  >;
+};
+
+// Detect if T is explicitly `any`, in which case we don't want to do
+// any replacements, since each type should be `any`.
+// https://stackoverflow.com/a/61625831
+type CheckStrictAny<Check, Yes, No> = (Check extends never ? true : false) extends false ? No : Yes;
+
+/**
+ * Given a `TypedIntlMessageGetter` type, return the format values type
+ * argument from it. For example:
+ *
+ * ```typescript
+ * type SomeMessage = TypedIntlMessageGetter<{name: string}>
+ * type Result = IntlMessageGetterInnerType<SomeMessage>
+ * // Result is `{name: string}`
+ * ```
+ */
+type IntlMessageGetterInnerType<T extends TypedIntlMessageGetter<any>> =
+  T extends TypedIntlMessageGetter<infer U> ? U : never;
+
+/**
+ * Create the format values argument type for a format function using the
+ * configured `DefaultElements` for a formatter and injecting the placeholder
+ * types from `FunctionTypes`. The result is the set of required values
+ * necessary to format the message of type `T` with the calling formatter.
+ */
+type RequiredFormatValues<
+  T extends TypedIntlMessageGetter<any>,
+  DefaultElements,
+  FunctionTypes extends FunctionTypeMap,
+> = CheckStrictAny<
+  IntlMessageGetterInnerType<T>,
+  // If `T` is explicitly `any`, then individual properties can't be typed and
+  // anything is allowed. This is only typical when consumers manually create a
+  // `TypedIntlMessageGetter` type as needed to pass values around, but loses
+  // any real type safety for the formatted values.
+  // Without this, though, `MapFunctionTypes` would always match the first
+  // value and turn every property into the mapped `LinkFunction` type, which
+  // is almost always going to be wrong.
+  any,
+  MapFunctionTypes<Omit<FormatValuesFor<T>, keyof DefaultElements>, FunctionTypes>
+>;

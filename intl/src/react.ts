@@ -2,12 +2,34 @@ import * as React from 'react';
 
 import { IntlManager } from './intl-manager';
 
-import type { FormatValuesFor, RichTextElementMap, TypedIntlMessageGetter } from './types';
+import type { RequiredFormatValues, RichTextElementMap, TypedIntlMessageGetter } from './types';
 
-export class IntlManagerReact<
-  DefaultElements extends RichTextElementMap,
-  DefaultValues extends keyof DefaultElements,
-> extends IntlManager<DefaultElements, DefaultValues> {
+type ReactHandlerEvent = React.MouseEvent | React.KeyboardEvent;
+type ReactClickHandler = (e: ReactHandlerEvent) => void;
+
+type ReactFunctionTypes = {
+  // TODO: Allowing `undefined` on these is a migration artifact that should be
+  // removed. Functions, like all other values, should be required when
+  // formatting to avoid unexpected missing behavior.
+  link:
+    | undefined
+    | ((content: React.ReactNode | React.ReactNode[], key: string) => React.ReactNode);
+
+  hook:
+    | undefined
+    | ((content: React.ReactNode | React.ReactNode[], key: string) => React.ReactNode);
+  handler:
+    | undefined
+    | ReactClickHandler
+    | { onClick: ReactClickHandler }
+    | { onContextMenu: ReactClickHandler }
+    | { onClick: ReactClickHandler; onContextMenu: ReactClickHandler };
+};
+
+export class IntlManagerReact<DefaultElements extends RichTextElementMap> extends IntlManager<
+  DefaultElements,
+  ReactFunctionTypes
+> {
   /**
    * A reactive component form of `intl.format` that automatically updates when
    * the application's locale changes and when new data is loaded for the
@@ -15,13 +37,13 @@ export class IntlManagerReact<
    */
   IntlMessage = <T extends TypedIntlMessageGetter<object | undefined>>(props: {
     message: T;
-    values?: Omit<FormatValuesFor<T>, DefaultValues> | never;
+    values?: RequiredFormatValues<T, DefaultElements, ReactFunctionTypes> | never;
   }) => {
     const { message, values } = props;
     // Use the locale from this point in the application, which may be
     // different from the global locale.
     const locale = React.useSyncExternalStore(this.onLocaleChange, () => this.currentLocale);
-    // TODO(faulty): This can and should be replaced by a
+    // TODO(faulty): This can and should be replaced with
     // `use(messagesLoadedPromise)` once `use` is shipped to stable.
     // Source the actual message to render for that locale from its loader.
     React.useSyncExternalStore(message.onChange, () => message(locale));
@@ -29,13 +51,9 @@ export class IntlManagerReact<
     // a plain string.
     if (typeof message === 'string') return message;
 
-    const parts = this.formatToParts(message, values as Omit<FormatValuesFor<T>, DefaultValues>);
+    const parts = this.formatToParts(message, values);
     if (parts.length === 1 && typeof parts[0] === 'string') return parts[0];
-    return React.createElement(
-      React.Fragment,
-      undefined,
-      this.formatToParts(message, values as Omit<FormatValuesFor<T>, DefaultValues>),
-    );
+    return React.createElement(React.Fragment, undefined, this.formatToParts(message, values));
   };
 
   /**
@@ -46,11 +64,11 @@ export class IntlManagerReact<
   format<T extends TypedIntlMessageGetter<object | undefined>>(message: T): React.ReactElement;
   format<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values: Omit<FormatValuesFor<T>, DefaultValues>,
+    values: RequiredFormatValues<T, DefaultElements, ReactFunctionTypes>,
   ): React.ReactElement;
   format<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values?: Omit<FormatValuesFor<T>, DefaultValues>,
+    values?: RequiredFormatValues<T, DefaultElements, ReactFunctionTypes>,
   ): React.ReactElement {
     return React.createElement(this.IntlMessage<T>, { message, values });
   }

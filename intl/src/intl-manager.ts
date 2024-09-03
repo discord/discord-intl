@@ -8,7 +8,22 @@ import {
 
 import { LocaleId, LocaleImportMap, MessageLoader } from './message-loader';
 
-import type { FormatValuesFor, RichTextElementMap, TypedIntlMessageGetter } from './types';
+import type {
+  FunctionTypeMap,
+  RequiredFormatValues,
+  RichTextElementMap,
+  TypedIntlMessageGetter,
+} from './types';
+
+/**
+ * Types for formatting functions when calling `formatToParts`, ensuring the
+ * functions yield value AST nodes.
+ */
+type AstFunctionTypes = {
+  link: undefined | object | ((children: object) => Array<string | any>);
+  hook: undefined | object | ((children: object) => Array<string | any>);
+  handler: undefined | object | ((children: object) => Array<string | any>);
+};
 
 /**
  * Fallback locale used for all internationalization when an operation in the
@@ -18,7 +33,7 @@ export const DEFAULT_LOCALE: string = 'en-US';
 
 export class IntlManager<
   DefaultElements extends RichTextElementMap,
-  DefaultValues extends keyof DefaultElements,
+  FunctionTypes extends FunctionTypeMap,
 > {
   defaultLocale: string;
   currentLocale: string;
@@ -89,11 +104,11 @@ export class IntlManager<
   ): Array<string | any>;
   formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values: Omit<FormatValuesFor<T>, DefaultValues>,
+    values: RequiredFormatValues<T, DefaultElements, AstFunctionTypes>,
   ): Array<string | any>;
   formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values?: Omit<FormatValuesFor<T>, DefaultValues>,
+    values?: RequiredFormatValues<T, DefaultElements, AstFunctionTypes>,
   ): Array<string | any> {
     if (typeof message === 'string') return [message];
     const resolvedMessage = typeof message === 'function' ? message(this.currentLocale) : message;
@@ -150,11 +165,11 @@ export class IntlManager<
   formatToPlainString<T extends TypedIntlMessageGetter<object | undefined>>(message: T): string;
   formatToPlainString<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values: Omit<FormatValuesFor<T>, DefaultValues>,
+    values: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
   ): string;
   formatToPlainString<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values?: Omit<FormatValuesFor<T>, DefaultValues>,
+    values?: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
   ) {
     if (typeof message === 'string') return message;
     const resolvedMessage = message(this.currentLocale);
@@ -179,11 +194,11 @@ export class IntlManager<
   formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(message: T): string;
   formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values: Omit<FormatValuesFor<T>, DefaultValues>,
+    values: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
   ): string;
   formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(
     message: T,
-    values?: Omit<FormatValuesFor<T>, DefaultValues>,
+    values?: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
   ) {
     // TODO(faulty): Implement the markdown syntax conversion here.
     if (typeof message === 'string') return message;
