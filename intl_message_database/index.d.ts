@@ -16,7 +16,7 @@ export declare class IntlMessagesDatabase {
    */
   getSourceFileKeyMap(filePath: string): Record<string, string>
   getMessage(key: string): unknown
-  generateTypes(sourceFilePath: string, outputFilePath: string): void
+  generateTypes(sourceFilePath: string, outputFilePath: string, allowNullability?: boolean | undefined | null): void
   precompile(sourcePath: string, locale: string, outputPath: string, format?: IntlCompiledMessageFormat | undefined | null): void
   precompileToBuffer(sourcePath: string, locale: string, format?: IntlCompiledMessageFormat | undefined | null): Buffer
   validateMessages(): Array<IntlDiagnostic>

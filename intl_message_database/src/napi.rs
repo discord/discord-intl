@@ -6,21 +6,21 @@
 //! This is the preferred way of using the library wherever possible.
 use std::collections::HashMap;
 
-use napi::bindgen_prelude::*;
 use napi::{JsNumber, JsUnknown};
+use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 
 use crate::messages::{
     global_get_symbol_or_error, global_intern_string, KeySymbol, MessagesDatabase, MessagesError,
 };
+use crate::services::IntlService;
 use crate::services::precompile::{CompiledMessageFormat, IntlMessagePreCompiler};
 use crate::services::types::IntlTypesGenerator;
 use crate::services::validator;
-use crate::services::IntlService;
 use crate::sources::extract_message_translations;
-use crate::threading::run_in_thread_pool;
 use crate::TEMP_DEFAULT_LOCALE;
+use crate::threading::run_in_thread_pool;
 
 #[napi]
 pub struct IntlMessagesDatabase {
@@ -216,10 +216,17 @@ impl IntlMessagesDatabase {
         &self,
         source_file_path: String,
         output_file_path: String,
+        allow_nullability: Option<bool>,
     ) -> anyhow::Result<()> {
         let mut output_file = std::fs::File::create(output_file_path)?;
         let source_file_key = global_get_symbol_or_error(&source_file_path)?;
-        IntlTypesGenerator::new(&self.database, source_file_key, &mut output_file).run()
+        IntlTypesGenerator::new(
+            &self.database,
+            source_file_key,
+            &mut output_file,
+            allow_nullability.unwrap_or(false),
+        )
+        .run()
     }
 
     #[napi]

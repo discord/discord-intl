@@ -10,11 +10,12 @@ const {
 class IntlTypeGeneratorPlugin {
   /**
    * @param {string} filePath
+   * @param {boolean=} allowNullability
    * @returns {number} How long it took to generate the type definitions file.
    */
-  generateTypeDefinitions(filePath) {
+  generateTypeDefinitions(filePath, allowNullability = false) {
     const start = performance.now();
-    generateTypeDefinitions(filePath);
+    generateTypeDefinitions(filePath, undefined, allowNullability);
     const end = performance.now();
 
     return end - start;

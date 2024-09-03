@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use rustc_hash::FxHashSet;
 use thiserror::Error;
+use ustr::Ustr;
 
 use crate::{
     messages::{KeySymbol, KeySymbolMap, Message, MessagesDatabase, MessageVariableType},
@@ -14,6 +15,7 @@ pub struct IntlTypesGenerator<'a, W: std::io::Write> {
     database: &'a MessagesDatabase,
     source_file_key: KeySymbol,
     output: &'a mut W,
+    allow_nullability: bool,
 }
 
 impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
@@ -21,11 +23,13 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         database: &'a MessagesDatabase,
         source_file_key: KeySymbol,
         output: &'a mut W,
+        allow_nullability: bool,
     ) -> Self {
         Self {
             database,
             source_file_key,
             output,
+            allow_nullability,
         }
     }
 
@@ -33,9 +37,10 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         &self,
         message: &Message,
         known_locales: &KeySymbolSet,
+        spurious_variables: &Vec<(Ustr, String)>,
     ) -> anyhow::Result<String> {
         if message.is_defined() {
-            self.make_normal_message_doc_comment(message, known_locales)
+            self.make_normal_message_doc_comment(message, known_locales, spurious_variables)
         } else {
             self.make_undefined_message_doc_comment(message, known_locales)
         }
@@ -45,11 +50,11 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         &self,
         message: &Message,
         known_locales: &KeySymbolSet,
+        spurious_variables: &Vec<(Ustr, String)>,
     ) -> anyhow::Result<String> {
         let key = message.hashed_key();
         // SAFETY: The caller asserts that this message is defined, so it must have a source.
         let default_translation = message.get_source_translation().unwrap();
-        let spurious_variables = self.build_spurious_variables_info(message)?;
         let translation_links =
             self.build_translation_links(message.translations(), Some(default_translation))?;
 
@@ -88,11 +93,10 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         )?;
 
         if spurious_variables.len() > 0 {
-            write!(
-                result,
-                "   * Spurious variables from translations:\n   * - {}\n",
-                spurious_variables.join("\n   * - ")
-            )?;
+            write!(result, "   * Spurious variables from translations:\n")?;
+            for (_name, doc_text) in spurious_variables {
+                write!(result, "   * - {doc_text}\n")?;
+            }
         }
 
         write!(result, "   */")?;
@@ -124,7 +128,10 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
     /// Return a list of variables that are only present in non-default translations of the given
     /// `message`. Each entry is a pre-formatted String containing the variable name and the list
     /// of locales that contain it.
-    fn build_spurious_variables_info(&self, message: &Message) -> anyhow::Result<Vec<String>> {
+    fn build_spurious_variables_info(
+        &self,
+        message: &Message,
+    ) -> anyhow::Result<Vec<(Ustr, String)>> {
         let Some(source) = message.get_source_translation() else {
             return Ok(vec![]);
         };
@@ -167,9 +174,12 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
 
         let mut lines = vec![];
         for (variable, locales) in spurious_variables {
-            lines.push(format!(
-                "`{variable}` -- {}",
-                Vec::from_iter(locales.into_iter().map(|locale| locale.as_str())).join(", ")
+            lines.push((
+                variable,
+                format!(
+                    "`{variable}` -- {}",
+                    Vec::from_iter(locales.into_iter().map(|locale| locale.as_str())).join(", ")
+                ),
             ));
         }
         lines.sort();
@@ -192,17 +202,37 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         Ok(result)
     }
 
-    fn make_getter_type_def(&self, message: &Message) -> anyhow::Result<String> {
+    fn make_getter_type_def(
+        &self,
+        message: &Message,
+        spurious_variables: &Vec<(Ustr, String)>,
+    ) -> anyhow::Result<String> {
         let name = message.key();
         let variables = message.all_variables();
         let mut entries = vec![];
         for (name, instances) in variables.iter() {
             let type_names = instances
                 .iter()
-                .map(|instance| get_variable_type_name(&instance.kind))
+                .map(|instance| {
+                    if self.allow_nullability {
+                        get_loose_type_name(&instance.kind)
+                    } else {
+                        get_variable_type_name(&instance.kind)
+                    }
+                })
                 .collect::<FxHashSet<&str>>();
             let type_str = Vec::from_iter(type_names).join(" | ");
-            entries.push(format!("{}: {}", name, type_str));
+            // TODO: These types shouldn't actually be optional, as they'll crash at runtime.
+            // Optionality is just a migration step.
+            let is_optional = spurious_variables
+                .iter()
+                .any(|(spurious_name, _)| spurious_name == name);
+            entries.push(format!(
+                "{}{}: {}",
+                name,
+                if is_optional { "?" } else { "" },
+                type_str
+            ));
         }
 
         if entries.is_empty() {
@@ -218,13 +248,33 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
 }
 
 fn get_variable_type_name(kind: &MessageVariableType) -> &str {
+    // TODO: All of these undefined unions are technically incorrect and should
+    // be handled on the consuming side somehow.
     match kind {
         MessageVariableType::Any => "any",
-        MessageVariableType::Number => "number",
-        MessageVariableType::Plural => "number",
+        MessageVariableType::Number => "number | string",
+        MessageVariableType::Plural => "number | string",
         MessageVariableType::Enum(_) => todo!(),
         MessageVariableType::Date => "number | string | Date",
         MessageVariableType::Time => "number | string | Date",
+        MessageVariableType::HookFunction => "HookFunction",
+        MessageVariableType::LinkFunction => "LinkFunction",
+        MessageVariableType::HandlerFunction => "HandlerFunction",
+    }
+}
+
+/// When `allow_nullability` is true, use this method in place of `get_variable_type_name` to get
+/// a type that allows nulls and other looser types for the variable.
+fn get_loose_type_name(kind: &MessageVariableType) -> &str {
+    // TODO: All of these undefined unions are technically incorrect and should
+    // be handled on the consuming side somehow.
+    match kind {
+        MessageVariableType::Any => "any",
+        MessageVariableType::Number => "number | string | null | undefined",
+        MessageVariableType::Plural => "number | string | null | undefined",
+        MessageVariableType::Enum(_) => todo!(),
+        MessageVariableType::Date => "number | string | Date | null | undefined",
+        MessageVariableType::Time => "number | string | Date | null | undefined",
         MessageVariableType::HookFunction => "HookFunction",
         MessageVariableType::LinkFunction => "LinkFunction",
         MessageVariableType::HandlerFunction => "HandlerFunction",
@@ -255,11 +305,7 @@ impl<W: std::io::Write> IntlService for IntlTypesGenerator<'_, W> {
             self.output,
             "/* THIS FILE IS AUTOGENERATED. DO NOT EDIT MANUALLY. */
 
-import {{TypedIntlMessageGetter}} from '{}';
-
-type LinkFunction = (content: React.ReactNode | React.ReactNode[]) => React.ReactNode;
-type HookFunction = (content: React.ReactNode | React.ReactNode[]) => React.ReactNode;
-type HandlerFunction = () => void;
+import {{TypedIntlMessageGetter, HandlerFunction, HookFunction, LinkFunction}} from '{}';
 
 declare const messages: {{
 ",
@@ -281,8 +327,9 @@ declare const messages: {{
                 .into());
             };
 
-            let doc_comment = self.make_doc_comment(message, known_locales)?;
-            let type_def = self.make_getter_type_def(message)?;
+            let spurious_variables = self.build_spurious_variables_info(message)?;
+            let doc_comment = self.make_doc_comment(message, known_locales, &spurious_variables)?;
+            let type_def = self.make_getter_type_def(message, &spurious_variables)?;
             write!(self.output, "{doc_comment}\n{type_def}\n")?;
         }
 
