@@ -10,6 +10,7 @@ import { LocaleId, LocaleImportMap, MessageLoader } from './message-loader';
 
 import type {
   FunctionTypeMap,
+  IntlMessageGetter,
   RequiredFormatValues,
   RichTextElementMap,
   TypedIntlMessageGetter,
@@ -99,14 +100,12 @@ export class IntlManager<
    * use `format`, which will wrap the formatting in a React component that
    * subscribes to the current locale and state of loaded messages.
    */
-  formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
-    message: T,
-  ): Array<string | any>;
-  formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
+  formatToParts<T extends TypedIntlMessageGetter<undefined>>(message: T): Array<string | any>;
+  formatToParts<T extends IntlMessageGetter>(
     message: T,
     values: RequiredFormatValues<T, DefaultElements, AstFunctionTypes>,
   ): Array<string | any>;
-  formatToParts<T extends TypedIntlMessageGetter<object | undefined>>(
+  formatToParts<T extends IntlMessageGetter>(
     message: T,
     values?: RequiredFormatValues<T, DefaultElements, AstFunctionTypes>,
   ): Array<string | any> {
@@ -162,15 +161,15 @@ export class IntlManager<
    * Format the given message with the provided values, removing any styling
    * and non-textual content from the message, returning a plain string.
    */
-  formatToPlainString<T extends TypedIntlMessageGetter<object | undefined>>(message: T): string;
-  formatToPlainString<T extends TypedIntlMessageGetter<object | undefined>>(
+  formatToPlainString<T extends TypedIntlMessageGetter<undefined>>(message: T): string;
+  formatToPlainString<T extends IntlMessageGetter>(
     message: T,
     values: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
   ): string;
-  formatToPlainString<T extends TypedIntlMessageGetter<object | undefined>>(
+  formatToPlainString<T extends IntlMessageGetter>(
     message: T,
     values?: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
-  ) {
+  ): string {
     if (typeof message === 'string') return message;
     const resolvedMessage = message(this.currentLocale);
     if (typeof resolvedMessage === 'string') return resolvedMessage;
@@ -191,15 +190,15 @@ export class IntlManager<
    * can be sent through a separate Markdown renderer to get an equivalent
    * result to formatting this message directly.
    */
-  formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(message: T): string;
-  formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(
+  formatToMarkdownString<T extends TypedIntlMessageGetter<undefined>>(message: T): string;
+  formatToMarkdownString<T extends IntlMessageGetter>(
     message: T,
     values: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
   ): string;
-  formatToMarkdownString<T extends TypedIntlMessageGetter<object | undefined>>(
+  formatToMarkdownString<T extends IntlMessageGetter>(
     message: T,
     values?: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
-  ) {
+  ): string {
     // TODO(faulty): Implement the markdown syntax conversion here.
     if (typeof message === 'string') return message;
     const resolvedMessage = message(this.currentLocale);

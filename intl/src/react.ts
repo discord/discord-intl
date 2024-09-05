@@ -2,7 +2,12 @@ import * as React from 'react';
 
 import { IntlManager } from './intl-manager';
 
-import type { RequiredFormatValues, RichTextElementMap, TypedIntlMessageGetter } from './types';
+import type {
+  IntlMessageGetter,
+  RequiredFormatValues,
+  RichTextElementMap,
+  TypedIntlMessageGetter,
+} from './types';
 
 type ReactHandlerEvent = React.MouseEvent | React.KeyboardEvent;
 type ReactClickHandler = (e: ReactHandlerEvent) => void;
@@ -35,7 +40,7 @@ export class IntlManagerReact<DefaultElements extends RichTextElementMap> extend
    * the application's locale changes and when new data is loaded for the
    * subject message.
    */
-  IntlMessage = <T extends TypedIntlMessageGetter<object | undefined>>(props: {
+  IntlMessage = <T extends IntlMessageGetter>(props: {
     message: T;
     values?: RequiredFormatValues<T, DefaultElements, ReactFunctionTypes> | never;
   }) => {
@@ -61,12 +66,12 @@ export class IntlManagerReact<DefaultElements extends RichTextElementMap> extend
    * and respond to updates about the current locale and other relevant
    * information.
    */
-  format<T extends TypedIntlMessageGetter<object | undefined>>(message: T): React.ReactElement;
-  format<T extends TypedIntlMessageGetter<object | undefined>>(
+  format<T extends TypedIntlMessageGetter<undefined>>(message: T): React.ReactElement;
+  format<T extends IntlMessageGetter>(
     message: T,
     values: RequiredFormatValues<T, DefaultElements, ReactFunctionTypes>,
   ): React.ReactElement;
-  format<T extends TypedIntlMessageGetter<object | undefined>>(
+  format<T extends IntlMessageGetter>(
     message: T,
     values?: RequiredFormatValues<T, DefaultElements, ReactFunctionTypes>,
   ): React.ReactElement {

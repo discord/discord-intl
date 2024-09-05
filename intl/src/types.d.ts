@@ -35,6 +35,12 @@ export type LinkFunction = { __brand: 'link-function' };
  */
 export type HandlerFunction = { __brand: 'handler-function' };
 
+export type IntlNumber = string | number | null | undefined;
+export type IntlPlural = string | number | null | undefined;
+export type IntlAny = any;
+export type IntlDate = string | number | Date | null | undefined;
+export type IntlTime = string | number | Date | null | undefined;
+
 /**
  * Messages with no rich formatting and no value interpolations are just plain
  * strings, and are able to skip multiple formatting steps to work more
@@ -48,11 +54,15 @@ type PlainIntlMessage = string;
  * the message should be typed as a `PlainIntlMessage`.
  */
 type TypedIntlMessage<FormatValues extends object> = InternalIntlMessage & {
-  values: FormatValues;
+  __values: FormatValues;
 };
 
 type AnyIntlMessage<FormatValues extends object | undefined = undefined> =
   FormatValues extends undefined ? PlainIntlMessage : TypedIntlMessage<FormatValues>;
+
+export interface IntlMessageGetter extends IntlMessageGetterAdditions {
+  (locale: string): InternalIntlMessage | PlainIntlMessage;
+}
 
 /**
  * Getter function that retrieves a message that best matches the requested
@@ -63,7 +73,50 @@ type AnyIntlMessage<FormatValues extends object | undefined = undefined> =
  */
 export interface TypedIntlMessageGetter<FormatValues extends object | undefined>
   extends IntlMessageGetterAdditions {
-  (locale: string): AnyIntlMessage<FormatValues>;
+  // TODO: This is lossy and unfortunate that typing can't be propagated
+  // to the returned message type, but doing so causes problems with
+  // contravariance of the type. When returning a message getter from a
+  // function with a generic message getter return type, TypeScript will
+  // try to assert that every returned type is strictly compatible with the
+  // declared return type. In that case, if a message is missing any of the
+  // properties declared in the type, it will error. But in the other direction
+  // when passing a message getter as a parameter _into_ a function, TypeScript
+  // will do the opposite and error if the getter has any _extra_ properties
+  // from the declared type. The latter of these is definitely semantically
+  // correct, but the former is more just an annoying part of the type system
+  // because of this returned type being nested within this interface and the
+  // strict subtying that TypeScript uses.
+  (locale: string): InternalIntlMessage | PlainIntlMessage;
+
+  /**
+   * A phantom type (not part of the actual typing of the object) that ensures
+   * TypeScript won't use subtyping to widen the types of multiple messages
+   * unless they are _identical_. For an example of the problem:
+   * ```typescript
+   * declare const message1: {a: string};
+   * declare const message2: {a: string, b: boolean};
+   *
+   * const foo = condition ? message1 : message2;
+   * // ^ This becomes just `{a: string}`, because it's the common base type.
+   * ```
+   *
+   * This is fine for representing the object itself, but on messages those
+   * types represent required values at runtime, and so the greatest outer
+   * type is the only valid answer, rather than the greatest subtype.
+   *
+   * This phantom property ensures that TypeScript will never consider two
+   * messages subtypes of each other unless they contain identical properties,
+   * even the values of those properties, despite the fact that this only
+   * considers names being passed in (not sure how, but it does). The result
+   * is then always a union type of the possible types, which further
+   * downstream will ensure that all format values are always checked for all
+   * possible cases of the message.
+   */
+  __phantom: object extends FormatValues
+    ? any
+    : FormatValues extends undefined
+      ? any
+      : keyof FormatValues;
 }
 
 /**
@@ -138,19 +191,13 @@ type FormatValuesFor<T> =
   // be supplied, represented by the `never`. This prevents accidentally
   // passing an object, even an empty one, for those strings, and allows the
   // formatter to optimize a little more on each call.
-  [T] extends [TypedIntlMessageGetter<undefined>]
+  [T] extends [undefined]
     ? never
     : // The `never` condition needs to be repeated here, but this time _without_
       // the `[]` syntax, so that only the union elements with actual values are
       // included in the union. Without this, the `infer U` on the latter side
       // fails to resolve and the type just becomes `never`.
-      UnionToIntersection<
-        T extends TypedIntlMessageGetter<undefined>
-          ? never
-          : T extends TypedIntlMessageGetter<infer U>
-            ? U
-            : never
-      >;
+      UnionToIntersection<T extends undefined ? never : T>;
 
 /**
  * A template type for replaceable placeholder types to be defined by formatter
@@ -204,7 +251,7 @@ type CheckStrictAny<Check, Yes, No> = (Check extends never ? true : false) exten
  * // Result is `{name: string}`
  * ```
  */
-type IntlMessageGetterInnerType<T extends TypedIntlMessageGetter<any>> =
+type IntlMessageGetterInnerType<T extends IntlMessageGetter> =
   T extends TypedIntlMessageGetter<infer U> ? U : never;
 
 /**
@@ -214,18 +261,39 @@ type IntlMessageGetterInnerType<T extends TypedIntlMessageGetter<any>> =
  * necessary to format the message of type `T` with the calling formatter.
  */
 type RequiredFormatValues<
-  T extends TypedIntlMessageGetter<any>,
+  Values extends IntlMessageGetter,
   DefaultElements,
   FunctionTypes extends FunctionTypeMap,
-> = CheckStrictAny<
-  IntlMessageGetterInnerType<T>,
-  // If `T` is explicitly `any`, then individual properties can't be typed and
-  // anything is allowed. This is only typical when consumers manually create a
-  // `TypedIntlMessageGetter` type as needed to pass values around, but loses
-  // any real type safety for the formatted values.
-  // Without this, though, `MapFunctionTypes` would always match the first
-  // value and turn every property into the mapped `LinkFunction` type, which
-  // is almost always going to be wrong.
-  any,
-  MapFunctionTypes<Omit<FormatValuesFor<T>, keyof DefaultElements>, FunctionTypes>
+> =
+  IntlMessageGetterInnerType<Values> extends undefined
+    ? never
+    : CheckStrictAny<
+        IntlMessageGetterInnerType<Values>,
+        // If `T` is explicitly `any`, then individual properties can't be typed and
+        // anything is allowed. This is only typical when consumers manually create a
+        // `TypedIntlMessageGetter` type as needed to pass values around, but loses
+        // any real type safety for the formatted values.
+        // Without this, though, `MapFunctionTypes` would always match the first
+        // value and turn every property into the mapped `LinkFunction` type, which
+        // is almost always going to be wrong.
+        any,
+        MapFunctionTypes<
+          Omit<FormatValuesFor<IntlMessageGetterInnerType<Values>>, keyof DefaultElements>,
+          FunctionTypes
+        >
+      >;
+
+export interface IntlOptionalRichTextKeys {
+  $_: any;
+  $b: any;
+  $i: any;
+  $p: any;
+  $link: any;
+  $code: any;
+}
+
+export type IntlFormatFunctionValuesArg<T extends IntlMessageGetter> = RequiredFormatValues<
+  T,
+  IntlOptionalRichTextKeys,
+  FunctionTypeMap
 >;
