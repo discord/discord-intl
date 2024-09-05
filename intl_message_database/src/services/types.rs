@@ -221,6 +221,9 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
                     }
                 })
                 .collect::<FxHashSet<&str>>();
+            // TODO: Do this once per variable rather than having to check every instance, since
+            // builtin-ness is determined by the name, not the instance.
+            let is_builtin = instances.iter().any(|instance| instance.is_builtin);
             let type_str = Vec::from_iter(type_names).join(" | ");
             // TODO: These types shouldn't actually be optional, as they'll crash at runtime.
             // Optionality is just a migration step.
@@ -230,7 +233,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
             entries.push(format!(
                 "{}{}: {}",
                 name,
-                if is_optional { "?" } else { "" },
+                if is_optional || is_builtin { "?" } else { "" },
                 type_str
             ));
         }
@@ -252,8 +255,8 @@ fn get_variable_type_name(kind: &MessageVariableType) -> &str {
     // be handled on the consuming side somehow.
     match kind {
         MessageVariableType::Any => "any",
-        MessageVariableType::Number => "number | string",
-        MessageVariableType::Plural => "number | string",
+        MessageVariableType::Number => "number",
+        MessageVariableType::Plural => "number",
         MessageVariableType::Enum(_) => todo!(),
         MessageVariableType::Date => "number | string | Date",
         MessageVariableType::Time => "number | string | Date",

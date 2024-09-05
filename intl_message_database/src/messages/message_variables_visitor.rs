@@ -53,6 +53,11 @@ pub struct MessageVariableInstance {
     /// span as well.
     /// TODO: Add this back
     pub span: Option<usize>,
+    /// `true` if this variable is a system-defined variable, typically for
+    /// rich text formatting tags like `$b` and `$link`, which are almost never
+    /// intended for a user to provide and/or only represent formatting points,
+    /// but can be given as an override regardless.
+    pub is_builtin: bool,
     /// The specific kind of the variable, used for generating types.
     pub kind: MessageVariableType,
 }
@@ -78,9 +83,14 @@ impl MessageVariables {
         &mut self,
         name: KeySymbol,
         kind: MessageVariableType,
+        is_builtin: bool,
         span: Option<usize>,
     ) {
-        let instance = MessageVariableInstance { kind, span };
+        let instance = MessageVariableInstance {
+            kind,
+            is_builtin,
+            span,
+        };
         self.variables
             .entry(name)
             .or_insert_with(|| vec![])
@@ -137,6 +147,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.paragraph()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Self::visit_inline_children(paragraph.content(), variables)
@@ -146,6 +157,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(&heading_tag),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Self::visit_inline_children(heading.content(), variables)
@@ -155,6 +167,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.code_block()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Ok(())
@@ -163,6 +176,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.hr()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Ok(())
@@ -195,6 +209,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.emphasis()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Self::visit_inline_children(emphasis.content(), variables)
@@ -203,6 +218,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.strong()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Self::visit_inline_children(strong.content(), variables)
@@ -211,6 +227,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.strike_through()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Self::visit_inline_children(strikethrough.content(), variables)
@@ -219,6 +236,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.br()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Ok(())
@@ -227,6 +245,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.code()),
                     MessageVariableType::HookFunction,
+                    true,
                     None,
                 );
                 Ok(())
@@ -236,6 +255,8 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(hook.name()),
                     MessageVariableType::HookFunction,
+                    // Hooks are always user-defined.
+                    false,
                     None,
                 );
                 Self::visit_inline_children(hook.content(), variables)
@@ -244,6 +265,10 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(DEFAULT_TAG_NAMES.link()),
                     MessageVariableType::LinkFunction,
+                    // Links themselves are builtins, since they define the
+                    // handling of the link tag itself, while the destination
+                    // or content may still contain user-defined variables.
+                    true,
                     None,
                 );
                 Self::visit_inline_children(link.label(), variables)?;
@@ -257,6 +282,7 @@ impl MessageVariablesVisitor {
                         variables.add_instance(
                             global_intern_string(DEFAULT_TAG_NAMES.empty()),
                             MessageVariableType::Any,
+                            true,
                             None,
                         );
                         Ok(())
@@ -265,6 +291,7 @@ impl MessageVariablesVisitor {
                         variables.add_instance(
                             global_intern_string(&handler_name),
                             MessageVariableType::HandlerFunction,
+                            false,
                             None,
                         );
                         Ok(())
@@ -280,6 +307,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(variable.name()),
                     MessageVariableType::Any,
+                    false,
                     None,
                 );
                 Ok(())
@@ -288,6 +316,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(plural.name()),
                     MessageVariableType::Plural,
+                    false,
                     None,
                 );
                 for arm in plural.arms() {
@@ -300,6 +329,7 @@ impl MessageVariablesVisitor {
                     global_intern_string(select.name()),
                     // TODO(faulty): change this to ::Enum.
                     MessageVariableType::Plural,
+                    false,
                     None,
                 );
                 for arm in select.arms() {
@@ -311,6 +341,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(date.name()),
                     MessageVariableType::Date,
+                    false,
                     None,
                 );
                 Ok(())
@@ -319,6 +350,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(time.name()),
                     MessageVariableType::Time,
+                    false,
                     None,
                 );
                 Ok(())
@@ -327,6 +359,7 @@ impl MessageVariablesVisitor {
                 variables.add_instance(
                     global_intern_string(number.name()),
                     MessageVariableType::Number,
+                    false,
                     None,
                 );
                 Ok(())
