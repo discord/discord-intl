@@ -1,8 +1,6 @@
-use std::fmt::Formatter;
 use std::ops::{Deref, DerefMut, Range};
 use std::rc::Rc;
 
-use arcstr::{ArcStr, Substr};
 use bitflags::bitflags;
 
 use crate::tree_builder::TokenSpan;
@@ -46,7 +44,8 @@ impl TokenFlags {
 #[derive(Clone, PartialEq, Eq)]
 pub struct Trivia {
     kind: SyntaxKind,
-    text: Substr,
+    source: SourceText,
+    range: TextSpan,
     /// A Trivia piece is `trailing` on the token in all cases _except_ for
     /// leading whitespace, which is the first whitespace on a line that also
     /// contains non-trivial tokens. This is reverse from how trivia is often
@@ -60,10 +59,11 @@ pub struct Trivia {
 }
 
 impl Trivia {
-    pub fn new(kind: SyntaxKind, text: Substr, is_trailing: bool) -> Self {
+    pub fn new(kind: SyntaxKind, source: SourceText, range: TextSpan, is_trailing: bool) -> Self {
         Self {
             kind,
-            text,
+            source,
+            range,
             is_trailing,
         }
     }
@@ -75,7 +75,7 @@ impl Trivia {
 
     /// Returns the text of this trivia.
     pub fn text(&self) -> &str {
-        &self.text.as_str()
+        &self.source[self.range.start as usize..self.range.end as usize]
     }
 
     /// Returns true if this trivia is leading.
@@ -83,16 +83,16 @@ impl Trivia {
         self.is_trailing
     }
 
-    pub fn span_start(&self) -> usize {
-        self.text.range().start
+    pub fn span_start(&self) -> TextIndex {
+        self.range.start
     }
 
-    pub fn span_end(&self) -> usize {
-        self.text.range().end
+    pub fn span_end(&self) -> TextIndex {
+        self.range.end
     }
 
     pub fn len(&self) -> usize {
-        self.text.len()
+        self.range.len()
     }
 }
 
@@ -101,9 +101,9 @@ impl std::fmt::Debug for Trivia {
         f.write_fmt(format_args!(
             "{:?}@{}..{}\"{}\"",
             self.kind,
-            self.text.range().start,
-            self.text.range().end,
-            self.text.escape_debug(),
+            self.range.start,
+            self.range.end,
+            self.text().escape_debug(),
         ))?;
 
         if f.alternate() && !self.is_trailing {
@@ -153,7 +153,7 @@ impl TriviaList {
                 if !trivia.is_trailing() || trivia.span_start() != text_position {
                     return true;
                 }
-                text_position += trivia.len();
+                text_position += trivia.len() as u32;
                 false
             })
             .unwrap_or(available_trivia.len());
@@ -165,7 +165,7 @@ impl TriviaList {
     /// Returns all trivia, both leading and trailing, that appear contiguously before the given
     /// position. This method assumes that `cursor` is on a token boundary where trivia could exist.
     /// It will not search within trivia positions.
-    fn preceding_contiguous_trivia(&self, mut text_position: usize) -> &[Trivia] {
+    fn preceding_contiguous_trivia(&self, mut text_position: TextIndex) -> &[Trivia] {
         let end_cursor = 1 + match self
             .trivia_list
             .binary_search_by_key(&text_position, |trivia| trivia.span_end())
@@ -190,7 +190,7 @@ impl TriviaList {
     /// Returns all trivia, both trailing and leading, that appear contiguously after the given
     /// position. This method assumes that `cursor` is on a token boundary where trivia could exist.
     /// It will not search within trivia positions.
-    fn following_contiguous_trivia(&self, mut text_position: usize) -> &[Trivia] {
+    fn following_contiguous_trivia(&self, mut text_position: TextIndex) -> &[Trivia] {
         let start_cursor = match self
             .trivia_list
             .binary_search_by_key(&text_position, |trivia| trivia.span_start())
@@ -234,7 +234,7 @@ pub struct TriviaPointer {
 }
 
 impl std::fmt::Debug for TriviaPointer {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "TriviaPointer({}..{}..{}, {:?}, {:?})",
             self.leading_count,
@@ -290,12 +290,12 @@ pub struct SyntaxToken {
     /// The kind of token present here.
     kind: SyntaxKind,
     /// The text contained by this token
-    range: Range<usize>,
+    range: TextSpan,
     flags: TokenFlags,
 }
 
 impl SyntaxToken {
-    pub fn new(kind: SyntaxKind, range: Range<usize>) -> Self {
+    pub fn new(kind: SyntaxKind, range: TextSpan) -> Self {
         Self {
             kind,
             range,
@@ -338,20 +338,26 @@ impl SyntaxToken {
     }
 
     /// Returns the positional range this token represents in the source.
-    pub fn span(&self) -> Range<usize> {
+    pub fn span(&self) -> TextSpan {
         self.range.clone()
     }
 
     /// Returns the starting character position of this token in the source.
-    pub fn span_start(&self) -> usize {
+    pub fn span_start(&self) -> TextIndex {
         self.range.start
     }
 
     /// Returns the ending character position of this token in the source.
-    pub fn span_end(&self) -> usize {
+    pub fn span_end(&self) -> TextIndex {
         self.range.end
     }
 }
+
+/// An opaque type representing a reference to the source text of the parser.
+pub type SourceText = Rc<str>;
+// A range representing
+pub type TextIndex = u32;
+pub type TextSpan = Range<TextIndex>;
 
 /// Fully-resolve Tokens that appear in the Node tree. Tokens are formed by
 /// consuming a SyntaxToken from the event stream, including any leading trivia
@@ -359,16 +365,18 @@ impl SyntaxToken {
 #[derive(Clone, Debug)]
 pub struct Token {
     kind: SyntaxKind,
-    text: Substr,
+    source: SourceText,
+    range: TextSpan,
     flags: TokenFlags,
     trivia: TriviaPointer,
 }
 
 impl Token {
-    pub fn from_syntax(syntax: SyntaxToken, text: Substr, trivia: TriviaPointer) -> Self {
+    pub fn from_syntax(syntax: SyntaxToken, source: SourceText, trivia: TriviaPointer) -> Self {
         Self {
             kind: syntax.kind(),
-            text,
+            source,
+            range: syntax.range,
             flags: syntax.flags,
             trivia,
         }
@@ -379,27 +387,31 @@ impl Token {
     }
 
     pub fn text(&self) -> &str {
-        &self.text.as_str()
+        &self.source[self.range_usize()]
     }
 
-    pub fn range(&self) -> Range<usize> {
-        self.text.range()
+    pub fn range(&self) -> TextSpan {
+        self.range.clone()
     }
 
-    pub fn parent_text(&self) -> &ArcStr {
-        &self.text.parent()
+    pub fn range_usize(&self) -> Range<usize> {
+        self.range.start as usize..self.range.end as usize
+    }
+
+    pub fn parent_text(&self) -> &SourceText {
+        &self.source
     }
 
     /// Return a single substring containing both the Token's text _and_ all of its trailing trivia.
-    pub fn text_with_trailing_trivia(&self) -> Substr {
-        let start = self.text.range().start;
+    pub fn text_with_trailing_trivia_range(&self) -> TextSpan {
+        let start = self.range.start;
         let end = self
             .trivia
             .trailing_trivia()
             .last()
-            .map_or(self.text.range().end, |trivia| trivia.text.range().end);
+            .map_or(self.range.end, |trivia| trivia.span_end());
 
-        self.text.parent().substr(start..end)
+        start..end
     }
 
     /// Return a single string reference containing only the trailing trivia of the token.
@@ -408,14 +420,14 @@ impl Token {
             .trivia
             .trailing_trivia()
             .first()
-            .map_or(self.text.range().end, |trivia| trivia.text.range().start);
+            .map_or(self.range.end, |trivia| trivia.span_start());
         let end = self
             .trivia
             .trailing_trivia()
             .last()
-            .map_or(self.text.range().end, |trivia| trivia.text.range().end);
+            .map_or(self.range.end, |trivia| trivia.span_end());
 
-        &self.text.parent()[start..end]
+        &self.source[start as usize..end as usize]
     }
 
     pub fn flags(&self) -> TokenFlags {
@@ -425,13 +437,11 @@ impl Token {
     pub fn preceding_contiguous_trivia(&self) -> &[Trivia] {
         self.trivia
             .list
-            .preceding_contiguous_trivia(self.text.range().start)
+            .preceding_contiguous_trivia(self.range.start)
     }
 
     pub fn following_contiguous_trivia(&self) -> &[Trivia] {
-        self.trivia
-            .list
-            .following_contiguous_trivia(self.text.range().end)
+        self.trivia.list.following_contiguous_trivia(self.range.end)
     }
 
     pub fn leading_trivia(&self) -> &[Trivia] {

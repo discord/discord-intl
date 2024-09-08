@@ -9,7 +9,6 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-arcstr = "1"
 anyhow = "1"
 bitflags = "2"
 codespan-reporting = { version = "0.11.1", features = ["serialization"] }

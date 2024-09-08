@@ -1,10 +1,8 @@
-use arcstr::ArcStr;
-
 use crate::{
     lexer::{LexContext, LexerState},
     token::Trivia,
 };
-use crate::token::TriviaList;
+use crate::token::{SourceText, TriviaList};
 
 use super::{
     block_parser::BlockParser,
@@ -53,7 +51,7 @@ pub(super) struct ParserCheckpoint {
 /// (`$[content](hookName)` and `!!{something}!!`, respectively).
 pub struct ICUMarkdownParser<'source> {
     lexer: Lexer<'source>,
-    source: ArcStr,
+    source: SourceText,
     buffer: Vec<Event>,
     trivia_list: TriviaList,
     /// A stack of delimiter stacks, storing the hierarchical state of delimiters across different
@@ -91,11 +89,9 @@ impl<'source> ICUMarkdownParser<'source> {
             vec![]
         };
 
-        let arc = ArcStr::from(source);
-
         Self {
             lexer: Lexer::new(source, block_bounds),
-            source: arc,
+            source: SourceText::from(source),
             buffer: Vec::with_capacity(source.len() / 2),
             // Pre-allocating some size here should avoid the need to allocate
             // at any point within the parser in _most_ cases, at the expense of
@@ -107,7 +103,7 @@ impl<'source> ICUMarkdownParser<'source> {
         }
     }
 
-    pub fn source(&self) -> &ArcStr {
+    pub fn source(&self) -> &SourceText {
         &self.source
     }
 
@@ -190,8 +186,7 @@ impl<'source> ICUMarkdownParser<'source> {
     /// lossless syntax tree. The return value is the root Node of that tree,
     /// a Document.
     pub fn into_cst(self) -> Document {
-        let arc = ArcStr::clone(self.source());
-        parser_events_to_cst(self.buffer, arc, self.trivia_list)
+        parser_events_to_cst(self.buffer, self.source, self.trivia_list)
     }
 
     // Options API
@@ -317,7 +312,8 @@ impl<'source> ICUMarkdownParser<'source> {
         let token = self.lexer.extract_current_token();
         Trivia::new(
             token.kind(),
-            self.source().substr(token.span()),
+            self.source().clone(),
+            token.span(),
             // This is...arbitrary, but the lexer enforces that the only time
             // LEADING_WHITESPACE is created is when there is non-whitespace
             // content on the line as well, and the leading whitespace will
@@ -473,7 +469,7 @@ mod test {
             DebugEventBuffer(
                 parser.buffer.clone(),
                 parser.trivia_list.clone().into(),
-                parser.source()
+                parser.source().clone()
             )
         );
 

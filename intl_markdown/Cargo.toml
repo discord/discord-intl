@@ -12,7 +12,6 @@ bench = false
 doctest = false
 
 [dependencies]
-arcstr = "1"
 bitflags = "2"
 intl_markdown_macros = { path = "../intl_markdown_macros" }
 serde = { version = "1", features = ["derive"] }

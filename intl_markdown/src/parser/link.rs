@@ -1,10 +1,10 @@
+use crate::lexer::LexContext;
+use crate::parser::icu::{is_at_normal_icu, parse_icu};
 use crate::{
     delimiter::{Delimiter, LinkDelimiter},
     event::{Event, Marker, MarkerSpan},
     SyntaxKind,
 };
-use crate::lexer::LexContext;
-use crate::parser::icu::{is_at_normal_icu, parse_icu};
 
 use super::{delimiter::process_closed_delimiter, ICUMarkdownParser};
 
@@ -245,7 +245,10 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
         // be present _and_ be a token event.
         let token = p.get_last_event().and_then(Event::as_token).unwrap();
         // SAFETY: Token ranges are always valid, so this is safe.
-        let text = unsafe { p.source().get_unchecked(token.span()) };
+        let text = unsafe {
+            let size_span = token.span().start as usize..token.span().end as usize;
+            p.source().get_unchecked(size_span)
+        };
         // If the text _doesn't_ contain characters that _aren't_ alphanumeric,
         // then it's a valid identifier in this context and counts as a click
         // handler.

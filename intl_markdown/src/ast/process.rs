@@ -1,25 +1,23 @@
 use std::borrow::Cow;
 
-use arcstr::{ArcStr, Substr};
-
 use crate::{ast, SyntaxKind};
 use crate::ast::{CodeBlockKind, HeadingKind, IcuPluralKind, LinkKind, TextOrPlaceholder};
 use crate::html_entities::get_html_entity;
-use crate::token::Token;
+use crate::token::{SourceText, Token};
 use crate::tree_builder::{cst, TokenSpan};
 use crate::util::unescape_cow;
 
 use super::util::unescape;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct AstProcessingContext {
-    source: ArcStr,
+    source: SourceText,
     allow_hard_line_breaks: bool,
     allow_icu_pound: bool,
 }
 
 impl AstProcessingContext {
-    fn new(source: ArcStr) -> Self {
+    fn new(source: SourceText) -> Self {
         Self {
             source,
             allow_hard_line_breaks: false,
@@ -41,13 +39,9 @@ impl AstProcessingContext {
         self.allow_hard_line_breaks = old_allow_hard_line_breaks;
         result
     }
-
-    fn get_text_range(&self, range: impl core::ops::RangeBounds<usize>) -> Substr {
-        self.source.substr(range)
-    }
 }
 
-pub fn process_cst_to_ast(source: ArcStr, cst: &cst::Document) -> ast::Document {
+pub fn process_cst_to_ast(source: SourceText, cst: &cst::Document) -> ast::Document {
     let mut context = AstProcessingContext::new(source);
     let mut blocks = vec![];
     for node in cst.children() {
@@ -172,7 +166,7 @@ pub fn process_fenced_code_block(
 }
 
 pub fn process_code_block_content(
-    _: &mut AstProcessingContext,
+    context: &mut AstProcessingContext,
     content: &cst::CodeBlockContent,
 ) -> String {
     let mut buffer = String::with_capacity(content.children().len() * 10);
@@ -180,7 +174,8 @@ pub fn process_code_block_content(
         // The only leading trivia that a token in a code block can have is a LEADING_WHITESPACE
         // trivia, which is intentionally left out of the content of a code block anyway, so we
         // can always skip all leading trivia of these tokens safely.
-        buffer.push_str(child.text_with_trailing_trivia().as_str());
+        let range = child.text_with_trailing_trivia_range();
+        buffer.push_str(&context.source[range.start as usize..range.end as usize]);
     }
 
     // Code blocks always have a trailing newline, so add it if it isn't already present.
@@ -731,25 +726,24 @@ fn take_tokens_verbatim_with_entities_replaced(
     buffer
 }
 
-fn take_tokens_as_verbatim_text(
-    context: &AstProcessingContext,
+fn take_tokens_as_verbatim_text<'a>(
+    context: &'a AstProcessingContext,
     tokens: &Vec<Token>,
     include_trailing_trivia: bool,
-) -> Substr {
+) -> &'a str {
     if tokens.is_empty() {
-        return Substr::default();
+        return "";
     }
 
     let start = tokens[0].range().start;
     let end = if include_trailing_trivia {
         tokens[tokens.len() - 1]
-            .text_with_trailing_trivia()
-            .range()
+            .text_with_trailing_trivia_range()
             .end
     } else {
         tokens[tokens.len() - 1].range().end
     };
 
-    context.get_text_range(start..end)
+    &context.source[start as usize..end as usize]
 }
 //#endregion

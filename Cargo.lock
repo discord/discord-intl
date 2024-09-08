@@ -88,12 +88,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
 
 [[package]]
-name = "arcstr"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03918c3dbd7701a85c6b9887732e2921175f26c350b4563841d0958c21d57e6d"
-
-[[package]]
 name = "ast_node"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -686,7 +680,6 @@ dependencies = [
 name = "intl_markdown"
 version = "0.1.0"
 dependencies = [
- "arcstr",
  "bitflags",
  "criterion",
  "intl_markdown_macros",
@@ -714,7 +707,6 @@ name = "intl_message_database"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "arcstr",
  "bitflags",
  "codespan-reporting",
  "intl_markdown",

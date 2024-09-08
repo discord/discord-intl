@@ -1,6 +1,7 @@
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
 
 use crate::byte_lookup::{byte_is_significant_punctuation, char_length_from_byte};
+use crate::token::{TextIndex, TextSpan};
 
 use super::{
     block_parser::BlockBound,
@@ -866,7 +867,9 @@ impl<'source> Lexer<'source> {
 
     fn consume_icu_keyword_or_ident(&mut self) -> SyntaxKind {
         self.consume_icu_ident();
-        let ident = &self.text[self.current_byte_span()];
+        let span = self.current_byte_span();
+        let size_span = span.start as usize..span.end as usize;
+        let ident = &self.text[size_span];
         match ident {
             "plural" => SyntaxKind::ICU_PLURAL_KW,
             "select" => SyntaxKind::ICU_SELECT_KW,
@@ -1069,8 +1072,8 @@ impl<'source> Lexer<'source> {
     }
 
     /// Returns a range representing the byte span of the current token.
-    pub fn current_byte_span(&self) -> std::ops::Range<usize> {
-        self.last_position..self.position
+    pub fn current_byte_span(&self) -> TextSpan {
+        self.last_position as TextIndex..self.position as TextIndex
     }
 
     /// Creates a new token of the given `kind` from the current positions in
@@ -1096,7 +1099,7 @@ impl<'source> Lexer<'source> {
     /// way that new tokens are created iteratively during lexing, but can also
     /// be used to generate arbitrary tokens from a given range, effectively re-
     /// lexing the content, but without destroying old tokens, either.
-    pub fn token_from_range(&self, kind: SyntaxKind, range: std::ops::Range<usize>) -> SyntaxToken {
+    pub fn token_from_range(&self, kind: SyntaxKind, range: TextSpan) -> SyntaxToken {
         SyntaxToken::new(kind, range).with_flags(self.current_flags)
     }
 }

@@ -1,10 +1,8 @@
-use arcstr::ArcStr;
-
 use intl_markdown_macros::ReadFromEvents;
 
 use crate::event::{Event, EventBuffer};
 use crate::syntax::SyntaxKind;
-use crate::token::Token;
+use crate::token::{SourceText, Token};
 use crate::token::TriviaList;
 use crate::tree_builder::{ReadFromEventBuf, TokenSpan};
 
@@ -101,7 +99,7 @@ impl std::fmt::Debug for NodeOrToken {
     }
 }
 
-macro_rules! ast_token_list {
+macro_rules! cst_token_list {
     ($node_name:ident) => {
         #[derive(Debug, ReadFromEvents)]
         #[repr(transparent)]
@@ -121,8 +119,8 @@ macro_rules! ast_token_list {
     };
 }
 
-macro_rules! ast_block_node {
-    ($node_name:ident) => {
+macro_rules! cst_block_node {
+    ($node_name:tt) => {
         #[derive(Debug, ReadFromEvents)]
         #[repr(transparent)]
         pub struct $node_name {
@@ -139,9 +137,9 @@ macro_rules! ast_block_node {
 //#endregion
 
 //#region Markdown Block Nodes
-ast_block_node!(Document);
-ast_block_node!(InlineContent);
-ast_token_list!(ThematicBreak);
+cst_block_node!(Document);
+cst_block_node!(InlineContent);
+cst_token_list!(ThematicBreak);
 
 #[derive(Debug, ReadFromEvents)]
 pub struct Paragraph {
@@ -161,9 +159,9 @@ pub struct FencedCodeBlock {
     pub closing_sequence: Option<CodeFenceDelimiter>,
 }
 
-ast_token_list!(CodeBlockContent);
-ast_token_list!(CodeFenceDelimiter);
-ast_token_list!(CodeFenceInfoString);
+cst_token_list!(CodeBlockContent);
+cst_token_list!(CodeFenceDelimiter);
+cst_token_list!(CodeFenceInfoString);
 
 #[derive(Debug, ReadFromEvents)]
 pub struct AtxHeading {
@@ -180,7 +178,7 @@ impl AtxHeading {
     }
 }
 
-ast_token_list!(AtxHashSequence);
+cst_token_list!(AtxHashSequence);
 
 #[derive(Debug, ReadFromEvents)]
 pub struct SetextHeading {
@@ -188,7 +186,7 @@ pub struct SetextHeading {
     pub underline: SetextHeadingUnderline,
 }
 
-ast_token_list!(SetextHeadingUnderline);
+cst_token_list!(SetextHeadingUnderline);
 
 impl SetextHeadingUnderline {
     /// Returns the heading level (1 or 2) that this heading should have
@@ -291,7 +289,7 @@ pub struct LinkTitle {
     pub closing_punctuation: Token,
 }
 
-ast_token_list!(LinkTitleContent);
+cst_token_list!(LinkTitleContent);
 
 #[derive(Debug, ReadFromEvents)]
 pub struct Autolink {
@@ -307,7 +305,7 @@ pub struct CodeSpan {
     pub close_backticks: CodeSpanDelimiter,
 }
 
-ast_token_list!(CodeSpanDelimiter);
+cst_token_list!(CodeSpanDelimiter);
 //#endregion
 
 //#region Markdown Extensions
@@ -457,7 +455,7 @@ pub enum Node {
     Icu(Icu),
 }
 
-pub fn parser_events_to_cst(buf: Vec<Event>, source: ArcStr, trivia: TriviaList) -> Document {
+pub fn parser_events_to_cst(buf: Vec<Event>, source: SourceText, trivia: TriviaList) -> Document {
     let only_important_events = buf
         .into_iter()
         .filter(|event| !matches!(event.kind(), SyntaxKind::TOMBSTONE));

@@ -1,7 +1,7 @@
 use crate::{
     event::{Event, EventBuffer},
-    token::Token,
     SyntaxKind,
+    token::Token,
 };
 
 pub mod cst;
@@ -43,7 +43,7 @@ pub(crate) trait ReadFromEventBuf {
     }
 }
 
-impl<T: ReadFromEventBuf> ReadFromEventBuf for Option<T> {
+impl<'source, T: ReadFromEventBuf> ReadFromEventBuf for Option<T> {
     const KIND: SyntaxKind = T::KIND;
     const IS_TOKEN: bool = T::IS_TOKEN;
 
@@ -70,7 +70,7 @@ impl ReadFromEventBuf for Token {
     }
 }
 
-impl<T: ReadFromEventBuf> ReadFromEventBuf for Vec<T> {
+impl<'source, T: ReadFromEventBuf> ReadFromEventBuf for Vec<T> {
     #[inline(always)]
     fn read_from<I: Iterator<Item = Event>>(buf: &mut EventBuffer<I>) -> Self {
         // Special-casing here ensures that flat lists of tokens can be read

@@ -1,9 +1,7 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
-use arcstr::ArcStr;
-
-use crate::token::{Token, TriviaList, TriviaPointer};
+use crate::token::{SourceText, Token, TriviaList, TriviaPointer};
 
 use super::{ICUMarkdownParser, SyntaxKind, SyntaxToken};
 
@@ -114,7 +112,7 @@ impl std::fmt::Display for Event {
 
 pub(crate) struct EventBuffer<I> {
     buffer: I,
-    source: ArcStr,
+    source: SourceText,
     trivia_list: Rc<TriviaList>,
     trivia_cursor: usize,
     peeked: Option<Option<Event>>,
@@ -124,7 +122,7 @@ impl<I> EventBuffer<I>
 where
     I: Iterator<Item = Event>,
 {
-    pub(crate) fn new(buffer: I, source: ArcStr, trivia_list: TriviaList) -> Self {
+    pub(crate) fn new(buffer: I, source: SourceText, trivia_list: TriviaList) -> Self {
         Self {
             buffer,
             source,
@@ -158,13 +156,12 @@ where
     pub(crate) fn next_as_token(&mut self) -> Token {
         match self.next() {
             Some(Event::Token(syntax_token)) => {
-                let text = self.source.substr(syntax_token.span());
                 let trivia_pointer = TriviaPointer::from_token(
                     &syntax_token,
                     &mut self.trivia_list,
                     &mut self.trivia_cursor,
                 );
-                Token::from_syntax(syntax_token, text, trivia_pointer)
+                Token::from_syntax(syntax_token, self.source.clone(), trivia_pointer)
             }
             found => panic!(
                 "Attempted to read next event as a token, but got {:?} instead",
@@ -207,10 +204,10 @@ where
 }
 
 #[allow(unused)]
-pub(crate) struct DebugEventBuffer<'source>(pub Vec<Event>, pub TriviaList, pub &'source str);
+pub(crate) struct DebugEventBuffer(pub Vec<Event>, pub TriviaList, pub SourceText);
 
 #[allow(unused)]
-impl DebugEventBuffer<'_> {
+impl DebugEventBuffer {
     pub fn events(&self) -> &Vec<Event> {
         &self.0
     }
@@ -224,7 +221,7 @@ impl DebugEventBuffer<'_> {
     }
 }
 
-impl std::fmt::Debug for DebugEventBuffer<'_> {
+impl std::fmt::Debug for DebugEventBuffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if !f.alternate() {
             return self.0.fmt(f);
@@ -266,12 +263,15 @@ impl std::fmt::Debug for DebugEventBuffer<'_> {
                     let trivia_pointer =
                         TriviaPointer::from_token(&token, &mut trivia_list, &mut trivia_cursor);
 
+                    let span = token.span();
+                    let size_span = span.start as usize..span.end as usize;
+
                     f.write_fmt(format_args!(
                         "{:indent$}{:?}@{:?}\"{}\" {:?} {:?}",
                         "",
                         token.kind(),
-                        token.span(),
-                        self.source()[token.span()].escape_debug(),
+                        size_span.clone(),
+                        self.source()[size_span].escape_debug(),
                         trivia_pointer.leading_trivia(),
                         trivia_pointer.trailing_trivia(),
                         indent = indent_level * 2
