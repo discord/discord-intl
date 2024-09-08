@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use memchr::memchr;
+
 use crate::ast::InlineContent;
 
 fn icu_markdown_escape_handler(s: &str) -> Result<(Option<char>, &str), unescape_zero_copy::Error> {
@@ -20,9 +22,20 @@ fn icu_markdown_escape_handler(s: &str) -> Result<(Option<char>, &str), unescape
 // Handle unescaping backslash characters (e.g., turning `\!` into `!`) and removing carriage
 // returns from the input.
 pub(crate) fn unescape(text: &str) -> String {
-    unescape_zero_copy::unescape(icu_markdown_escape_handler, &text)
-        .unwrap_or(Cow::Borrowed(text))
-        .to_string()
+    unescape_cow(text).to_string()
+}
+// Handle unescaping backslash characters (e.g., turning `\!` into `!`) and removing carriage
+// returns from the input.
+pub(crate) fn unescape_cow(text: &str) -> Cow<str> {
+    // Most strings don't contain escapes, so doing a quick lookup over the
+    // whole string can speed up the normal case.
+    if let None = memchr(b'\\', text.as_bytes()) {
+        return Cow::Borrowed(text);
+    }
+    match unescape_zero_copy::unescape(icu_markdown_escape_handler, text.as_ref()) {
+        Ok(result) => result,
+        _ => Cow::Borrowed(text),
+    }
 }
 
 // Taken from:

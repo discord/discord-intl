@@ -402,8 +402,8 @@ impl Token {
         self.text.parent().substr(start..end)
     }
 
-    /// Return a single substring containing only the trailing trivia of the token.
-    pub fn trailing_trivia_text(&self) -> Substr {
+    /// Return a single string reference containing only the trailing trivia of the token.
+    pub fn trailing_trivia_text(&self) -> &str {
         let start = self
             .trivia
             .trailing_trivia()
@@ -415,7 +415,7 @@ impl Token {
             .last()
             .map_or(self.text.range().end, |trivia| trivia.text.range().end);
 
-        self.text.parent().substr(start..end)
+        &self.text.parent()[start..end]
     }
 
     pub fn flags(&self) -> TokenFlags {

@@ -1,6 +1,6 @@
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
 
-use crate::syntax::byte_is_significant;
+use crate::byte_lookup::{byte_is_significant, char_length_from_byte};
 
 use super::{
     block_parser::BlockBound,
@@ -183,7 +183,12 @@ impl<'source> Lexer<'source> {
             b'-' => self.consume_byte(SyntaxKind::MINUS),
             b'#' => self.consume_byte(SyntaxKind::HASH),
             b':' => self.consume_byte(SyntaxKind::COLON),
-            b'\'' => self.consume_byte(SyntaxKind::QUOTE),
+            b'\'' => match self.peek() {
+                // `'{` is an escaped ICU block, meaning it has no semantic
+                // meaning and is treated as plain text.
+                Some(b'{' | b'}') => self.consume_plain_text(),
+                _ => self.consume_byte(SyntaxKind::QUOTE),
+            },
             b'"' => self.consume_byte(SyntaxKind::DOUBLE_QUOTE),
             b'&' => self.consume_char_reference(),
             _ => self.consume_plain_text(),
@@ -715,21 +720,20 @@ impl<'source> Lexer<'source> {
             }
 
             let current = self.current();
+            if byte_is_significant(current) {
+                // ICU uses single quote characters as escapes for the control
+                // characters. There are a few characters that can be escaped that
+                // we don't actually care about, like `'#`, since that doesn't have
+                // an effect on the markdown parsing anyway. All that we care about
+                // is the brace characters that enter and exit ICU contexts so that
+                // we can track literal state.
+                if current == b'\'' && matches!(self.peek(), Some(b'{' | b'}')) {
+                    // Skip past these chars and continue the loop.
+                    self.advance_n_bytes(2);
+                    continue;
+                }
 
-            if byte_is_significant(current) || current.is_ascii_whitespace() {
                 break;
-            }
-
-            // ICU uses single quote characters as escapes for the control
-            // characters. There are a few characters that can be escaped that
-            // we don't actually care about, like `'#`, since that doesn't have
-            // an effect on the markdown parsing anyway. All that we care about
-            // is the brace characters that enter and exit ICU contexts so that
-            // we can track literal state.
-            if current == b'\'' && matches!(self.peek(), Some(b'{' | b'}')) {
-                // Skip past these chars and continue the loop.
-                self.advance_n_bytes(2);
-                continue;
             }
 
             self.advance();
@@ -916,10 +920,6 @@ impl<'source> Lexer<'source> {
         self.text.as_bytes()[self.position]
     }
 
-    fn current_char(&self) -> char {
-        self.text[self.position..].chars().next().unwrap()
-    }
-
     /// Returns the flags that are applied for the current token.
     pub fn current_flags(&self) -> TokenFlags {
         self.current_flags
@@ -992,12 +992,7 @@ impl<'source> Lexer<'source> {
     /// Advance the lexer by one unicode character.
     fn advance(&mut self) {
         let previous = self.current();
-        if previous.is_ascii() {
-            self.position += 1;
-        } else {
-            let current_char = self.current_char();
-            self.position += current_char.len_utf8();
-        }
+        self.position += char_length_from_byte(previous);
     }
 
     /// Advance n bytes in the source text. A shortcut for calling `advance`

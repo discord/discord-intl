@@ -51,3 +51,8 @@ fn icu_blocks(input: &str, output: &str) {
 fn icu_in_headings(input: &str, output: &str) {
     run_icu_string_test(input, output, true);
 }
+
+#[test_case("'{  variable  }","'{  variable  }"; "icu_escapes")]
+fn icu_escapes(input: &str, output: &str) {
+    run_icu_string_test(input, output, false);
+}

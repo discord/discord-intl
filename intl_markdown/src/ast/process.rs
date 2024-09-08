@@ -1,20 +1,32 @@
-use arcstr::Substr;
+use std::borrow::Cow;
 
+use arcstr::{ArcStr, Substr};
+
+use crate::{ast, SyntaxKind};
 use crate::ast::{CodeBlockKind, HeadingKind, IcuPluralKind, LinkKind, TextOrPlaceholder};
 use crate::html_entities::get_html_entity;
 use crate::token::Token;
 use crate::tree_builder::{cst, TokenSpan};
-use crate::{ast, SyntaxKind};
+use crate::util::unescape_cow;
 
 use super::util::unescape;
 
 #[derive(Clone, Debug, Default)]
 pub struct AstProcessingContext {
+    source: ArcStr,
     allow_hard_line_breaks: bool,
     allow_icu_pound: bool,
 }
 
 impl AstProcessingContext {
+    fn new(source: ArcStr) -> Self {
+        Self {
+            source,
+            allow_hard_line_breaks: false,
+            allow_icu_pound: false,
+        }
+    }
+
     fn with_context<M, F, T>(&mut self, mut mutator: M, func: F) -> T
     where
         M: FnMut(&mut Self),
@@ -29,10 +41,14 @@ impl AstProcessingContext {
         self.allow_hard_line_breaks = old_allow_hard_line_breaks;
         result
     }
+
+    fn get_text_range(&self, range: impl core::ops::RangeBounds<usize>) -> Substr {
+        self.source.substr(range)
+    }
 }
 
-pub fn process_cst_to_ast(cst: &cst::Document) -> ast::Document {
-    let mut context = AstProcessingContext::default();
+pub fn process_cst_to_ast(source: ArcStr, cst: &cst::Document) -> ast::Document {
+    let mut context = AstProcessingContext::new(source);
     let mut blocks = vec![];
     for node in cst.children() {
         match node {
@@ -214,7 +230,7 @@ pub fn process_inline_children(
     context: &mut AstProcessingContext,
     content: &Vec<cst::NodeOrToken>,
 ) -> Vec<ast::InlineContent> {
-    let mut children = vec![];
+    let mut children = Vec::with_capacity(content.len() * 2);
     let mut last_node_token = None;
     // If multiple plain text tokens appear in a row, they can be merged together into a single
     // `InlineContent::Text` node, saving space and time during traversals. Entities and other kinds
@@ -329,30 +345,43 @@ pub fn process_inline_token(
         _ => {}
     }
 
-    let mut text = get_text_with_replaced_references(context, &token);
-    if include_trailing_trivia {
-        // If the token has a trailing newline, then none of the other trivia matter and it all
-        // is just replaced by a single newline.
-        if token.has_trailing_newline() {
-            text.push_str("\n");
-        } else {
-            text.push_str(&token.trailing_trivia_text());
+    let has_trailing_newline = token.has_trailing_newline();
+    let text = get_text_with_replaced_references(context, &token);
+    let mut unescaped = unescape_cow(&text);
+    // If there's a trailing newline, we have to copy and append the buffer no matter what.
+    let result = if include_trailing_trivia && has_trailing_newline {
+        unescaped.to_mut().push_str("\n");
+        unescaped.to_string()
+    } else {
+        if include_trailing_trivia {
+            unescaped.to_mut().push_str(&token.trailing_trivia_text());
         }
-    }
-
-    ast::InlineContent::Text(unescape(&text))
+        unescaped.to_string()
+    };
+    ast::InlineContent::Text(result)
 }
 
-fn get_text_with_replaced_references(context: &mut AstProcessingContext, token: &Token) -> String {
+fn get_text_with_replaced_references<'a>(
+    context: &mut AstProcessingContext,
+    token: &'a Token,
+) -> Cow<'a, str> {
     match token.kind() {
         SyntaxKind::DEC_CHAR_REF => {
-            return process_char_ref(context, &token.text()[2..token.text().len() - 1], 10)
+            return Cow::from(process_char_ref(
+                context,
+                &token.text()[2..token.text().len() - 1],
+                10,
+            ))
         }
         SyntaxKind::HEX_CHAR_REF => {
-            return process_char_ref(context, &token.text()[3..token.text().len() - 1], 16)
+            return Cow::from(process_char_ref(
+                context,
+                &token.text()[3..token.text().len() - 1],
+                16,
+            ))
         }
         SyntaxKind::HTML_ENTITY => return process_html_entity(context, token).into(),
-        _ => token.text().to_string(),
+        _ => Cow::from(token.text()),
     }
 }
 
@@ -473,7 +502,10 @@ fn process_link_title(
     )))
 }
 
-pub fn process_code_span(_: &mut AstProcessingContext, code_span: &cst::CodeSpan) -> ast::CodeSpan {
+pub fn process_code_span(
+    context: &mut AstProcessingContext,
+    code_span: &cst::CodeSpan,
+) -> ast::CodeSpan {
     let mut text = String::new();
     // The code span can contain only empty space, which would mean there are no child tokens and
     // the whitespace is attached to the last token of the opening delimiter. Even if it's _not_
@@ -482,7 +514,11 @@ pub fn process_code_span(_: &mut AstProcessingContext, code_span: &cst::CodeSpan
         text.push_str(&last_opener.trailing_trivia_text());
     }
     // Then the actual content of the span can be written.
-    text.push_str(&take_tokens_as_verbatim_text(&code_span.children, true));
+    text.push_str(&take_tokens_as_verbatim_text(
+        context,
+        &code_span.children,
+        true,
+    ));
     // Finally, the first token of the closing delimiter will be "escaped" if the content ends with
     // a backslash, but that backslash should actually be part of the content (since escapes aren't
     // valid inside of code spans), so this check just adds that in if needed.
@@ -695,12 +731,15 @@ fn take_tokens_verbatim_with_entities_replaced(
     buffer
 }
 
-fn take_tokens_as_verbatim_text(tokens: &Vec<Token>, include_trailing_trivia: bool) -> Substr {
+fn take_tokens_as_verbatim_text(
+    context: &AstProcessingContext,
+    tokens: &Vec<Token>,
+    include_trailing_trivia: bool,
+) -> Substr {
     if tokens.is_empty() {
         return Substr::default();
     }
 
-    let text = tokens[0].parent_text();
     let start = tokens[0].range().start;
     let end = if include_trailing_trivia {
         tokens[tokens.len() - 1]
@@ -711,6 +750,6 @@ fn take_tokens_as_verbatim_text(tokens: &Vec<Token>, include_trailing_trivia: bo
         tokens[tokens.len() - 1].range().end
     };
 
-    text.substr(start..end)
+    context.get_text_range(start..end)
 }
 //#endregion

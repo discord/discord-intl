@@ -1,8 +1,16 @@
 use std::collections::HashMap;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 
-use intl_markdown::{format_ast, process_cst_to_ast, ICUMarkdownParser};
+use intl_markdown::{Document, format_ast, ICUMarkdownParser, process_cst_to_ast};
+
+fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
+    let mut parser = ICUMarkdownParser::new(content, include_blocks);
+    let source = parser.source().clone();
+    parser.parse();
+    let document = parser.into_cst();
+    process_cst_to_ast(source, &document)
+}
 
 /// NOTE: To run this test, copy the commonmark spec text from
 /// https://github.com/commonmark/commonmark-spec/blob/master/spec.txt into
@@ -12,11 +20,7 @@ fn long_documents(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             let content = include_str!("./spec.md");
-
-            let mut parser = ICUMarkdownParser::new(content, true);
-            parser.parse();
-            let document = parser.into_cst();
-            let ast = process_cst_to_ast(&document);
+            let ast = parse_to_ast(content, true);
             format_ast(&ast)
         })
     });
@@ -37,22 +41,15 @@ fn short_inlines(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
-
-            let mut parser = ICUMarkdownParser::new(content, true);
-            parser.parse();
-            let document = parser.into_cst();
-            let ast = process_cst_to_ast(&document);
+            let ast = parse_to_ast(content, true);
             format_ast(&ast)
         })
     });
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
+    let ast = parse_to_ast(content, false);
 
-            let mut parser = ICUMarkdownParser::new(content, false);
-            parser.parse();
-            let document = parser.into_cst();
-            let ast = process_cst_to_ast(&document);
             format_ast(&ast)
         })
     });
@@ -78,10 +75,7 @@ fn real_messages(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let mut parser = ICUMarkdownParser::new(&message, true);
-                parser.parse();
-                let document = parser.into_cst();
-                let ast = process_cst_to_ast(&document);
+                let ast = parse_to_ast(message, true);
                 format_ast(&ast).ok();
             }
         })
@@ -89,10 +83,7 @@ fn real_messages(c: &mut Criterion) {
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let mut parser = ICUMarkdownParser::new(&message, false);
-                parser.parse();
-                let document = parser.into_cst();
-                let ast = process_cst_to_ast(&document);
+                let ast = parse_to_ast(message, false);
                 format_ast(&ast).ok();
             }
         })

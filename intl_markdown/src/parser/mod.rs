@@ -96,7 +96,7 @@ impl<'source> ICUMarkdownParser<'source> {
         Self {
             lexer: Lexer::new(source, block_bounds),
             source: arc,
-            buffer: Vec::new(),
+            buffer: Vec::with_capacity(source.len() / 2),
             // Pre-allocating some size here should avoid the need to allocate
             // at any point within the parser in _most_ cases, at the expense of
             // extra allocations for simple sources.
@@ -460,8 +460,9 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "{color, select, orange {fluffy}}";
+        let content = "[link](/url \'title\')";
         let mut parser = ICUMarkdownParser::new(content, true);
+        let source = parser.source.clone();
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
 
         parser.parse();
@@ -479,7 +480,7 @@ mod test {
         let cst = parser.into_cst();
         println!("CST:\n----\n{:#?}\n", cst);
 
-        let ast = process_cst_to_ast(&cst);
+        let ast = process_cst_to_ast(source, &cst);
         println!("AST:\n----\n{:#?}\n", ast);
 
         let output = format_ast(&ast);

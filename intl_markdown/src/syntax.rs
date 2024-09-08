@@ -297,39 +297,3 @@ impl SyntaxKind {
             )
     }
 }
-
-/// Returns true if the given byte represents a significant character that
-/// could become a new type of token. This effectively just includes
-/// punctuation and newline characters.
-///
-/// Note that these are only the characters that are significant when they
-/// interrupt textual content. For example, a `-` could become a MINUS token,
-/// but within a word it can never be significant, e.g. the dash in `two-part`
-/// is not significant.
-///
-/// Whitespace in this context is _not_ considered significant.
-pub fn byte_is_significant(byte: u8) -> bool {
-    matches!(
-        byte,
-        b'\n'
-            | b'['
-            | b']'
-            | b'}'
-            | b'{'
-            | b'('
-            | b')'
-            | b':'
-            | b'<'
-            | b'>'
-            | b'`'
-            | b'$'
-            | b'*'
-            | b'_'
-            | b'~'
-            | b'!'
-            | b'\''
-            | b'"'
-            | b'\\'
-            | b'&'
-    )
-}

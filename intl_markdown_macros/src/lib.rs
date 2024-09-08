@@ -1,8 +1,10 @@
-use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
+
+use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::{format_ident, quote_spanned};
-use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Type};
+use syn::{Data, DataEnum, DataStruct, DeriveInput, LitByteStr, parse_macro_input, Token, Type};
+use syn::parse::{Parse, ParseStream};
 
 #[proc_macro_derive(ReadFromEvents)]
 pub fn derive_read_from_events(input: TokenStream) -> TokenStream {
@@ -161,6 +163,50 @@ fn derive_read_for_struct(name: &Ident, syntax_kind: Ident, data: DataStruct) ->
         }
 
         #boilerplate_impls
+    };
+
+    TokenStream::from(expanded)
+}
+
+struct GenerateAsciiLookupTableInput {
+    ident: Ident,
+    array: LitByteStr,
+}
+
+impl Parse for GenerateAsciiLookupTableInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.is_empty() {
+            panic!("At least a name must be specified for an ascii lookup table");
+        }
+
+        let ident = input.parse::<Ident>()?;
+        input.parse::<Token![,]>()?;
+        let array = input.parse::<LitByteStr>()?;
+
+        Ok(GenerateAsciiLookupTableInput { ident, array })
+    }
+}
+
+/// Generate an ASCII Lookup Table where each byte of the given string in the
+/// table are marked as true and everything else is false. The table will be
+/// assigned to a new static constant with the given name.
+///
+/// ```rustignore
+/// generate_ascii_lookup_table!(WHITESPACE, b"\n\r \t");
+/// ```
+#[proc_macro]
+pub fn generate_ascii_lookup_table(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as GenerateAsciiLookupTableInput);
+
+    let name = input.ident;
+
+    let values = &mut [0u8; 256];
+    for valid in input.array.value() {
+        values[valid as usize] = 1u8;
+    }
+
+    let expanded = quote_spanned! { proc_macro2::Span::call_site() =>
+        static #name: [u8; 256] = [#(#values),*];
     };
 
     TokenStream::from(expanded)
