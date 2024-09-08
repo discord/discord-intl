@@ -3,6 +3,7 @@ use crate::{
     event::{Event, Marker, MarkerSpan},
     SyntaxKind,
 };
+use crate::lexer::LexContext;
 use crate::parser::icu::{is_at_normal_icu, parse_icu};
 
 use super::{delimiter::process_closed_delimiter, ICUMarkdownParser};
@@ -171,13 +172,12 @@ fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
 
     // If the next token is a closing parenthesis, that's fine, the url just
     // becomes empty.
-    if p.at(SyntaxKind::RPAREN) {
-        p.bump();
+    if p.expect(SyntaxKind::RPAREN).is_some() {
         marker.complete(p, SyntaxKind::LINK_RESOURCE);
         return Some(());
-    } else {
-        parse_link_destination(p)?;
     }
+
+    parse_link_destination(p)?;
 
     // Whitespace and a single newline are allowed between the destination and
     // the title, and the title can _only_ appear if there is some whitespace
@@ -217,6 +217,10 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
         return marker.complete(p, SyntaxKind::DYNAMIC_LINK_DESTINATION);
     }
 
+    // The LinkDestination context disallows merging consecutive text tokens,
+    // meaning any whitespace in the destination always ends the token.
+    p.relex_with_context(LexContext::LinkDestination);
+
     // Otherwise parse some text for the url. It can be any combination of
     // tokens _other_ than whitespace, newlines, or a closing parenthesis.
     let mut balance = 1;
@@ -230,7 +234,7 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
             SyntaxKind::LPAREN => balance += 1,
             _ => {}
         }
-        p.bump();
+        p.bump_with_context(LexContext::LinkDestination);
         token_count += 1;
     }
 

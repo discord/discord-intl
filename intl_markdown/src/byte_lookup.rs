@@ -1,6 +1,9 @@
 use intl_markdown_macros::generate_ascii_lookup_table;
 
-generate_ascii_lookup_table!(TOKEN_SIGNIFICANT_BYTES, b"\t\n\x0C\r !\"$&'()*:<>[\\]_`{}~");
+generate_ascii_lookup_table!(
+    SIGNIFICANT_PUNCTUATION_BYTES,
+    b"\n\x0C\r!\"$&'()*:<>[\\]_`{}~"
+);
 
 /// Returns true if the given byte represents a significant character that
 /// could become a new type of token. This effectively just includes
@@ -11,9 +14,10 @@ generate_ascii_lookup_table!(TOKEN_SIGNIFICANT_BYTES, b"\t\n\x0C\r !\"$&'()*:<>[
 /// but within a word it can never be significant, e.g. the dash in `two-part`
 /// is not significant.
 ///
-/// Whitespace in this context _is_ considered significant.
-pub(crate) fn byte_is_significant(byte: u8) -> bool {
-    TOKEN_SIGNIFICANT_BYTES[byte as usize] != 0
+/// Inline whitespace in this context _is not_ considered significant, but
+/// vertical whitespace _is_ significant.
+pub(crate) fn byte_is_significant_punctuation(byte: u8) -> bool {
+    SIGNIFICANT_PUNCTUATION_BYTES[byte as usize] != 0
 }
 
 // Learned from: https://nullprogram.com/blog/2017/10/06/

@@ -191,7 +191,7 @@ impl Parse for GenerateAsciiLookupTableInput {
 /// table are marked as true and everything else is false. The table will be
 /// assigned to a new static constant with the given name.
 ///
-/// ```rustignore
+/// ```ignore
 /// generate_ascii_lookup_table!(WHITESPACE, b"\n\r \t");
 /// ```
 #[proc_macro]

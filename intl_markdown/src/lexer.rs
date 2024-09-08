@@ -1,6 +1,6 @@
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
 
-use crate::byte_lookup::{byte_is_significant, char_length_from_byte};
+use crate::byte_lookup::{byte_is_significant_punctuation, char_length_from_byte};
 
 use super::{
     block_parser::BlockBound,
@@ -73,6 +73,8 @@ pub enum LexContext {
     Regular,
     /// Code blocks treat enitre lines as single tokens, with no semantics inside of them.
     CodeBlock,
+    /// Link destinations allow plain text but
+    LinkDestination,
     /// Autolinks only allow email address or URI tokens.
     Autolink,
     /// ICU semantic blocks (e.g., within `{}` segments) ignore Markdown syntax and only lex out
@@ -150,8 +152,9 @@ impl<'source> Lexer<'source> {
         }
 
         self.current_kind = match context {
-            LexContext::Regular => self.next_regular_token(),
+            LexContext::Regular => self.next_regular_token(true),
             LexContext::CodeBlock => self.next_code_block_token(),
+            LexContext::LinkDestination => self.next_regular_token(false),
             LexContext::Autolink => self.next_autolink_token(),
             LexContext::Icu => self.next_icu_token(),
             LexContext::IcuStyle => self.next_icu_style_token(),
@@ -160,7 +163,7 @@ impl<'source> Lexer<'source> {
         self.current_kind
     }
 
-    fn next_regular_token(&mut self) -> SyntaxKind {
+    fn next_regular_token(&mut self, merge_whitespace_in_text: bool) -> SyntaxKind {
         match self.current() {
             b'\0' => self.consume_byte(SyntaxKind::EOF),
             b'\r' | b'\n' => self.consume_line_ending(),
@@ -186,12 +189,12 @@ impl<'source> Lexer<'source> {
             b'\'' => match self.peek() {
                 // `'{` is an escaped ICU block, meaning it has no semantic
                 // meaning and is treated as plain text.
-                Some(b'{' | b'}') => self.consume_plain_text(),
+                Some(b'{' | b'}') => self.consume_plain_text(merge_whitespace_in_text),
                 _ => self.consume_byte(SyntaxKind::QUOTE),
             },
             b'"' => self.consume_byte(SyntaxKind::DOUBLE_QUOTE),
             b'&' => self.consume_char_reference(),
-            _ => self.consume_plain_text(),
+            _ => self.consume_plain_text(merge_whitespace_in_text),
         }
     }
 
@@ -321,7 +324,7 @@ impl<'source> Lexer<'source> {
             })
             .unwrap_or_else(|| {
                 self.rewind(checkpoint);
-                self.consume_plain_text()
+                self.consume_plain_text(false)
             })
     }
 
@@ -710,17 +713,19 @@ impl<'source> Lexer<'source> {
     }
 
     /// Consumes the input stream as literal text until a significant character
-    /// is encountered. This is written to handle underscores within words as
-    /// plain text, like "this_is_a_variable_name", rather than as a series of
-    /// potential underscore segments.
-    fn consume_plain_text(&mut self) -> SyntaxKind {
+    /// is encountered. This method speculatively lexes ahead when whitespace
+    /// is found to try to merge consecutive text fragments together into a
+    /// single token, but it will always stop at new lines to avoid over-
+    /// speculation and to provide an easy integration point for tooling that
+    /// cares about line wrapping or vertical whitespace.
+    fn consume_plain_text(&mut self, merge_inner_whitespace: bool) -> SyntaxKind {
         loop {
             if self.is_eof() || self.is_at_block_bound() {
                 break;
             }
 
             let current = self.current();
-            if byte_is_significant(current) {
+            if byte_is_significant_punctuation(current) {
                 // ICU uses single quote characters as escapes for the control
                 // characters. There are a few characters that can be escaped that
                 // we don't actually care about, like `'#`, since that doesn't have
@@ -736,10 +741,54 @@ impl<'source> Lexer<'source> {
                 break;
             }
 
+            // Inline whitespace is allowed to conjoin text into a single token, but
+            // it is done so speculatively by consuming the whitespace until another
+            // character is encountered. If that character is _not_ significant on
+            // its own, then the text segment is allowed to continue. Otherwise, the
+            // lexer is rewound to before the whitespace and the token is ended there.
+            if current == b' ' || current == b'\t' {
+                if !merge_inner_whitespace {
+                    break;
+                }
+
+                let checkpoint = self.checkpoint();
+                if self.maybe_consume_whitespace_between_text() {
+                    continue;
+                } else {
+                    self.rewind(checkpoint);
+                    break;
+                }
+            }
+
             self.advance();
         }
 
         SyntaxKind::TEXT
+    }
+
+    /// Consume inline whitespace bytes (no newlines) from the input until
+    /// another character is encountered. If that character is _not_ significant,
+    /// this function returns true. Otherwise, returns false.
+    #[inline(always)]
+    fn maybe_consume_whitespace_between_text(&mut self) -> bool {
+        // Advance once, since the caller should have asserted the starting condition.
+        self.advance();
+
+        loop {
+            if self.is_eof() || self.is_at_block_bound() {
+                return false;
+            }
+
+            let current = self.current();
+            if byte_is_significant_punctuation(current) {
+                return false;
+            }
+            if current != b' ' && current != b'\t' {
+                return true;
+            }
+
+            self.advance();
+        }
     }
 
     /// Consume all the remaining characters on the current line as a single

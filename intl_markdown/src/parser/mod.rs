@@ -225,7 +225,7 @@ impl<'source> ICUMarkdownParser<'source> {
     }
 
     /// Advances by 1 if the current token matches the given kind and returns
-    /// that token. Otherwise, returns an unexpected token error.
+    /// that token. Otherwise, returns None indicating no bump was made.
     #[inline]
     #[must_use = "The result of `expect` is a None if the current token does not match, which should be propagated or handled."]
     pub(super) fn expect(&mut self, kind: SyntaxKind) -> Option<SyntaxKind> {
@@ -460,7 +460,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "[link](/url \'title\')";
+        let content = "this is a thing with multiple \n  works  ";
         let mut parser = ICUMarkdownParser::new(content, true);
         let source = parser.source.clone();
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
