@@ -39,9 +39,6 @@ importers:
 
   intl:
     dependencies:
-      '@formatjs/icu-messageformat-parser':
-        specifier: ^2.7.6
-        version: 2.7.8
       '@formatjs/intl':
         specifier: ^2.10.1
         version: 2.10.4(typescript@5.5.4)

@@ -26,7 +26,6 @@
     "prepublishOnly": "pnpm build:release"
   },
   "dependencies": {
-    "@formatjs/icu-messageformat-parser": "^2.7.6",
     "@formatjs/intl": "^2.10.1",
     "intl-messageformat": "^10.5.11"
   },

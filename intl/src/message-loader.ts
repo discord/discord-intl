@@ -1,9 +1,7 @@
+import { FormatJsNode } from './keyless-json';
 import { InternalIntlMessage } from './message';
 
-import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
-
-type AnyRawMessage = string | MessageFormatElement[];
-type MessagesData = Record<string, AnyRawMessage>;
+type MessagesData = Record<string, FormatJsNode[]>;
 export interface IntlMessageGetterAdditions {
   onChange(callback: () => void): () => void;
 }

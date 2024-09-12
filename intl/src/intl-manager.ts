@@ -1,30 +1,17 @@
 import { createIntl, IntlShape } from '@formatjs/intl';
-import {
-  Formats,
-  Formatters,
-  IntlMessageFormat,
-  PART_TYPE as FormatPartType,
-} from 'intl-messageformat';
+import { Formats, Formatters, IntlMessageFormat } from 'intl-messageformat';
 
 import { LocaleId, LocaleImportMap, MessageLoader } from './message-loader';
 
 import type {
+  FormatterImplementation,
   FunctionTypeMap,
   IntlMessageGetter,
   RequiredFormatValues,
-  RichTextElementMap,
   TypedIntlMessageGetter,
 } from './types';
-
-/**
- * Types for formatting functions when calling `formatToParts`, ensuring the
- * functions yield value AST nodes.
- */
-type AstFunctionTypes = {
-  link: undefined | object | ((children: object) => Array<string | any>);
-  hook: undefined | object | ((children: object) => Array<string | any>);
-  handler: undefined | object | ((children: object) => Array<string | any>);
-};
+import { InternalIntlMessage } from './message';
+import { bindFormatValues, FormatBuilderConstructor } from './format';
 
 /**
  * Fallback locale used for all internationalization when an operation in the
@@ -32,26 +19,33 @@ type AstFunctionTypes = {
  */
 export const DEFAULT_LOCALE: string = 'en-US';
 
-export class IntlManager<
-  DefaultElements extends RichTextElementMap,
-  FunctionTypes extends FunctionTypeMap,
-> {
+type FormatterReturnType<F extends FormatterImplementation<any, any>> =
+  F extends FormatterImplementation<any, infer Return> ? Return : never;
+
+type FormatterFunctionTypes<F extends FormatterImplementation<any, any>> =
+  F extends FormatterImplementation<infer Functions, any> ? Functions : never;
+
+type FormatFunction<F extends FormatterImplementation<any, any>> = <T extends IntlMessageGetter>(
+  this: IntlManager,
+  message: T,
+  values: RequiredFormatValues<T, FormatterFunctionTypes<F>>,
+) => FormatterReturnType<F>;
+
+type ThisWithFormatters<
+  This,
+  T extends Record<string, FormatterImplementation<any, any>>,
+> = This & {
+  [K in keyof T]: FormatFunction<T[K]>;
+};
+
+export class IntlManager {
   defaultLocale: string;
   currentLocale: string;
   intl: IntlShape;
 
-  /**
-   * When formatting tag elements like `<b>value</b>`, these functions will
-   * automatically be used by all messages, unless they are explicitly removed
-   * for a specific call, either by overriding the value or by calling a
-   * dedicated method like `formatToPlainString` which will remove all
-   * rich elements from the string and return only the plain text result.
-   */
-  defaultRichTextElements: DefaultElements;
-
   _localeSubscriptions: Set<(locale: string) => void>;
 
-  constructor(defaultLocale: string = DEFAULT_LOCALE, defaultRichTextElements: DefaultElements) {
+  constructor(defaultLocale: string = DEFAULT_LOCALE) {
     this.defaultLocale = defaultLocale;
     this.currentLocale = defaultLocale;
     this.intl = createIntl({
@@ -60,8 +54,36 @@ export class IntlManager<
       locale: defaultLocale,
     });
 
-    this.defaultRichTextElements = defaultRichTextElements;
     this._localeSubscriptions = new Set();
+  }
+
+  /**
+   * Add a set of formatter implementations to this manager, making each available as a direct
+   * property
+   */
+  withFormatters<const T extends Record<string, FormatterImplementation<any, any>>>(
+    formatters: T,
+  ): ThisWithFormatters<this, T> {
+    for (const [name, formatter] of Object.entries(formatters)) {
+      this[name] = this.makeFormatFunction(formatter);
+    }
+
+    return this as ThisWithFormatters<this, T>;
+  }
+
+  /**
+   * Return a new function bound to this manager that uses the given `FormatterImplementation` to
+   * format a message after it has been resolved for the current locale and potentially processed in
+   * other ways by the manager.
+   */
+  makeFormatFunction<F extends FormatterImplementation<any, any>>({
+    format,
+    builder,
+  }: F): FormatFunction<FormatterReturnType<F>> {
+    const formatter = format.bind(this);
+    return (message, values) => {
+      return formatter(message(this.currentLocale), values, builder);
+    };
   }
 
   /**
@@ -89,124 +111,23 @@ export class IntlManager<
   };
 
   /**
-   * Format the given message in the current locale with the provided values.
-   * The returned values is _always_ an Array of parts, even if the message is
-   * a simple string value.
-   *
-   * This function is the basis of how messages are normally formatted, and can
-   * be used anywhere. However, it is not reactive and only functions on the
-   * data that is currently loaded and known. For a reactive function that
-   * automatically updates when the locale changes or when new data is loaded,
-   * use `format`, which will wrap the formatting in a React component that
-   * subscribes to the current locale and state of loaded messages.
+   * For static messages with no rich text and no dynamic placeholders, use this method to
+   * immediately return the plain string value of the message in the current locale.
    */
-  formatToParts<T extends TypedIntlMessageGetter<undefined>>(message: T): Array<string | any>;
-  formatToParts<T extends IntlMessageGetter>(
-    message: T,
-    values: RequiredFormatValues<T, DefaultElements, AstFunctionTypes>,
-  ): Array<string | any>;
-  formatToParts<T extends IntlMessageGetter>(
-    message: T,
-    values?: RequiredFormatValues<T, DefaultElements, AstFunctionTypes>,
-  ): Array<string | any> {
-    if (typeof message === 'string') return [message];
-    const resolvedMessage = typeof message === 'function' ? message(this.currentLocale) : message;
-    if (typeof resolvedMessage === 'string') return [resolvedMessage];
-
-    const resolvedValues =
-      values != null
-        ? { ...this.defaultRichTextElements, ...values }
-        : this.defaultRichTextElements;
-    const parts = resolvedMessage.formatToParts(
-      this.intl.formatters as Formatters,
-      this.intl.formats as Formats,
-      resolvedValues,
-    );
-
-    const result = [];
-    let inLiteral = false;
-    for (const part of parts) {
-      // This condition merges consecutive literal elements (static strings)
-      // into single parts to reduce the number of nodes in the result. This
-      // condition will never be true on the first loop, ensuring that the
-      // array must at least have one entry before it attempts to concatenate
-      // onto that value again.
-      if (inLiteral && (inLiteral = part.type === FormatPartType.literal)) {
-        result[result.length - 1] += part.value;
-        continue;
-      }
-
-      inLiteral = part.type === FormatPartType.literal;
-      result.push(part.value);
-    }
-
-    return result;
+  string<T extends TypedIntlMessageGetter<undefined>>(message: T): string {
+    // TODO: Figure out how to make this typing exact.
+    return message(this.currentLocale).message;
   }
 
-  /**
-   * For messages with no formatting values (i.e., plain strings, they can skip
-   * a majority of the processing work and just resolve the message itself for
-   * the current locale, then return the plain string directly.
-   *
-   * This is separate from `formatToPlainString`, which still allows for
-   * formatting variables and other elements but reduces the output to only
-   * include textual elements in a plain string.
-   */
-  string(message: TypedIntlMessageGetter<undefined>): string {
-    // TODO(faulty): Optimize this so that plain strings are hotpathed even faster.
-    return this.formatToPlainString(message);
-  }
-
-  /**
-   * Format the given message with the provided values, removing any styling
-   * and non-textual content from the message, returning a plain string.
-   */
-  formatToPlainString<T extends TypedIntlMessageGetter<undefined>>(message: T): string;
-  formatToPlainString<T extends IntlMessageGetter>(
-    message: T,
-    values: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
-  ): string;
-  formatToPlainString<T extends IntlMessageGetter>(
-    message: T,
-    values?: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
-  ): string {
-    if (typeof message === 'string') return message;
-    const resolvedMessage = message(this.currentLocale);
-    if (typeof resolvedMessage === 'string') return resolvedMessage;
-
-    // No need to pass in `defaultRichTextElements`, since the stylistic tags
-    // will be removed from the string anyway.
-    return resolvedMessage.formatToPlainString(
-      this.intl.formatters as Formatters,
-      this.intl.formats as Formats,
-      values,
-    );
-  }
-
-  /**
-   * Similar to `formatToPlainString`, format the given message with the provided
-   * values, but convert all rich text formatting back to Markdown syntax rather
-   * than rendering the actual rich content. The result is a plain string that
-   * can be sent through a separate Markdown renderer to get an equivalent
-   * result to formatting this message directly.
-   */
-  formatToMarkdownString<T extends TypedIntlMessageGetter<undefined>>(message: T): string;
-  formatToMarkdownString<T extends IntlMessageGetter>(
-    message: T,
-    values: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
-  ): string;
-  formatToMarkdownString<T extends IntlMessageGetter>(
-    message: T,
-    values?: RequiredFormatValues<T, DefaultElements, FunctionTypes>,
-  ): string {
-    // TODO(faulty): Implement the markdown syntax conversion here.
-    if (typeof message === 'string') return message;
-    const resolvedMessage = message(this.currentLocale);
-    if (typeof resolvedMessage === 'string') return resolvedMessage;
-
-    // No need to pass in `defaultRichTextElements`, since the stylistic tags
-    // will be removed from the string anyway.
-    return resolvedMessage.formatToPlainString(
+  bindFormatValues<T>(
+    Builder: FormatBuilderConstructor<T>,
+    message: InternalIntlMessage,
+    values: Record<string, any>,
+  ): T[] {
+    return bindFormatValues(
+      Builder,
+      message.ast,
+      [this.currentLocale, this.defaultLocale],
       this.intl.formatters as Formatters,
       this.intl.formats as Formats,
       values,

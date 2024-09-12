@@ -38,6 +38,12 @@ export interface FormatJsTime {
   style?: string;
 }
 
+export interface FormatJsSelect {
+  type: FormatJsNodeType.Select;
+  value: string;
+  options: Record<string, { value: FormatJsNode[] }>;
+}
+
 export type FormatJsPluralType = 'cardinal' | 'ordinal';
 
 export interface FormatJsPlural {
@@ -64,6 +70,7 @@ export type FormatJsNode =
   | FormatJsNumber
   | FormatJsDate
   | FormatJsTime
+  | FormatJsSelect
   | FormatJsPlural
   | FormatJsPound
   | FormatJsTag;

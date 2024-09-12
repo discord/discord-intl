@@ -1,8 +1,8 @@
-import { IntlManager } from './intl-manager';
-import { IntlManagerReact } from './react';
+import * as React from 'react';
+import { RichTextNode } from './formatters/ast';
 
 export { IntlManager, createLoader, DEFAULT_LOCALE } from './intl-manager';
-export { IntlManagerReact } from './react';
+export * from './formatters';
 
 export type * from './types.d.ts';
 
@@ -21,7 +21,7 @@ export type * from './types.d.ts';
  * intl message, even if the actual value comes from elsewhere (like a
  * user-generated string).
  */
-export type ReactIntlMessage = string | ReturnType<IntlManagerReact<any>['format']>;
+export type ReactIntlMessage = string | React.ReactElement;
 
 /**
  * The return value of `formatToParts` from `@discord/intl`, this type
@@ -33,4 +33,4 @@ export type ReactIntlMessage = string | ReturnType<IntlManagerReact<any>['format
  * from a call to `formatToParts`, meaning they are intended to be fully static
  * structures passed around for custom rendering functions to use.
  */
-export type IntlMessageAst = ReturnType<IntlManager<any, any>['formatToParts']>;
+export type IntlMessageAst = RichTextNode;
