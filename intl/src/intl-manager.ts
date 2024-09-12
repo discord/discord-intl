@@ -5,7 +5,6 @@ import { LocaleId, LocaleImportMap, MessageLoader } from './message-loader';
 
 import type {
   FormatterImplementation,
-  FunctionTypeMap,
   IntlMessageGetter,
   RequiredFormatValues,
   TypedIntlMessageGetter,

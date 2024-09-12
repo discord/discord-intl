@@ -45,10 +45,6 @@ const RICH_TEXT_TAG_TYPES: Record<RichTextTagNames, RichTextNodeType> = {
   $p: RichTextNodeType.Paragraph,
 };
 
-function getRichTextTypeFromTag(tag: RichTextTagNames): RichTextNodeType {
-  return RICH_TEXT_TAG_TYPES[tag];
-}
-
 interface RichTextNodeBase<ContentType> {
   type: RichTextNodeType;
   content: ContentType;

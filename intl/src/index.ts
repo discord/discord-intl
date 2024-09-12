@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { RichTextNode } from './formatters/ast';
+import { RichTextNode } from './formatters';
 
 export { IntlManager, createLoader, DEFAULT_LOCALE } from './intl-manager';
 export * from './formatters';
