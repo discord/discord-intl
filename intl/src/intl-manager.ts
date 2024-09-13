@@ -24,7 +24,9 @@ type FormatterReturnType<F extends FormatterImplementation<any, any>> =
 type FormatterFunctionTypes<F extends FormatterImplementation<any, any>> =
   F extends FormatterImplementation<infer Functions, any> ? Functions : never;
 
-type FormatFunction<F extends FormatterImplementation<any, any>> = <T extends IntlMessageGetter>(
+export type FormatFunction<F extends FormatterImplementation<any, any>> = <
+  T extends IntlMessageGetter,
+>(
   this: IntlManager,
   message: T,
   values: RequiredFormatValues<T, FormatterFunctionTypes<F>>,

@@ -36,6 +36,13 @@ export const DEFAULT_REACT_RICH_TEXT_ELEMENTS: RichTextFormattingMap<ReactFuncti
   $p: (content) => h('p', undefined, content),
 };
 
+/**
+ * Creates a new `FormatBuilder` class that constructs a React element tree
+ * from the message using the given `richTextElements` to apply formatting.
+ * This allows consumers to inject their own design system components and
+ * overrides for rendering elements like links, paragraphs, and code blocks.
+ * @param richTextElements
+ */
 function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctionTypes['hook']>): {
   new (): FormatBuilder<React.ReactNode>;
 } {
