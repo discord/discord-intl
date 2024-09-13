@@ -281,6 +281,15 @@ export class MessageLoader {
 const LOADER_REGISTRY: MessageLoader[] = [];
 
 /**
+ * Kick off a load request for the given locale across all currently-registered
+ * message loaders, returning a Promise that resolves when all loaders have
+ * finished loading that locale.
+ */
+export async function loadAllMessagesInLocale(locale: LocaleId): Promise<void> {
+  await Promise.all(LOADER_REGISTRY.map((loader) => loader._loadLocale(locale)));
+}
+
+/**
  * Returns a new Promise that resolves after all currently-registered message
  * loaders have finished successfully loading their default locale content.
  * Once this Promise has resolved, all messages that currently exist in the

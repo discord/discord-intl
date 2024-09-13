@@ -3,7 +3,11 @@ import { RichTextNode } from './formatters';
 
 export * from './formatters';
 export { IntlManager, DEFAULT_LOCALE, type FormatFunction } from './intl-manager';
-export { createLoader, waitForAllDefaultIntlMessagesLoaded } from './message-loader';
+export {
+  createLoader,
+  loadAllMessagesInLocale,
+  waitForAllDefaultIntlMessagesLoaded,
+} from './message-loader';
 export type * from './types.d.ts';
 
 /**
