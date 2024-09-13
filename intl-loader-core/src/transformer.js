@@ -28,8 +28,8 @@
  * const {i18n} = require('@discord/intl');
  * const _keys = ["a9fn23"];
  * const _locales = {"en-US": () => require('./messages/en-US.messages.json')};
- * const loader = createLoader(_keys, _locales);
- * export default loader.getBinds();
+ * export const messagesLoader = createLoader(_keys, _locales);
+ * export default messagesLoader.getBinds();
  * ```
  *
  * Notice how the message keys have been hashed into short keys, and the
@@ -42,6 +42,24 @@
  * ```typescript
  * import someModuleMessages from 'SomeModule.messages.js';
  * i18n.format(someModuleMessages["a9fn23"], {values: "i'm a value!"});
+ * ```
+ *
+ * The transformed file also contains a named export for `messagesLoader`,
+ * which consumers can use to query and update the loading state for the
+ * messages managed by that loader, including waiting for a locale to be
+ * loaded, kicking off new loads, and more:
+ *
+ * ```typescript
+ * import {messagesLoader} from 'SomeModule.messages.js';
+ * // Wait for the loader to be initialized with default messages
+ * await messagesLoader.waitForDefaultLocaleLoaded();
+ * // Wait for a specific locale to load, starting the load if it
+ * // is not yet in progress.
+ * await messagesLoader.waitForLocaleLoaded('fr');
+ * // In hot-reloading environments, use the second `requireCurrent`
+ * // parameter to wait for the latest data, even if a value already
+ * // exists.
+ * const loaded = messagesLoader.isLocaleLoaded('fr', true);
  * ```
  */
 class MessageDefinitionsTransformer {
@@ -105,9 +123,9 @@ class MessageDefinitionsTransformer {
       `const _keys = ${JSON.stringify(this.options.messageKeys)};`,
       `const _locales = ${this.getLocaleRequireMap()};`,
       `const _defaultLocale = ${JSON.stringify(this.options.defaultLocale)};`,
-      'const loader = createLoader(_keys, _locales, _defaultLocale);',
+      'export const messagesLoader = createLoader(_keys, _locales, _defaultLocale);',
       ...this.debugModeSetup(),
-      'export default loader.getBinds();',
+      'export default messagesLoader.getBinds();',
     ].join('\n');
   }
 }

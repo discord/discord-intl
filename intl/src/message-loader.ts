@@ -158,23 +158,14 @@ export class MessageLoader {
     const cachedValue = this._parseCache.get(cacheKey);
     if (cachedValue != null) return cachedValue;
 
-    // Return early if this locale has not yet been initialized and is still in
-    // the process of being loaded.
-    if (
-      !(this._localeLoadingPromises[locale]?.initialized ?? false) ||
-      this._localeLoadingPromises[locale]?.current != null
-    ) {
-      return undefined;
-    }
-
-    // If not, check whether it's been loaded and trigger a load if not.
+    // Check whether the locale exists in memory. If not, start a request to
+    // load the locale if one has not already started. It's impossible for
+    // the request to finish within the same tick, so return undefined in any
+    // case then.
     if (this.messages[locale] == null) {
-      // Ensure the locale starts loading, if it is supported
       if (this.supportedLocales.includes(locale)) {
         this._loadLocale(locale);
       }
-      // ...But that means it definitely won't be available on this tick,
-      // so return undefined.
       return undefined;
     }
 
@@ -211,7 +202,7 @@ export class MessageLoader {
 
   async _loadLocale(locale: LocaleId) {
     // Don't re-load a locale that's already in progress.
-    if (this._localeLoadingPromises[locale] != null) {
+    if (this._localeLoadingPromises[locale]?.current != null) {
       return;
     }
 
@@ -295,6 +286,9 @@ const LOADER_REGISTRY: MessageLoader[] = [];
  * Once this Promise has resolved, all messages that currently exist in the
  * application (i.e., within all modules that have been imported or required in
  * the current session) can be guaranteed to have _a_ render-able value.
+ *
+ * This function can be called at any point in an applications life cycle and
+ * will always ensure that _all_ loaders that currently exist are initialized.
  */
 export async function waitForAllDefaultIntlMessagesLoaded(): Promise<void> {
   await Promise.all(LOADER_REGISTRY.map((loader) => loader.waitForDefaultLocale()));
