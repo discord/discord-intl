@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { RichTextNode } from './formatters';
 
-export { IntlManager, createLoader, DEFAULT_LOCALE, type FormatFunction } from './intl-manager';
 export * from './formatters';
-
+export { IntlManager, DEFAULT_LOCALE, type FormatFunction } from './intl-manager';
+export { createLoader, waitForAllDefaultIntlMessagesLoaded } from './message-loader';
 export type * from './types.d.ts';
 
 /**

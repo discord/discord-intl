@@ -32,7 +32,18 @@ export class MessageLoader {
    * then a request has already been made to load the locale and it is waiting
    * to resolve.
    */
-  _localeLoadingPromises: Record<LocaleId, Promise<{ default: MessagesData }> | undefined>;
+  _localeLoadingPromises: Record<
+    LocaleId,
+    {
+      /**`true` if this locale has been loaded at least once. */
+      initialized: boolean;
+      /**
+       * If the locale is currently being loaded, this Promise will exist and
+       * represent that loading status. Otherwise, this value is undefined.
+       */
+      current?: Promise<{ default: MessagesData }> | undefined;
+    }
+  >;
 
   /**
    * Map of pre-parsed messages, keyed by the message key and locale
@@ -85,7 +96,7 @@ export class MessageLoader {
     this._subscribers = new Set();
 
     this._loadLocale(this.defaultLocale);
-    this.fallbackMessage = new InternalIntlMessage('THIS MESSAGE FAILED TO LOAD', 'en-US');
+    this.fallbackMessage = new InternalIntlMessage([], this.defaultLocale);
 
     // In cases where hot module replacement is available, set up cache clearing whenever the
     // targets change so that values are always replaced.
@@ -93,9 +104,9 @@ export class MessageLoader {
     if (module.hot) {
       for (const [locale, file] of Object.entries(localeImportMap)) {
         // @ts-expect-error `hot` not defined in types.
-        module.hot.accept(file, () => {
+        module.hot.accept(file, async () => {
+          await this._loadLocale(locale);
           this._parseCache.clear();
-          this._loadLocale(locale);
         });
       }
     }
@@ -116,9 +127,7 @@ export class MessageLoader {
   get(key: string, locale: LocaleId): InternalIntlMessage {
     const value =
       this.getMessageValue(key, locale) ?? this.getMessageValue(key, this.defaultLocale);
-    if (value != null) {
-      return value;
-    }
+    if (value != null) return value;
 
     // If the message couldn't be found in either the requested nor the default locale, then
     // nothing can be done.
@@ -149,18 +158,23 @@ export class MessageLoader {
     const cachedValue = this._parseCache.get(cacheKey);
     if (cachedValue != null) return cachedValue;
 
-    // Return early if this locale is still in the process of being loaded.
-    if (this._localeLoadingPromises[locale] != null) {
+    // Return early if this locale has not yet been initialized and is still in
+    // the process of being loaded.
+    if (
+      !(this._localeLoadingPromises[locale]?.initialized ?? false) ||
+      this._localeLoadingPromises[locale]?.current != null
+    ) {
       return undefined;
     }
 
     // If not, check whether it's been loaded and trigger a load if not.
     if (this.messages[locale] == null) {
-      // Ensure the locale is loaded, if it is supported
+      // Ensure the locale starts loading, if it is supported
       if (this.supportedLocales.includes(locale)) {
         this._loadLocale(locale);
       }
-
+      // ...But that means it definitely won't be available on this tick,
+      // so return undefined.
       return undefined;
     }
 
@@ -213,10 +227,10 @@ export class MessageLoader {
     // If the locale is already set in `messages`, then it doesn't need to be loaded again.
     if (this.messages[locale] != null) return;
 
-    const loadingPromise = this.localeImportMap[locale]();
-    this._localeLoadingPromises[locale] = loadingPromise;
-    this.messages[locale] = (await loadingPromise).default;
-    delete this._localeLoadingPromises[locale];
+    const current = this.localeImportMap[locale]();
+    this._localeLoadingPromises[locale] = { initialized: false, current };
+    this.messages[locale] = (await current).default;
+    this._localeLoadingPromises[locale] = { initialized: true, current: undefined };
     this.emitChange();
   }
 
@@ -238,4 +252,65 @@ export class MessageLoader {
 
     return () => this._subscribers.delete(callback);
   }
+
+  isLocaleLoaded(locale: LocaleId, requireCurrent: boolean = false): boolean {
+    const ref = this._localeLoadingPromises[locale];
+    // Ensure the locale at least exists and is initialized.
+    if (ref == null || ref.initialized == false) return false;
+    // `current` will be deleted once the locale has loaded, so if it is null,
+    // then the locale data is current.
+    if (requireCurrent) return ref.current == null;
+    // Otherwise, initialization is enough.
+    return true;
+  }
+
+  async waitForLocaleLoaded(locale: LocaleId, requireCurrent = false): Promise<void> {
+    const ref = this._localeLoadingPromises[locale];
+    // If the locale hasn't been loaded at all, kick off the load and return
+    // that Promise directly.
+    if (ref == null) return this._loadLocale(locale);
+    // If initialization is enough for this request, just resolve immediately.
+    if (ref.initialized && !requireCurrent) return;
+    // Otherwise, check the `current` loading state on the object, and if that
+    // doesn't exist, then the locale data is already finished loading, and the
+    // containing Promise will just resolve with `undefined`.
+    await ref.current;
+  }
+
+  /**
+   * Returns true if this loader's default locale has finished loading. When
+   * true, all messages managed by this loader are guaranteed to have _a_
+   * render-able value, even if one does not exist in the current locale.
+   */
+  async waitForDefaultLocale(requireCurrent = false): Promise<void> {
+    return this.waitForLocaleLoaded(this.defaultLocale, requireCurrent);
+  }
+}
+
+const LOADER_REGISTRY: MessageLoader[] = [];
+
+/**
+ * Returns a new Promise that resolves after all currently-registered message
+ * loaders have finished successfully loading their default locale content.
+ * Once this Promise has resolved, all messages that currently exist in the
+ * application (i.e., within all modules that have been imported or required in
+ * the current session) can be guaranteed to have _a_ render-able value.
+ */
+export async function waitForAllDefaultIntlMessagesLoaded(): Promise<void> {
+  await Promise.all(LOADER_REGISTRY.map((loader) => loader.waitForDefaultLocale()));
+}
+
+/**
+ * Create a new MessageLoader, which handles lazily loading messages for
+ * different locales and sanity checks as needed to provide accessors for each
+ * message defined in `messageKeys`.
+ */
+export function createLoader(
+  messageKeys: string[],
+  localeImportMap: LocaleImportMap,
+  defaultLocale: LocaleId,
+) {
+  const loader = new MessageLoader(messageKeys, localeImportMap, defaultLocale);
+  LOADER_REGISTRY.push(loader);
+  return loader;
 }

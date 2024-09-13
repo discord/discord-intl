@@ -116,8 +116,11 @@ export class IntlManager {
    * immediately return the plain string value of the message in the current locale.
    */
   string<T extends TypedIntlMessageGetter<undefined>>(message: T): string {
-    // TODO: Figure out how to make this typing exact.
-    return message(this.currentLocale).message;
+    // @ts-expect-error Figure out how to make this typing exact. This
+    // currently relies on the generic typing being sound enough to know that
+    // the message can only contain a single static text node and no
+    // placeholders or rich text.
+    return message(this.currentLocale).ast[0].value;
   }
 
   bindFormatValues<T>(
@@ -134,17 +137,4 @@ export class IntlManager {
       values,
     );
   }
-}
-
-/**
- * Create a new MessageLoader, which handles lazily loading messages for
- * different locales and sanity checks as needed to provide accessors for each
- * message defined in `messageKeys`.
- */
-export function createLoader(
-  messageKeys: string[],
-  localeImportMap: LocaleImportMap,
-  defaultLocale: LocaleId,
-) {
-  return new MessageLoader(messageKeys, localeImportMap, defaultLocale);
 }
