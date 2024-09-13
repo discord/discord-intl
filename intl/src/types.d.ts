@@ -1,5 +1,6 @@
 import type { InternalIntlMessage } from './message';
 import type { IntlMessageGetterAdditions } from './message-loader';
+import { FormatBuilderConstructor } from './format';
 
 /**
  * Use this function to define messages as part of the `@discord/intl`
@@ -10,14 +11,6 @@ import type { IntlMessageGetterAdditions } from './message-loader';
  * `@discord/intl/README.md` for more information.
  */
 export declare function defineMessages(messages: object): object;
-
-/**
- * A map of tag names to render functions to apply when the tags are
- * encountered while formatting a message. Each `IntlManager` can be
- * constructed with a different map of these elements, for example to allow
- * one manager to render React output while another renders accessibility text.
- */
-export type RichTextElementMap = Record<string, (chunks: any[]) => any>;
 
 /**
  * Placeholder type representing that this property is a Hook to be rendered
@@ -46,19 +39,8 @@ export type IntlTime = string | number | Date | null | undefined;
  * strings, and are able to skip multiple formatting steps to work more
  * efficiently. This type represents those messages distinctly.
  */
-type PlainIntlMessage = string;
-/**
- * A richly-formatted message that injects dynamic values while formatting,
- * with the types of those values defined by the `FormatValues` object. All
- * messages of this type must have at least one value in the object, otherwise
- * the message should be typed as a `PlainIntlMessage`.
- */
-type TypedIntlMessage<FormatValues extends object> = InternalIntlMessage & {
-  __values: FormatValues;
-};
-
-type AnyIntlMessage<FormatValues extends object | undefined = undefined> =
-  FormatValues extends undefined ? PlainIntlMessage : TypedIntlMessage<FormatValues>;
+export type PlainIntlMessage = string;
+export type AnyIntlMessage = PlainIntlMessage | InternalIntlMessage;
 
 export interface IntlMessageGetter extends IntlMessageGetterAdditions {
   (locale: string): InternalIntlMessage | PlainIntlMessage;
@@ -85,8 +67,8 @@ export interface TypedIntlMessageGetter<FormatValues extends object | undefined>
   // from the declared type. The latter of these is definitely semantically
   // correct, but the former is more just an annoying part of the type system
   // because of this returned type being nested within this interface and the
-  // strict subtying that TypeScript uses.
-  (locale: string): InternalIntlMessage | PlainIntlMessage;
+  // strict subtyping that TypeScript uses.
+  (locale: string): InternalIntlMessage;
 
   /**
    * A phantom type (not part of the actual typing of the object) that ensures
@@ -183,7 +165,7 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
  * checked against the provided message types, and error messages will be
  * accurate as a result.
  */
-type FormatValuesFor<T> =
+export type FormatValuesFor<T> =
   // `[]` syntax forces TypeScript to not distribute the possible union of
   // types, meaning this represents "_all_ values of T are an extension of
   // the parent type", which in this case represents messages with no
@@ -209,10 +191,16 @@ type FormatValuesFor<T> =
  * the caller to inject React elements within a string, while an AST formatter
  * might require a specific object shape, or allow any plain object.
  */
-interface FunctionTypeMap {
+export interface FunctionTypeMap {
   link: any;
   hook: any;
   handler: any;
+}
+
+export interface FunctionTypes<Result, HandlerType = (content: Result[]) => Result | Result[]> {
+  link: undefined | ((content: Result[]) => Result | Result[]);
+  hook: undefined | ((content: Result[]) => Result | Result[]);
+  handler: undefined | HandlerType;
 }
 
 type ReplaceKeepingNullability<T, P> = P | Exclude<T, NonNullable<T>>;
@@ -226,6 +214,8 @@ type ReplaceKeepingNullability<T, P> = P | Exclude<T, NonNullable<T>>;
 type MapFunctionTypes<T, FunctionTypes extends FunctionTypeMap> = {
   [K in keyof T]: ReplaceKeepingNullability<
     T[K],
+    // TODO: replace these types with string literal types in the generated
+    // file, turning this whole chain into `FunctionTypes[T[K]] ?? T[K]`.
     NonNullable<T[K]> extends LinkFunction
       ? FunctionTypes['link']
       : NonNullable<T[K]> extends HookFunction
@@ -251,7 +241,7 @@ type CheckStrictAny<Check, Yes, No> = (Check extends never ? true : false) exten
  * // Result is `{name: string}`
  * ```
  */
-type IntlMessageGetterInnerType<T extends IntlMessageGetter> =
+export type IntlMessageGetterInnerType<T extends IntlMessageGetter> =
   T extends TypedIntlMessageGetter<infer U> ? U : never;
 
 /**
@@ -260,13 +250,12 @@ type IntlMessageGetterInnerType<T extends IntlMessageGetter> =
  * types from `FunctionTypes`. The result is the set of required values
  * necessary to format the message of type `T` with the calling formatter.
  */
-type RequiredFormatValues<
+export type RequiredFormatValues<
   Values extends IntlMessageGetter,
-  DefaultElements,
   FunctionTypes extends FunctionTypeMap,
 > =
   IntlMessageGetterInnerType<Values> extends undefined
-    ? never
+    ? {}
     : CheckStrictAny<
         IntlMessageGetterInnerType<Values>,
         // If `T` is explicitly `any`, then individual properties can't be typed and
@@ -277,23 +266,30 @@ type RequiredFormatValues<
         // value and turn every property into the mapped `LinkFunction` type, which
         // is almost always going to be wrong.
         any,
-        MapFunctionTypes<
-          Omit<FormatValuesFor<IntlMessageGetterInnerType<Values>>, keyof DefaultElements>,
-          FunctionTypes
-        >
+        MapFunctionTypes<FormatValuesFor<IntlMessageGetterInnerType<Values>>, FunctionTypes>
       >;
 
-export interface IntlOptionalRichTextKeys {
-  $_: any;
-  $b: any;
-  $i: any;
-  $p: any;
-  $link: any;
-  $code: any;
+export interface RichTextFormattingMap<T = any> {
+  $_: T;
+  $b: T;
+  $i: T;
+  $p: T;
+  $link: T;
+  $code: T;
 }
 
-export type IntlFormatFunctionValuesArg<T extends IntlMessageGetter> = RequiredFormatValues<
-  T,
-  IntlOptionalRichTextKeys,
-  FunctionTypeMap
->;
+export type RichTextTagNames = keyof RichTextFormattingMap;
+
+export interface FormatterImplementation<
+  FunctionTypes extends FunctionTypeMap,
+  Result,
+  BuilderResult = Result,
+> {
+  format: (
+    message: AnyIntlMessage,
+    values: object,
+    builder?: FormatBuilderConstructor<BuilderResult>,
+  ) => Result;
+  builder: FormatBuilderConstructor<BuilderResult extends (infer T)[] ? T : BuilderResult>;
+  __$functionTypes?: FunctionTypes;
+}
