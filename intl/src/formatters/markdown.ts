@@ -31,7 +31,7 @@ class MarkdownBuilder extends StringBuilder {
   result: string = '';
 
   pushRichTextTag(tag: RichTextTagNames, children: string[]) {
-    this.result += MARKDOWN_RICH_TEXT_ELEMENTS[tag](children);
+    this.result += MARKDOWN_RICH_TEXT_ELEMENTS[tag](children, 0);
   }
 }
 

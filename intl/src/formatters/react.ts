@@ -28,12 +28,12 @@ export type ReactFunctionTypes = FunctionTypes<
 const h = React.createElement;
 export const DEFAULT_REACT_RICH_TEXT_ELEMENTS: RichTextFormattingMap<ReactFunctionTypes['hook']> = {
   $_: () => '',
-  $b: (content) => h('strong', undefined, content),
-  $code: (content) => h('code', undefined, content),
-  $i: (content) => h('em', undefined, content),
+  $b: (content, key) => h('strong', { key }, content),
+  $code: (content, key) => h('code', { key }, content),
+  $i: (content, key) => h('em', { key }, content),
   // $link will always be [href, <empty>, ...content]
-  $link: ([href, ...content]) => h('a', { href }, content),
-  $p: (content) => h('p', undefined, content),
+  $link: ([href, ...content], key) => h('a', { href, key }, content),
+  $p: (content, key) => h('p', { key }, content),
 };
 
 /**
@@ -47,10 +47,11 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
   new (): FormatBuilder<React.ReactNode>;
 } {
   return class extends FormatBuilder<React.ReactNode> {
+    _nodeKey: number = 0;
     result: React.ReactNode[] = [];
 
     pushRichTextTag(tag: RichTextTagNames, children: React.ReactNode[]) {
-      this.result.push(richTextElements[tag](children));
+      this.result.push(richTextElements[tag](children, this._nodeKey++));
     }
 
     pushLiteralText(text: string) {

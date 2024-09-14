@@ -36,15 +36,6 @@ export enum RichTextNodeType {
   Object = 'object',
 }
 
-const RICH_TEXT_TAG_TYPES: Record<RichTextTagNames, RichTextNodeType> = {
-  $_: RichTextNodeType.Text,
-  $b: RichTextNodeType.Strong,
-  $i: RichTextNodeType.Emphasis,
-  $code: RichTextNodeType.Code,
-  $link: RichTextNodeType.Link,
-  $p: RichTextNodeType.Paragraph,
-};
-
 interface RichTextNodeBase<ContentType> {
   type: RichTextNodeType;
   content: ContentType;
@@ -101,7 +92,7 @@ class AstBuilder extends FormatBuilder<RichTextNode> {
     if (!(tag in AST_RICH_TEXT_ELEMENTS)) {
       throw `${tag} is not a known rich text formatting tag`;
     }
-    const result = AST_RICH_TEXT_ELEMENTS[tag](children);
+    const result = AST_RICH_TEXT_ELEMENTS[tag](children, 0);
     if (Array.isArray(result)) {
       this.result.push(...result);
     } else {
