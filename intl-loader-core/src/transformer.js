@@ -68,6 +68,7 @@ class MessageDefinitionsTransformer {
    */
   constructor(options) {
     this.options = options;
+    this.loaderName = 'messagesLoader';
   }
 
   /**
@@ -105,7 +106,7 @@ class MessageDefinitionsTransformer {
     if (!this.options.debug) return [];
 
     return [
-      `loader.withDebugValues(${JSON.stringify(this.options.messageKeys)}, ${JSON.stringify(this.options.localeMap)})`,
+      `${this.loaderName}.withDebugValues(${JSON.stringify(this.options.messageKeys)}, ${JSON.stringify(this.options.localeMap)})`,
     ];
   }
 
@@ -123,9 +124,9 @@ class MessageDefinitionsTransformer {
       `const _keys = ${JSON.stringify(this.options.messageKeys)};`,
       `const _locales = ${this.getLocaleRequireMap()};`,
       `const _defaultLocale = ${JSON.stringify(this.options.defaultLocale)};`,
-      'export const messagesLoader = createLoader(_keys, _locales, _defaultLocale);',
+      `export const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
       ...this.debugModeSetup(),
-      'export default messagesLoader.getBinds();',
+      `export default ${this.loaderName}.getBinds();`,
     ].join('\n');
   }
 }
