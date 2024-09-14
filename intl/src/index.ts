@@ -26,6 +26,7 @@ export type * from './types.d.ts';
  * intl message, even if the actual value comes from elsewhere (like a
  * user-generated string).
  */
+// TODO: Replace this with ReactIntlMessage from `formatters/react`.
 export type ReactIntlMessage = string | React.ReactElement;
 
 /**

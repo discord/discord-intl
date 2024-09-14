@@ -70,18 +70,23 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
   };
 }
 
+export type ReactIntlMessage = React.ReactElement<
+  {},
+  typeof React.Fragment & { __brand: 'discord-intl' }
+>;
+
 export function formatReact(
   this: IntlManager,
   message: AnyIntlMessage,
   values: object,
   Builder: FormatBuilderConstructor<React.ReactElement>,
-): React.ReactElement {
+): ReactIntlMessage {
   if (typeof message === 'string') {
-    return React.createElement(React.Fragment, undefined, message);
+    return React.createElement(React.Fragment, undefined, message) as ReactIntlMessage;
   }
 
   const parts = this.bindFormatValues(Builder, message, values);
-  return React.createElement(React.Fragment, undefined, parts);
+  return React.createElement(React.Fragment, undefined, parts) as ReactIntlMessage;
 }
 
 /**
