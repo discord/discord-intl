@@ -310,7 +310,9 @@ impl<W: std::io::Write> IntlService for IntlTypesGenerator<'_, W> {
 /* eslint-disable */
 /* prettier-ignore */
 
-import {{TypedIntlMessageGetter, HandlerFunction, HookFunction, LinkFunction}} from '{}';
+import {{MessageLoader, TypedIntlMessageGetter, HandlerFunction, HookFunction, LinkFunction}} from '{}';
+
+export declare const messagesLoader: MessageLoader;
 
 declare const messages: {{
 ",
