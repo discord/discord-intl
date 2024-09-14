@@ -7,6 +7,7 @@ export {
   createLoader,
   loadAllMessagesInLocale,
   waitForAllDefaultIntlMessagesLoaded,
+  MessageLoader,
 } from './message-loader';
 export type * from './types.d.ts';
 
