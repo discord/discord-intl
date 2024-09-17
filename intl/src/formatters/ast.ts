@@ -12,7 +12,7 @@ import { FormatBuilder } from '../format';
  * Types for formatting functions when calling `formatToParts`, ensuring the
  * functions yield value AST nodes.
  */
-export type AstFunctionTypes = FunctionTypes<RichTextNode>;
+export type AstFunctionTypes = FunctionTypes<RichTextNode, object>;
 
 // This structure aims to match `simple-markdown`'s AST, but that type is very
 // loosely defined as just "type" and "arbitrary map of content". This is more
@@ -92,7 +92,7 @@ class AstBuilder extends FormatBuilder<RichTextNode> {
     if (!(tag in AST_RICH_TEXT_ELEMENTS)) {
       throw `${tag} is not a known rich text formatting tag`;
     }
-    const result = AST_RICH_TEXT_ELEMENTS[tag](children, 0);
+    const result = AST_RICH_TEXT_ELEMENTS[tag](children, '');
     if (Array.isArray(result)) {
       this.result.push(...result);
     } else {

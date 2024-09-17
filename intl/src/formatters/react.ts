@@ -51,7 +51,7 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
     result: React.ReactNode[] = [];
 
     pushRichTextTag(tag: RichTextTagNames, children: React.ReactNode[]) {
-      this.result.push(richTextElements[tag](children, this._nodeKey++));
+      this.result.push(richTextElements[tag](children, `${this._nodeKey++}`));
     }
 
     pushLiteralText(text: string) {
@@ -96,7 +96,7 @@ export function formatReact(
  */
 export function makeReactFormatter(
   richTextElements: RichTextFormattingMap<ReactFunctionTypes['hook']>,
-): FormatterImplementation<ReactFunctionTypes, React.ReactElement, React.ReactNode> {
+): FormatterImplementation<ReactFunctionTypes, ReactIntlMessage, React.ReactNode> {
   return {
     format: formatReact,
     builder: createReactBuilder(richTextElements),

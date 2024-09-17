@@ -1,8 +1,6 @@
 import { createIntl, IntlShape } from '@formatjs/intl';
 import { Formats, Formatters, IntlMessageFormat } from 'intl-messageformat';
 
-import { LocaleId, LocaleImportMap, MessageLoader } from './message-loader';
-
 import type {
   FormatterImplementation,
   IntlMessageGetter,
@@ -18,8 +16,7 @@ import { bindFormatValues, FormatBuilderConstructor } from './format';
  */
 export const DEFAULT_LOCALE: string = 'en-US';
 
-type FormatterReturnType<F extends FormatterImplementation<any, any>> =
-  F extends FormatterImplementation<any, infer Return> ? Return : never;
+type FormatterReturnType<F extends FormatterImplementation<any, any>> = ReturnType<F['format']>;
 
 type FormatterFunctionTypes<F extends FormatterImplementation<any, any>> =
   F extends FormatterImplementation<infer Functions, any> ? Functions : never;
