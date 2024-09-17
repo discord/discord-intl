@@ -197,7 +197,7 @@ export interface FunctionTypeMap {
   handler: any;
 }
 
-export interface FunctionTypes<Result, HandlerType = (content: Result[]) => Result | Result[]> {
+export interface FunctionTypes<Result, HandlerType = () => void> {
   link: undefined | ((content: Result[], key: string) => Result | Result[]);
   hook: undefined | ((content: Result[], key: string) => Result | Result[]);
   handler: undefined | HandlerType;
