@@ -120,6 +120,19 @@ export class IntlManager {
     return message(this.currentLocale).ast[0].value;
   }
 
+  /**
+   * Return a raw string representing the syntax of the original message, as
+   * authored, with no values replaced. The result of this function could be
+   * written back to the definition file for the message and re-parsed to
+   * create an identical message to the original.
+   *
+   * This should rarely be necessary outside of sending raw messages to other
+   * applications that do their own message parsing.
+   */
+  reserialize<T extends IntlMessageGetter>(message: T): string {
+    return message(this.currentLocale)[0].reserialize();
+  }
+
   bindFormatValues<T>(
     Builder: FormatBuilderConstructor<T>,
     message: InternalIntlMessage,
