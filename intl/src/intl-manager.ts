@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { InternalIntlMessage } from './message';
 import { bindFormatValues, FormatBuilderConstructor } from './format';
+import { FormatJsLiteral } from './keyless-json';
 
 /**
  * Fallback locale used for all internationalization when an operation in the
@@ -113,11 +114,13 @@ export class IntlManager {
    * immediately return the plain string value of the message in the current locale.
    */
   string<T extends TypedIntlMessageGetter<undefined>>(message: T): string {
-    // @ts-expect-error Figure out how to make this typing exact. This
-    // currently relies on the generic typing being sound enough to know that
-    // the message can only contain a single static text node and no
-    // placeholders or rich text.
-    return message(this.currentLocale).ast[0].value;
+    const resolved = message(this.currentLocale);
+    if (resolved == null || resolved.ast.length === 0) return '';
+
+    // TODO: Figure out how to make this typing exact. This currently relies on
+    // the generic typing being sound enough to know that the message can only
+    // contain a single static text node and no placeholders or rich text.
+    return (resolved.ast[0] as FormatJsLiteral).value;
   }
 
   /**
