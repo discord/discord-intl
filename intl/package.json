@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@formatjs/intl": "^2.10.1",
+    "@formatjs/icu-skeleton-parser": "1.8.2",
     "intl-messageformat": "^10.5.11"
   },
   "devDependencies": {

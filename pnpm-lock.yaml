@@ -39,6 +39,9 @@ importers:
 
   intl:
     dependencies:
+      '@formatjs/icu-skeleton-parser':
+        specifier: 1.8.2
+        version: 1.8.2
       '@formatjs/intl':
         specifier: ^2.10.1
         version: 2.10.4(typescript@5.5.4)

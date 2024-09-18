@@ -20,6 +20,11 @@
 import { FormatJsNode, FormatJsNodeType } from './keyless-json';
 import { Formats, Formatters, MissingValueError } from 'intl-messageformat';
 import { RichTextTagNames } from './types';
+import {
+  parseDateTimeSkeleton,
+  parseNumberSkeleton,
+  parseNumberSkeletonFromString,
+} from '@formatjs/icu-skeleton-parser';
 
 /**
  * Returns true if the tag name should be considered a rich text tag that
@@ -96,10 +101,12 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
       case FormatJsNodeType.Date: {
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
-        if (typeof node.style !== 'string') {
-          throw '@discord/intl does not currently support non-string format skeletons';
-        }
-        const style = node.style in formats.date ? formats.date[node.style] : undefined; // TODO: parseSkeleton();
+        const style =
+          node.style in formats.date
+            ? formats.date[node.style]
+            : node.style != null
+              ? parseDateTimeSkeleton(node.style)
+              : undefined;
         // @ts-expect-error Cast string values to dates properly.
         builder.pushLiteralText(formatters.getDateTimeFormat(locales, style).format(value));
         break;
@@ -107,10 +114,12 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
       case FormatJsNodeType.Time: {
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
-        if (typeof node.style !== 'string') {
-          throw '@discord/intl does not currently support non-string format skeletons';
-        }
-        const style = node.style in formats.time ? formats.time[node.style] : undefined; // TODO: parseSkeleton();
+        const style =
+          node.style in formats.time
+            ? formats.time[node.style]
+            : node.style != null
+              ? parseDateTimeSkeleton(node.style)
+              : undefined; // TODO: parseSkeleton();
         builder.pushLiteralText(
           // @ts-expect-error Cast string values to dates properly.
           formatters.getDateTimeFormat(locales, style).format(value),
@@ -120,11 +129,12 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
       case FormatJsNodeType.Number: {
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
-        if (typeof node.style !== 'string') {
-          throw '@discord/intl does not currently support non-string format skeletons';
-        }
-        const style = node.style in formats.number ? formats.number[node.style] : undefined; // TODO: parseSkeleton();
-
+        const style =
+          node.style in formats.number
+            ? formats.number[node.style]
+            : node.style != null
+              ? parseNumberSkeleton(parseNumberSkeletonFromString(node.style))
+              : undefined;
         // @ts-expect-error Support `scale` style property.
         const scaledValue = value as number;
         // const scaledValue = (value as number) * (style?.scale ?? 1);
