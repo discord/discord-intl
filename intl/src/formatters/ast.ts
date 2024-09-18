@@ -21,6 +21,7 @@ export enum RichTextNodeType {
   Text = 'text',
   Strong = 'strong',
   Emphasis = 'emphasis',
+  Strikethrough = 'strikethrough',
   Code = 'code',
   Link = 'link',
   Paragraph = 'paragraph',
@@ -49,6 +50,9 @@ interface RichTextStrongNode extends RichTextNodeBase<RichTextNode[]> {
 interface RichTextEmphasisNode extends RichTextNodeBase<RichTextNode[]> {
   type: RichTextNodeType.Emphasis;
 }
+interface RichTextStrikethroughNode extends RichTextNodeBase<RichTextNode[]> {
+  type: RichTextNodeType.Strikethrough;
+}
 interface RichTextCodeNode extends RichTextNodeBase<RichTextNode[]> {
   type: RichTextNodeType.Code;
 }
@@ -67,6 +71,7 @@ export type RichTextNode =
   | RichTextTextNode
   | RichTextStrongNode
   | RichTextEmphasisNode
+  | RichTextStrikethroughNode
   | RichTextCodeNode
   | RichTextParagraphNode
   | RichTextLinkNode
@@ -75,8 +80,9 @@ export type RichTextNode =
 const AST_RICH_TEXT_ELEMENTS: RichTextFormattingMap<AstFunctionTypes['hook']> = {
   $_: () => ({ type: RichTextNodeType.Text, content: '' }),
   $b: (content) => ({ type: RichTextNodeType.Strong, content }),
-  $code: (content) => ({ type: RichTextNodeType.Code, content }),
   $i: (content) => ({ type: RichTextNodeType.Emphasis, content }),
+  $del: (content) => ({ type: RichTextNodeType.Strikethrough, content }),
+  $code: (content) => ({ type: RichTextNodeType.Code, content }),
   $link: ([target, ...content]) => ({
     type: RichTextNodeType.Link,
     target: target.content as string,

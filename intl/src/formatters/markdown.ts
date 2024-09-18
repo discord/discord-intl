@@ -21,8 +21,9 @@ export type MarkdownFunctionTypes = FunctionTypes<string>;
 const MARKDOWN_RICH_TEXT_ELEMENTS: RichTextFormattingMap<MarkdownFunctionTypes['hook']> = {
   $_: () => '',
   $b: (content) => '**' + content.join('') + '**',
-  $code: (content) => '`' + content.join('') + '`',
   $i: (content) => '*' + content.join('') + '*',
+  $del: (content) => '~~' + content.join('') + '~~',
+  $code: (content) => '`' + content.join('') + '`',
   $link: ([target, ...content]) => '[' + content.join('') + '](' + target + ')',
   $p: (content) => content.join('') + '\n\n',
 };

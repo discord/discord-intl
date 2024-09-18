@@ -276,6 +276,7 @@ export interface RichTextFormattingMap<T = any> {
   $p: T;
   $link: T;
   $code: T;
+  $del: T;
 }
 
 export type RichTextTagNames = keyof RichTextFormattingMap;

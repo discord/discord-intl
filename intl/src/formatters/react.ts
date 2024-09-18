@@ -29,8 +29,9 @@ const h = React.createElement;
 export const DEFAULT_REACT_RICH_TEXT_ELEMENTS: RichTextFormattingMap<ReactFunctionTypes['hook']> = {
   $_: () => '',
   $b: (content, key) => h('strong', { key }, content),
-  $code: (content, key) => h('code', { key }, content),
   $i: (content, key) => h('em', { key }, content),
+  $del: (content, key) => h('del', { key }, content),
+  $code: (content, key) => h('code', { key }, content),
   // $link will always be [href, <empty>, ...content]
   $link: ([href, ...content], key) => h('a', { href, key }, content),
   $p: (content, key) => h('p', { key }, content),
