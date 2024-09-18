@@ -135,8 +135,9 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
             : node.style != null
               ? parseNumberSkeleton(parseNumberSkeletonFromString(node.style))
               : undefined;
-        // @ts-expect-error Support `scale` style property.
-        const scaledValue = style?.scale != 1 ? (value as number) * style.scale : (value as number);
+        const scaledValue =
+          // @ts-expect-error This is a weird cast that's not accurate, but works in the short term.
+          typeof value !== 'number' ? (value as number) : ((value as number) * style?.scale ?? 1);
         builder.pushLiteralText(formatters.getNumberFormat(locales, style).format(scaledValue));
         break;
       }
