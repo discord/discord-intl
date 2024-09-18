@@ -136,8 +136,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
               ? parseNumberSkeleton(parseNumberSkeletonFromString(node.style))
               : undefined;
         // @ts-expect-error Support `scale` style property.
-        const scaledValue = value as number;
-        // const scaledValue = (value as number) * (style?.scale ?? 1);
+        const scaledValue = style?.scale != 1 ? (value as number) * style.scale : (value as number);
         builder.pushLiteralText(formatters.getNumberFormat(locales, style).format(scaledValue));
         break;
       }
