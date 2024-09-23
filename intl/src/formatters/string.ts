@@ -34,7 +34,7 @@ export class StringBuilder extends FormatBuilder<string> {
   pushObject(value: object) {
     // Objects are only included in the result if they specify a toString value directly.
     // Otherwise, they would be rendered as `[object Object]`, which is never helpful.
-    if ('toString' in value) {
+    if (value != null && 'toString' in value) {
       this.result += value.toString();
     }
   }
