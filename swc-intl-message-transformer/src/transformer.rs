@@ -50,7 +50,7 @@ impl VisitMut for IntlMessageConsumerTransformer {
 
         for spec in import_decl.specifiers.iter() {
             match spec {
-                ImportSpecifier::Default(default_specifier) => {
+                ImportSpecifier::Default(default_specifier) if is_definitions_file => {
                     self.messages_object_receivers
                         .insert(default_specifier.local.to_id());
                 }

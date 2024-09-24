@@ -8,32 +8,41 @@ const { isMessageDefinitionsFile, hashMessageKey } = require('@discord/intl-load
  * `.messages.js` files are considered and affected.
  *
  * @param {any} babel - The Babel core object.
+ * @param {{
+ *   extraImports: Record<string, string[]>
+ * }} options
  * @returns {{visitor: import("babel__traverse").Visitor}} A visitor object for the Babel transform.
  */
-module.exports = function metroIntlTransformerPlugin(babel) {
+module.exports = function metroIntlTransformerPlugin(babel, options) {
   /** @type {{types: import("@babel/types")}} */
   const { types: t } = babel;
+  const { extraImports } = options;
 
   return {
     visitor: {
       ImportDeclaration(path, _state) {
         const importSource = path.node.source.value;
+        const isDefinition = isMessageDefinitionsFile(importSource);
+        const extraImportSpecifiers = extraImports[importSource] ?? [];
         // This transformer only handles usages of intl messages, so only
-        // imports of definitions files need to be handled.
-        if (!isMessageDefinitionsFile(importSource)) {
+        // imports of definitions files and configured extra specifiers need to
+        // be handled.
+        if (!isDefinition && extraImportSpecifiers.length === 0) {
           return;
         }
 
-        const defaultImport = path.node.specifiers.find(
-          (specifier) => specifier.type === 'ImportDefaultSpecifier',
+        const specifiers = path.node.specifiers
+          .filter(
+            (specifier) =>
+              (isDefinition && specifier.type === 'ImportDefaultSpecifier') ||
+              extraImportSpecifiers.includes(specifier.local.name),
+          )
+          .map((specifier) => specifier.local.name);
+
+        const bindingReferences = specifiers.flatMap(
+          (binding) => path.scope.bindings[binding]?.referencePaths ?? [],
         );
-        const bindingName = defaultImport?.local.name;
-        if (bindingName == null) {
-          return;
-        }
-
-        const binding = path.scope.bindings[bindingName];
-        for (const reference of binding.referencePaths) {
+        for (const reference of bindingReferences) {
           const parent = reference.parent;
           // We only care about member expressions that use the `.` syntax or
           // use string literals, since other syntaxes could be invalid.
