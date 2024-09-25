@@ -108,7 +108,7 @@ class AstBuilder extends FormatBuilder<RichTextNode> {
 
   pushLiteralText(text: string) {
     const last = this.result[this.result.length - 1];
-    if (last.type === RichTextNodeType.Text) {
+    if (last != null && last.type === RichTextNodeType.Text) {
       last.content += text;
     } else {
       this.result.push({ type: RichTextNodeType.Text, content: text });
