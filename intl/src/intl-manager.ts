@@ -47,6 +47,7 @@ export class IntlManager {
   constructor(defaultLocale: string = DEFAULT_LOCALE) {
     this.defaultLocale = defaultLocale;
     this.currentLocale = defaultLocale;
+    console.log(IntlMessageFormat.formats);
     this.intl = createIntl({
       formats: IntlMessageFormat.formats,
       defaultLocale,
@@ -133,7 +134,9 @@ export class IntlManager {
    * applications that do their own message parsing.
    */
   reserialize<T extends IntlMessageGetter>(message: T): string {
-    return message(this.currentLocale)[0].reserialize();
+    const resolved = message(this.currentLocale);
+    if (typeof resolved === 'string') return resolved;
+    return resolved.reserialize();
   }
 
   bindFormatValues<T>(

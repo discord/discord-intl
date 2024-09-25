@@ -45,6 +45,9 @@ importers:
       '@formatjs/intl':
         specifier: ^2.10.1
         version: 2.10.4(typescript@5.5.4)
+      '@intrnl/xxhash64':
+        specifier: ^0.1.2
+        version: 0.1.2
       '@rspack/core':
         specifier: 0.x || 1.x
         version: 0.7.5
@@ -349,6 +352,9 @@ packages:
   '@inquirer/type@1.5.2':
     resolution: {integrity: sha512-w9qFkumYDCNyDZmNQjf/n6qQuvQ4dMC3BJesY4oF+yr0CxR5vxujflAVeIcS6U336uzi9GM0kAfZlLrZ9UTkpA==}
     engines: {node: '>=18'}
+
+  '@intrnl/xxhash64@0.1.2':
+    resolution: {integrity: sha512-1+lx7j99fdph+uy3EnjQyr39KQZ7LP56+aWOr6finJWpgYpvb7XrhFUqDwnEk/wpPC98nCjAT6RulpW3crWjlg==}
 
   '@jridgewell/gen-mapping@0.3.5':
     resolution: {integrity: sha512-IzL8ZoEDIBRWEzlCcRhOaCupYyN5gdIK+Q6fbFdPDg6HqX6jpkItn7DFIpW9LQzXG6Df9sA7+OKnq0qlz/GaQg==}
@@ -2243,6 +2249,8 @@ snapshots:
   '@inquirer/type@1.5.2':
     dependencies:
       mute-stream: 1.0.0
+
+  '@intrnl/xxhash64@0.1.2': {}
 
   '@jridgewell/gen-mapping@0.3.5':
     dependencies:

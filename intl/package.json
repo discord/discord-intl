@@ -26,8 +26,9 @@
     "prepublishOnly": "pnpm build:release"
   },
   "dependencies": {
-    "@formatjs/intl": "^2.10.1",
     "@formatjs/icu-skeleton-parser": "1.8.2",
+    "@formatjs/intl": "^2.10.1",
+    "@intrnl/xxhash64": "^0.1.2",
     "intl-messageformat": "^10.5.11"
   },
   "devDependencies": {
@@ -37,8 +38,8 @@
   },
   "peerDependencies": {
     "@rspack/core": "0.x || 1.x",
-    "webpack": "^5.0.0",
-    "react": "> 16"
+    "react": "> 16",
+    "webpack": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@rspack/core": {

@@ -6,6 +6,8 @@ use once_cell::sync::Lazy;
 pub static RUNTIME_PACKAGE_NAME: &str = "@discord/intl";
 
 /// The seed used when computing hash keys for message names and other hashed identifiers.
+///
+/// Ensure this hash seed matches the seed used in `intl/hash.ts`.
 pub static KEY_HASH_SEED: u64 = 0;
 
 /// Lookup table used for quickly creating a base64 representation of a hashed key.
@@ -14,6 +16,10 @@ static BASE64_TABLE: &[u8] =
 
 /// Returns a consistent, short hash of the given key by first processing it
 /// through a sha256 digest, then encoding the first few bytes to base64.
+///
+/// Note that while this function is _generally_ the only place responsible for
+/// hashing a key, there is a mirrored, client-side hash for use at runtime
+/// that _must_ match this identically: `intl/hash.ts`.
 pub fn hash_message_key(content: &str) -> String {
     let hash = xxhash_rust::xxh64::xxh64(content.as_bytes(), KEY_HASH_SEED);
     let input: [u8; 8] = hash.to_ne_bytes();
