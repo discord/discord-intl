@@ -1,29 +1,35 @@
+const nativePath = require('node:path');
 const { isMessageDefinitionsFile, hashMessageKey } = require('@discord/intl-loader-core');
 
 /**
  * Babel plugin for obfuscating and minifying intl message _usages_, like
- * turning `intl.format(messages.SOME_LONG_MESSAGE_KEY_NAME)` into
- * `intl.format(messages['f21c/3'])`. This transform gets applied to every
- * file in the project, but only member expressions of imports from
- * `.messages.js` files are considered and affected.
+ * turning `intl.format(t.SOME_LONG_MESSAGE_KEY_NAME)` into `intl.format(t['f21c/3'])`.
+ * This transform gets applied to every file in the project, but only member
+ * expressions of imports from `.messages.js` files are considered and affected.
+ *
+ * Configuration for `extraImports` differs from swc-intl-message-transformer in that
+ * paths here are resolved, _absolute_ paths to the desired file, since babel
+ * will often have re-written the AST to resolve import aliases by the time
+ * this plugin runs.
  *
  * @param {any} babel - The Babel core object.
- * @param {{
- *   extraImports: Record<string, string[]>
- * }} options
  * @returns {{visitor: import("babel__traverse").Visitor}} A visitor object for the Babel transform.
  */
-module.exports = function metroIntlTransformerPlugin(babel, options) {
+module.exports = function metroIntlTransformerPlugin(babel) {
   /** @type {{types: import("@babel/types")}} */
   const { types: t } = babel;
-  const { extraImports } = options;
 
   return {
     visitor: {
-      ImportDeclaration(path, _state) {
-        const importSource = path.node.source.value;
+      ImportDeclaration(path, state) {
+        const importSource = nativePath.resolve(
+          // @ts-expect-error state is untyped but contains `file`
+          nativePath.dirname(state.file.opts.filename),
+          path.node.source.value,
+        );
         const isDefinition = isMessageDefinitionsFile(importSource);
-        const extraImportSpecifiers = extraImports[importSource] ?? [];
+        // @ts-expect-error state is untyped but contains `opts` from the config.
+        const extraImportSpecifiers = state.opts?.extraImports?.[importSource] ?? [];
         // This transformer only handles usages of intl messages, so only
         // imports of definitions files and configured extra specifiers need to
         // be handled.
