@@ -14,9 +14,9 @@ export class InternalIntlMessage {
    * formatting or values applied.
    */
   reserialize(): string {
-    const value = '';
-    serializeFormatJsAst(this.ast, { value });
-    return value;
+    const result = { value: '' };
+    serializeFormatJsAst(this.ast, result);
+    return result.value;
   }
 }
 
