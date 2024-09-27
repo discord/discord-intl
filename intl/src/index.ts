@@ -2,6 +2,7 @@ import * as React from 'react';
 import { RichTextNode } from './formatters';
 
 export * from './formatters';
+export { FormatBuilder, FormatBuilderConstructor, bindFormatValues } from './format';
 export { runtimeHashMessageKey } from './hash';
 export { IntlManager, DEFAULT_LOCALE, type FormatFunction } from './intl-manager';
 export {

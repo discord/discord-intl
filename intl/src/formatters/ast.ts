@@ -20,9 +20,9 @@ export type AstFunctionTypes = FunctionTypes<RichTextNode, object>;
 export enum RichTextNodeType {
   Text = 'text',
   Strong = 'strong',
-  Emphasis = 'emphasis',
-  Strikethrough = 'strikethrough',
-  Code = 'code',
+  Emphasis = 'em',
+  Strikethrough = 's',
+  Code = 'inlineCode',
   Link = 'link',
   Paragraph = 'paragraph',
   /**

@@ -47,7 +47,6 @@ export class IntlManager {
   constructor(defaultLocale: string = DEFAULT_LOCALE) {
     this.defaultLocale = defaultLocale;
     this.currentLocale = defaultLocale;
-    console.log(IntlMessageFormat.formats);
     this.intl = createIntl({
       formats: IntlMessageFormat.formats,
       defaultLocale,
