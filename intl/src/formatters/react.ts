@@ -71,10 +71,9 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
   };
 }
 
-export type ReactIntlMessage = React.ReactElement<
-  {},
-  typeof React.Fragment & { __brand: 'discord-intl' }
->;
+// This is explicitly `ReactElement | string` and _not_ `ReactNode`, because nullish values and any
+// other type that ReactNode accepts (boolean, number, etc.) are _not_ valid children of a message.
+export type ReactIntlMessage = Array<React.ReactElement | string> & { __brand: 'discord-intl' };
 
 export function formatReact(
   this: IntlManager,
@@ -83,11 +82,11 @@ export function formatReact(
   Builder: FormatBuilderConstructor<React.ReactElement>,
 ): ReactIntlMessage {
   if (typeof message === 'string') {
-    return React.createElement(React.Fragment, undefined, message) as ReactIntlMessage;
+    return [message] as ReactIntlMessage;
   }
 
   const parts = this.bindFormatValues(Builder, message, values);
-  return React.createElement(React.Fragment, undefined, parts) as ReactIntlMessage;
+  return parts as ReactIntlMessage;
 }
 
 /**

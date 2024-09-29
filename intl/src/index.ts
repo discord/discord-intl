@@ -29,7 +29,7 @@ export type * from './types.d.ts';
  * user-generated string).
  */
 // TODO: Replace this with ReactIntlMessage from `formatters/react`.
-export type ReactIntlMessage = string | React.ReactElement;
+export type ReactIntlMessage = string | React.ReactElement | Array<string | React.ReactElement>;
 
 /**
  * The return value of `formatToParts` from `@discord/intl`, this type

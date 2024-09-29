@@ -5,5 +5,6 @@ export {
   makeReactFormatter,
   DEFAULT_REACT_RICH_TEXT_ELEMENTS,
   type ReactFunctionTypes,
+  ReactIntlMessage,
 } from './react';
 export { stringFormatter, type StringFunctionTypes } from './string';
