@@ -13,7 +13,8 @@ pathdiff = "0.2.1"
 intl_message_utils = { path = "../intl_message_utils" }
 serde = "1"
 serde_json = "1"
-# This version is roughly tied to our rspack version: https://swc.rs/docs/plugin/selecting-swc-core
-swc_core = { version = "0.90.x", features = ["ecma_plugin_transform"] }
+# This version is roughly tied to rspack versions.
+# Use https://plugins.swc.rs/ to pick an appropriate version.
+swc_core = { version = "0.106.x", features = ["ecma_plugin_transform"] }
 tracing = "0.1.40"
 ustr = "1.0.0"

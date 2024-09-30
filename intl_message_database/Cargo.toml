@@ -22,8 +22,10 @@ num_cpus = "1"
 rustc-hash = "2"
 serde = "1"
 serde_json = "1"
-swc_common = "0.33.25"
-swc_core = { version = "0.90.x", features = [
+# This version is roughly tied to rspack versions.
+# Use https://plugins.swc.rs/ to pick an appropriate version.
+swc_common = "0.40.x"
+swc_core = { version = "0.106.x", features = [
     "ecma_parser",
     "ecma_ast",
     "ecma_visit",
