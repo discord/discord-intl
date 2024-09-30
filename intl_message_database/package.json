@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-message-database",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "license": "MIT",
   "description": "Rust-based Node extension module for parsing, extracting, and managing messages and translations across a project.",
   "author": "Jon Egeland",
