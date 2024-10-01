@@ -16,7 +16,7 @@ use crate::messages::{KeySymbol, MessageMeta, MessagesError, MessagesResult};
 pub fn parse_message_definitions_file(file_name: &str, source: &str) -> PResult<Module> {
     let cm: Lrc<SourceMap> = Default::default();
 
-    let fm = cm.new_source_file(FileName::Custom(file_name.into()).into(), source.into());
+    let fm = cm.new_source_file(FileName::Custom(file_name.into()), source.into());
     let lexer = Lexer::new(
         Syntax::Es(Default::default()),
         Default::default(),
