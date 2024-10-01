@@ -11,7 +11,6 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1"
 bitflags = "2"
-codespan-reporting = { version = "0.11.1", features = ["serialization"] }
 intl_markdown = { path = "../intl_markdown" }
 intl_message_utils = { path = "../intl_message_utils" }
 keyless_json = { path = "../keyless_json" }

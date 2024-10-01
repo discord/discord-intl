@@ -18,6 +18,7 @@ use crate::services::IntlService;
 use crate::services::precompile::{CompiledMessageFormat, IntlMessagePreCompiler};
 use crate::services::types::IntlTypesGenerator;
 use crate::services::validator;
+use crate::services::validator::MessageDiagnostic;
 use crate::sources::extract_message_translations;
 use crate::TEMP_DEFAULT_LOCALE;
 use crate::threading::run_in_thread_pool;
@@ -30,7 +31,24 @@ pub struct IntlMessagesDatabase {
 #[napi(object)]
 pub struct IntlDiagnostic {
     pub key: String,
-    pub diagnostics: JsUnknown,
+    pub file: String,
+    pub locale: String,
+    pub severity: String,
+    pub description: String,
+    pub help: Option<String>,
+}
+
+impl From<MessageDiagnostic> for IntlDiagnostic {
+    fn from(value: MessageDiagnostic) -> Self {
+        Self {
+            key: value.key.to_string(),
+            file: value.file_key.to_string(),
+            locale: value.locale.to_string(),
+            severity: value.severity.to_string(),
+            description: value.description,
+            help: value.help,
+        }
+    }
 }
 
 // This is an unused struct purely for generating functional TS types.
@@ -268,18 +286,17 @@ impl IntlMessagesDatabase {
     }
 
     #[napi]
-    pub fn validate_messages(&self, env: Env) -> anyhow::Result<Vec<IntlDiagnostic>> {
+    pub fn validate_messages(&self) -> anyhow::Result<Vec<IntlDiagnostic>> {
         let mut results = vec![];
-        for (key, message) in self.database.messages.iter() {
+        for message in self.database.messages.values() {
             let diagnostics = validator::validate_message(&message);
             if diagnostics.is_empty() {
                 continue;
             }
 
-            results.push(IntlDiagnostic {
-                key: key.to_string(),
-                diagnostics: env.to_js_value(&diagnostics)?,
-            });
+            for diagnostic in diagnostics.into_iter() {
+                results.push(IntlDiagnostic::from(diagnostic))
+            }
         }
 
         Ok(results)

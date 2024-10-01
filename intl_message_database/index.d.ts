@@ -31,7 +31,11 @@ export declare const enum IntlCompiledMessageFormat {
 
 export interface IntlDiagnostic {
   key: string
-  diagnostics: unknown
+  file: string
+  locale: string
+  severity: string
+  description: string
+  help?: string
 }
 
 export interface IntlMessageMeta {

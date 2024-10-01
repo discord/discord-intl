@@ -1,6 +1,48 @@
-use codespan_reporting::diagnostic::{Diagnostic, Label};
+use std::fmt::Formatter;
+
+use serde::{Serialize, Serializer};
 
 use crate::messages::{KeySymbol, Message};
+
+pub enum DiagnosticSeverity {
+    Info,
+    Warning,
+    Error,
+}
+
+impl DiagnosticSeverity {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Info => "info",
+            Self::Warning => "warning",
+            Self::Error => "error",
+        }
+    }
+}
+
+impl Serialize for DiagnosticSeverity {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.as_str())
+    }
+}
+
+impl std::fmt::Display for DiagnosticSeverity {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+pub struct MessageDiagnostic {
+    pub key: KeySymbol,
+    pub file_key: KeySymbol,
+    pub locale: KeySymbol,
+    pub severity: DiagnosticSeverity,
+    pub description: String,
+    pub help: Option<String>,
+}
 
 /// Validate the content of a message across all of its translations, returning
 /// a full set of diagnostics with information about each one.
@@ -9,7 +51,7 @@ use crate::messages::{KeySymbol, Message};
 /// of truth (a definition) to check against. Undefined messages can still have
 /// diagnostics presented from general errors, like invalid syntax or
 /// unsupported syntax.
-pub fn validate_message(message: &Message) -> Vec<Diagnostic<KeySymbol>> {
+pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
     let Some(source) = message.get_source_translation() else {
         return vec![];
     };
@@ -60,20 +102,15 @@ pub fn validate_message(message: &Message) -> Vec<Diagnostic<KeySymbol>> {
             Some(translation_variables)
                 if !source_has_variables && translation_variables.count() > 0 =>
             {
-                // Moved out because the rustfmt doesn't understand this otherwise.
-                let message = String::from("This is okay, but likely unintentional. Check that the source message is defined as expected.");
-                diagnostics.push(
-                    Diagnostic::warning()
-                        .with_message(
-                            "Translation includes variables, but the source message does not",
-                        )
-                        .with_labels(vec![Label::primary(
-                            translation.file_position.unwrap().file,
-                            translation.file_position.unwrap().offset as usize
-                                ..translation.file_position.unwrap().offset as usize,
-                        )])
-                        .with_notes(vec![message]),
-                );
+                diagnostics.push(MessageDiagnostic {
+                    key: message.key(),
+                    file_key: translation.file_position.unwrap().file,
+                    locale: locale.clone(),
+                    severity: DiagnosticSeverity::Warning,
+                    description: "Translation includes variables, but the source message does not"
+                        .into(),
+                    help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
+                });
                 continue;
             }
 
@@ -82,17 +119,14 @@ pub fn validate_message(message: &Message) -> Vec<Diagnostic<KeySymbol>> {
             // also likely not intentional, but still won't break things.
             _ => {
                 if source_has_variables {
-                    diagnostics.push(
-                        Diagnostic::warning()
-                            .with_message(
-                                "Source message includes variables, but this translation has none.",
-                            )
-                            .with_labels(vec![Label::primary(
-                                translation.file_position.unwrap().file,
-                                translation.file_position.unwrap().offset as usize
-                                    ..translation.file_position.unwrap().offset as usize,
-                            )]),
-                    );
+                    diagnostics.push(MessageDiagnostic {
+                        key: message.key(),
+                        file_key: translation.file_position.unwrap().file,
+                        locale: locale.clone(),
+                        severity: DiagnosticSeverity::Warning,
+                        description: "Source message includes variables, but this translation has none.".into(),
+                        help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
+                    });
                 }
 
                 continue;
