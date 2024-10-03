@@ -137,7 +137,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
               : undefined;
         const scaledValue =
           // @ts-expect-error This is a weird cast that's not accurate, but works in the short term.
-          typeof value !== 'number' ? (value as number) : ((value as number) * style?.scale ?? 1);
+          typeof value !== 'number' ? (value as number) : (value as number) * (style?.scale ?? 1);
         builder.pushLiteralText(formatters.getNumberFormat(locales, style).format(scaledValue));
         break;
       }
