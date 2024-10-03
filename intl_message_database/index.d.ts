@@ -15,7 +15,7 @@ export declare class IntlMessagesDatabase {
    * map is the hashed name and the value is the original.
    */
   getSourceFileKeyMap(filePath: string): Record<string, string>
-  getMessage(key: string): unknown
+  getMessage(key: string): IntlMessage
   generateTypes(sourceFilePath: string, outputFilePath: string, allowNullability?: boolean | undefined | null): void
   precompile(filePath: string, locale: string, outputPath: string, format?: IntlCompiledMessageFormat | undefined | null): void
   precompileToBuffer(filePath: string, locale: string, format?: IntlCompiledMessageFormat | undefined | null): Buffer
@@ -37,6 +37,19 @@ export interface IntlDiagnostic {
   severity: string
   description: string
   help?: string
+}
+
+export interface IntlMessage {
+  /** Original, plain text name of the message given in its definition. */
+  key: string
+  /** Hashed version of the key, used everywhere for minification and obfuscation. */
+  hashedKey: string
+  /** Map of all translations for this message, including the default. */
+  translations: Record<string, IntlMessageValue>
+  /** The source definition information for this message (locale and location). */
+  sourceLocale?: string
+  /** Meta information about how to handle and process this message. */
+  meta: IntlMessageMeta
 }
 
 export interface IntlMessageMeta {

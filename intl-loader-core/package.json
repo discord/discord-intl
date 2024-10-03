@@ -5,7 +5,10 @@
   "description": "Core utilities for writing loaders and transformers using @discord/intl",
   "author": "Jon Egeland",
   "main": "index.js",
+  "types": "index.d.ts",
   "files": [
+    "index.js",
+    "index.d.ts",
     "src"
   ],
   "exports": {

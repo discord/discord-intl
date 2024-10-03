@@ -15,5 +15,5 @@
     "metro-intl-transformer/",
     "rspack-intl-loader/",
     "swc-intl-message-transformer/",
-  ]
+  ],
 }

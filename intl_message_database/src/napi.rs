@@ -73,6 +73,21 @@ pub struct IntlMessageMeta {
 
 // This is an unused struct purely for generating functional TS types.
 #[napi(object)]
+pub struct IntlMessage {
+    /// Original, plain text name of the message given in its definition.
+    pub key: String,
+    /// Hashed version of the key, used everywhere for minification and obfuscation.
+    pub hashed_key: String,
+    /// Map of all translations for this message, including the default.
+    pub translations: HashMap<String, IntlMessageValue>,
+    /// The source definition information for this message (locale and location).
+    pub source_locale: Option<String>,
+    /// Meta information about how to handle and process this message.
+    pub meta: IntlMessageMeta,
+}
+
+// This is an unused struct purely for generating functional TS types.
+#[napi(object)]
 pub struct IntlMessageValue {
     pub raw: String,
     pub parsed: JsObject,
@@ -237,7 +252,7 @@ impl IntlMessagesDatabase {
         Ok(env.to_js_value(&hashes)?)
     }
 
-    #[napi]
+    #[napi(ts_return_type = "IntlMessage")]
     pub fn get_message(&self, env: Env, key: String) -> anyhow::Result<JsUnknown> {
         let definition = &self
             .database
