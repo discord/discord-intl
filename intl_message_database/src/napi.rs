@@ -11,15 +11,12 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 
-use crate::messages::{
-    global_get_symbol_or_error, global_intern_string, KeySymbol, MessagesDatabase, MessagesError,
-};
+use crate::messages::{global_get_symbol_or_error, KeySymbol, MessagesDatabase, MessagesError};
 use crate::services::IntlService;
 use crate::services::precompile::{CompiledMessageFormat, IntlMessagePreCompiler};
 use crate::services::types::IntlTypesGenerator;
 use crate::services::validator;
 use crate::services::validator::MessageDiagnostic;
-use crate::sources::extract_message_translations;
 use crate::TEMP_DEFAULT_LOCALE;
 use crate::threading::run_in_thread_pool;
 
@@ -146,12 +143,19 @@ impl IntlMessagesDatabase {
             |(locale, file_path)| {
                 let content = std::fs::read_to_string(&file_path)
                     .expect(&format!("Failed to read translation file at {}", file_path));
-                Ok((locale, file_path, extract_message_translations(&content)))
+                Ok((
+                    locale,
+                    file_path,
+                    crate::sources::extract_translations(&content),
+                ))
             },
             |(locale, file_path, translations)| {
-                let translations = translations?;
-                self.database
-                    .insert_translations_from_file(&file_path, &locale, translations)?;
+                crate::sources::insert_translations(
+                    &mut self.database,
+                    &file_path,
+                    &locale,
+                    translations?,
+                )?;
                 Ok(())
             },
         )?;
@@ -175,10 +179,13 @@ impl IntlMessagesDatabase {
         locale: String,
         content: String,
     ) -> anyhow::Result<String> {
-        let translations = extract_message_translations(&content)?;
-        self.database
-            .insert_translations_from_file(&file_path, &locale, translations)?;
-        Ok(global_intern_string(&file_path).to_string())
+        let source_file = crate::sources::process_translations_file(
+            &mut self.database,
+            &file_path,
+            &content,
+            &locale,
+        )?;
+        Ok(source_file.to_string())
     }
 
     #[napi]

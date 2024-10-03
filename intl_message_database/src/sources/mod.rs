@@ -1,11 +1,11 @@
 use swc_core::ecma::ast::Module;
 
-pub use definitions_parser::{extract_message_definitions, parse_message_definitions_file};
-pub use translations::{extract_message_translations, Translations};
+use definitions_parser::{extract_message_definitions, parse_message_definitions_file};
+use translations::{extract_message_translations, Translations};
 
 use crate::messages::{
     FilePosition, global_intern_string, KeySymbol, Message, MessageMeta, MessagesDatabase,
-    MessagesError, MessagesResult, MessageValue,
+    MessagesError, MessagesResult, MessageValue, SourceFile,
 };
 use crate::messages::symbols::KeySymbolSet;
 use crate::sources::definitions_parser::ExtractedMessage;
@@ -77,4 +77,49 @@ fn handle_definition(
     });
 
     db.insert_definition(&definition.name, value, file_locale, definition.meta, true)
+}
+
+pub fn process_translations_file(
+    database: &mut MessagesDatabase,
+    file_name: &str,
+    locale: &str,
+    content: &str,
+) -> MessagesResult<KeySymbol> {
+    let translations = extract_translations(&content)?;
+    insert_translations(database, file_name, locale, translations)
+}
+
+pub fn extract_translations(content: &str) -> MessagesResult<Translations> {
+    extract_message_translations(content)
+}
+
+pub fn insert_translations(
+    database: &mut MessagesDatabase,
+    file_name: &str,
+    locale: &str,
+    translations: Translations,
+) -> MessagesResult<KeySymbol> {
+    let file_key = global_intern_string(file_name);
+    let locale_key = global_intern_string(&locale);
+
+    let mut inserted_translations = KeySymbolSet::default();
+    for entry in translations.entries {
+        let value = entry.value.with_file_position(FilePosition {
+            file: file_key,
+            offset: entry.start_offset as u32,
+        });
+        if let Ok(inserted) = database.insert_translation(entry.key, locale_key, value, true) {
+            inserted_translations.insert(inserted.key());
+        }
+    }
+
+    let source_file = SourceFile::Translation {
+        file: file_name.into(),
+        message_keys: inserted_translations,
+        locale: global_intern_string(&locale),
+    };
+
+    database.sources.insert(file_key, source_file);
+
+    Ok(file_key)
 }

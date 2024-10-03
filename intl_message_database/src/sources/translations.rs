@@ -70,6 +70,6 @@ impl<'de> Deserialize<'de> for Translations {
 
 /// Parse the given content string as JSON, interpreting each entry in the
 /// object as a new Translation definition.
-pub fn extract_message_translations(content: &str) -> MessagesResult<Translations> {
+pub(super) fn extract_message_translations(content: &str) -> MessagesResult<Translations> {
     serde_json::from_str(content).map_err(MessagesError::TranslationDeserializationError)
 }

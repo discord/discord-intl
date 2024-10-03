@@ -1,10 +1,9 @@
 use rustc_hash::FxHashMap;
 
 use crate::messages::symbols::{KeySymbolMap, KeySymbolSet};
-use crate::sources::Translations;
 
 use super::{
-    FilePosition, global_get_symbol, global_intern_string, KeySymbol, Message, MessageMeta,
+    global_get_symbol, global_intern_string, KeySymbol, Message, MessageMeta,
     MessagesError, MessagesResult, MessageValue, SourceFile,
 };
 
@@ -194,38 +193,6 @@ impl MessagesDatabase {
         self.messages
             .get_mut(&message_key)
             .and_then(|message| message.remove_translation(locale))
-    }
-
-    pub fn insert_translations_from_file(
-        &mut self,
-        file_name: &str,
-        locale: &String,
-        translations: Translations,
-    ) -> MessagesResult<&SourceFile> {
-        let file_key = global_intern_string(file_name);
-        let locale_symbol = global_intern_string(&locale);
-
-        let mut inserted_translations = KeySymbolSet::default();
-
-        for entry in translations.entries {
-            let value = entry.value.with_file_position(FilePosition {
-                file: file_key,
-                offset: entry.start_offset as u32,
-            });
-            if let Ok(inserted) = self.insert_translation(entry.key, locale_symbol, value, true) {
-                inserted_translations.insert(inserted.key());
-            }
-        }
-
-        let source_file = SourceFile::Translation {
-            file: file_name.into(),
-            message_keys: inserted_translations,
-            locale: global_intern_string(&locale),
-        };
-
-        self.sources.insert(file_key, source_file);
-
-        Ok(&self.sources[&file_key])
     }
 
     //#endregion
