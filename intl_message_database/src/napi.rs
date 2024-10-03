@@ -6,7 +6,7 @@
 //! This is the preferred way of using the library wherever possible.
 use std::collections::HashMap;
 
-use napi::{JsNumber, JsUnknown};
+use napi::{JsNumber, JsObject, JsUnknown};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
@@ -63,6 +63,7 @@ pub struct IntlSourceFile {
     pub locale: Option<JsNumber>,
 }
 
+// This is an unused struct purely for generating functional TS types.
 #[napi(object)]
 pub struct IntlMessageMeta {
     pub secret: bool,
@@ -71,6 +72,16 @@ pub struct IntlMessageMeta {
     pub bundle_secrets: bool,
     #[napi(js_name = "translationsPath")]
     pub translations_path: String,
+}
+
+// This is an unused struct purely for generating functional TS types.
+#[napi(object)]
+pub struct IntlMessageValue {
+    pub raw: String,
+    pub parsed: JsObject,
+    pub variables: JsObject,
+    #[napi(js_name = "filePosition")]
+    pub file_position: JsObject,
 }
 
 #[napi]
@@ -250,12 +261,12 @@ impl IntlMessagesDatabase {
     #[napi]
     pub fn precompile(
         &self,
-        source_path: String,
+        file_path: String,
         locale: String,
         output_path: String,
         format: Option<IntlCompiledMessageFormat>,
     ) -> anyhow::Result<()> {
-        let buffer = self.precompile_to_buffer(source_path, locale, format)?;
+        let buffer = self.precompile_to_buffer(file_path, locale, format)?;
         std::fs::write(output_path, buffer)?;
         Ok(())
     }
@@ -263,12 +274,12 @@ impl IntlMessagesDatabase {
     #[napi]
     pub fn precompile_to_buffer(
         &self,
-        source_path: String,
+        file_path: String,
         locale: String,
         format: Option<IntlCompiledMessageFormat>,
     ) -> anyhow::Result<Buffer> {
         let locale_key = global_get_symbol_or_error(&locale)?;
-        let source_key = global_get_symbol_or_error(&source_path)?;
+        let source_key = global_get_symbol_or_error(&file_path)?;
         let keys_count = self
             .database
             .get_source_file(source_key)
@@ -300,6 +311,18 @@ impl IntlMessagesDatabase {
         }
 
         Ok(results)
+    }
+
+    #[napi(ts_return_type = "Record<string, IntlMessageValue | undefined>")]
+    pub fn get_source_file_message_values(
+        &self,
+        env: Env,
+        file_path: String,
+    ) -> anyhow::Result<JsUnknown> {
+        let source_key = global_get_symbol_or_error(&file_path)?;
+        let key_value_pairs = self.database.get_source_file_message_values(source_key)?;
+        let map = FxHashMap::from_iter(key_value_pairs);
+        Ok(env.to_js_value(&map)?)
     }
 }
 

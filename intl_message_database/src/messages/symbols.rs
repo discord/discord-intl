@@ -7,8 +7,8 @@ use crate::messages::{MessagesError, MessagesResult};
 
 /// A symbol representing a message key, file name, or any other frequently-
 /// copied value. This is not the same as hashing a message key, which creates
-/// a short _string_ representation, while this symbol is just a lightweight
-/// integer handle for use as keys and references internally.
+/// a new, shorter representation of a message key for identification,
+/// obfuscation, and minification.
 pub type KeySymbol = Ustr;
 
 pub type KeySymbolMap<Value> = UstrMap<Value>;

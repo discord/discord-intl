@@ -50,7 +50,7 @@ pub fn process_definitions_file(
             db.remove_definition(key);
         }
     } else {
-        db.create_source_file(file_key, file_name, file_meta);
+        db.create_source_file(file_key, file_meta);
         // An insert operation doesn't need to track any existing behavior, so it can just insert
         // incrementally. The interior will track adding the keys to the set.
         for definition in definitions.into_iter() {

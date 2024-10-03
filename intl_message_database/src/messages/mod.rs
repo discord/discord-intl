@@ -23,4 +23,3 @@ mod translation;
 mod value;
 
 pub type MessagesResult<T> = Result<T, MessagesError>;
-pub type LocaleId = String;

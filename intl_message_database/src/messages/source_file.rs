@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::messages::symbols::KeySymbolSet;
 
-use super::{LocaleId, MessageMeta};
+use super::{KeySymbol, MessageMeta};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum SourceFileKind {
@@ -40,7 +40,7 @@ pub enum SourceFile {
     #[serde(rename = "translation")]
     Translation {
         file: String,
-        locale: LocaleId,
+        locale: KeySymbol,
         #[serde(rename = "messageKeys")]
         message_keys: KeySymbolSet,
     },

@@ -47,7 +47,8 @@ bench('get a message', () => {
 });
 
 bench('get source file', () => {
-  const source = database.getSourceFile('./data/input/en-US.js');
+  const source = database.getSourceFileMessageValues('./data/input/en-US.js');
+  console.log(Object.entries(source).map(([key, value]) => [key, value?.raw]));
 });
 
 bench('validate', () => {

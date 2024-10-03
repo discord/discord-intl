@@ -4,8 +4,8 @@ use crate::messages::symbols::{KeySymbolMap, KeySymbolSet};
 use crate::sources::Translations;
 
 use super::{
-    FilePosition, global_get_symbol, global_intern_string, KeySymbol, LocaleId, Message,
-    MessageMeta, MessagesError, MessagesResult, MessageValue, SourceFile,
+    FilePosition, global_get_symbol, global_intern_string, KeySymbol, Message, MessageMeta,
+    MessagesError, MessagesResult, MessageValue, SourceFile,
 };
 
 #[derive(Debug)]
@@ -31,31 +31,18 @@ impl MessagesDatabase {
         global_get_symbol(key).and_then(|symbol| self.messages.get(&symbol))
     }
 
-    /// Returns owned copies of all message names that are currently in the database.
-    pub fn get_message_keys(&self) -> Vec<String> {
-        Vec::from_iter(self.messages.keys().map(KeySymbol::to_string))
-    }
-
-    /// Return the string value of a Symbol that has been interned.
-    /// If the value is not known.
-    pub fn get_symbol(&self, value: &str) -> Option<KeySymbol> {
-        global_get_symbol(value)
-    }
+    //#region Source Files
 
     pub fn get_source_file(&self, file_key: KeySymbol) -> Option<&SourceFile> {
         self.sources.get(&file_key)
     }
 
-    pub fn create_source_file(
-        &mut self,
-        file_key: KeySymbol,
-        file_name: &str,
-        meta: MessageMeta,
-    ) -> &SourceFile {
+    /// Create a new [SourceFile::Definition] entry in the sources map.
+    pub fn create_source_file(&mut self, file_key: KeySymbol, meta: MessageMeta) -> &SourceFile {
         self.sources.insert(
-            file_key.into(),
+            file_key,
             SourceFile::Definition {
-                file: file_name.into(),
+                file: file_key.to_string(),
                 message_keys: KeySymbolSet::default(),
                 meta,
             },
@@ -63,6 +50,9 @@ impl MessagesDatabase {
         &self.sources[&file_key]
     }
 
+    /// Immediately replace list of message keys owned by the given source file with the given set
+    /// of keys. File membership is not updates when processing messages and must be applied after
+    /// the fact using this method.
     pub fn set_source_file_keys(
         &mut self,
         file_key: KeySymbol,
@@ -74,13 +64,46 @@ impl MessagesDatabase {
             .ok_or(MessagesError::UnknownSourceFile(file_key))
     }
 
+    /// Return an iterator over all of the message values owned by the given
+    /// source file. The returned values are Options of references to the
+    /// message for each key. Keys with no value will still be returned in the
+    /// map, but with their values as None.
+    pub fn get_source_file_message_values(
+        &self,
+        file_key: KeySymbol,
+    ) -> MessagesResult<impl Iterator<Item = (&KeySymbol, Option<&MessageValue>)>> {
+        let source = self
+            .get_source_file(file_key)
+            .ok_or(MessagesError::UnknownSourceFile(file_key))?;
+
+        let source_locale = match source {
+            SourceFile::Definition { .. } => None,
+            SourceFile::Translation { locale, .. } => Some(locale),
+        };
+
+        Ok(source.message_keys().into_iter().map(move |key| {
+            let Some(message) = self.get_message(key) else {
+                return (key, None);
+            };
+
+            let value = match source_locale {
+                Some(locale) => message.translations().get(&locale),
+                _ => message.get_source_translation(),
+            };
+
+            (key, value)
+        }))
+    }
+
+    //#endregion
+
+    //#region Definitions
+
     /// Insert a new message definition into the database. If a Normal entry with the same key
     /// already exists and `replace_existing` is `false`, this method will return an Error that the
     /// message is already defined and cannot be replaced. However, if `replace_existing` is `true`
     /// and the existing definition comes from the same source file, _or_ if the existing entry is
     /// Undefined, this method will update and convert that entry to a Normal entry and return Ok.
-    ///
-    /// An Ok response from this method will _always_ return a `MessageDefinition::Normal` value.
     pub fn insert_definition(
         &mut self,
         name: &str,
@@ -122,14 +145,15 @@ impl MessagesDatabase {
             .and_then(|message| message.remove_definition().0)
     }
 
+    //#endregion
+
+    //#region Translations
+
     /// Insert a new message definition into the database. If a Normal
     /// entry with the same key already exists, this method will return an
     /// Error. However, if the existing entry is Undefined, this method will
     /// convert that entry to a Normal entry and return Ok.
-    ///
-    /// An Ok response from this method will _always_ return a
-    /// `MessageDefinition::Normal` value.
-    fn insert_translation(
+    pub fn insert_translation(
         &mut self,
         key: KeySymbol,
         locale: KeySymbol,
@@ -162,7 +186,7 @@ impl MessagesDatabase {
         Ok(&self.messages[&key])
     }
 
-    fn remove_translation(
+    pub fn remove_translation(
         &mut self,
         message_key: KeySymbol,
         locale: KeySymbol,
@@ -172,13 +196,10 @@ impl MessagesDatabase {
             .and_then(|message| message.remove_translation(locale))
     }
 
-    /// Similar to [MessagesDatabase::process_translations_file], but where the
-    /// caller has already done the work to read the file and parse it into a
-    /// set of translations. Useful for multithreading on native platforms.
     pub fn insert_translations_from_file(
         &mut self,
         file_name: &str,
-        locale: &LocaleId,
+        locale: &String,
         translations: Translations,
     ) -> MessagesResult<&SourceFile> {
         let file_key = global_intern_string(file_name);
@@ -199,13 +220,15 @@ impl MessagesDatabase {
         let source_file = SourceFile::Translation {
             file: file_name.into(),
             message_keys: inserted_translations,
-            locale: locale.clone(),
+            locale: global_intern_string(&locale),
         };
 
         self.sources.insert(file_key, source_file);
 
         Ok(&self.sources[&file_key])
     }
+
+    //#endregion
 }
 
 #[cfg(test)]
