@@ -1,10 +1,11 @@
+use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::PathBuf;
 
 use rustc_hash::FxHashMap;
 
 use crate::{messages::MessagesDatabase, services::IntlService, TEMP_DEFAULT_LOCALE};
-use crate::messages::{KeySymbolMap, SourceFile};
+use crate::messages::{KeySymbol, SourceFile};
 
 /// A service for persisting the current contents of a [MessagesDatabase] into a set of translation
 /// files, organized according to the configuration of each message's meta information for where
@@ -47,7 +48,7 @@ impl IntlService for ExportTranslations<'_> {
                 _ => None,
             });
 
-        let mut result: FxHashMap<PathBuf, KeySymbolMap<&String>> = FxHashMap::default();
+        let mut result: FxHashMap<PathBuf, BTreeMap<KeySymbol, &String>> = FxHashMap::default();
         for file in definition_files {
             for locale in &self.database.known_locales {
                 // TODO: Make TEMP_DEFAULT_LOCALE configurable. This assumes all definitions are
@@ -59,7 +60,6 @@ impl IntlService for ExportTranslations<'_> {
 
                 let path = file.meta().get_translations_path(&locale, None);
                 let values = result.entry(path).or_default();
-                values.reserve(file.message_keys().len());
                 for key in file.message_keys() {
                     let Some(message) = self.database.get_message(&key) else {
                         continue;
