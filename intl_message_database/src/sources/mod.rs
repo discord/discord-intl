@@ -4,8 +4,8 @@ use definitions_parser::{extract_message_definitions, parse_message_definitions_
 use translations::{extract_message_translations, Translations};
 
 use crate::messages::{
-    FilePosition, global_intern_string, KeySymbol, Message, MessageMeta, MessagesDatabase,
-    MessagesError, MessagesResult, MessageValue, SourceFile,
+    FilePosition, global_intern_string, KeySymbol, Message, MessagesDatabase, MessagesError,
+    MessagesResult, MessageValue, SourceFile, TranslationFile,
 };
 use crate::messages::symbols::KeySymbolSet;
 use crate::sources::definitions_parser::ExtractedMessage;
@@ -25,8 +25,9 @@ pub fn process_definitions_file(
 ) -> MessagesResult<KeySymbol> {
     let file_key = global_intern_string(file_name);
     let file_locale = global_intern_string(locale);
-    let extracted = parse_definitions_file(file_name, content).map(extract_message_definitions)?;
-    let file_meta = extracted.root_meta.unwrap_or(MessageMeta::default());
+    let extracted = parse_definitions_file(file_name, content)
+        .map(|module| extract_message_definitions(file_name, module))?;
+    let file_meta = extracted.root_meta;
 
     let definitions = extracted.message_definitions;
     let mut inserted_keys = KeySymbolSet::default();
@@ -113,11 +114,11 @@ pub fn insert_translations(
         }
     }
 
-    let source_file = SourceFile::Translation {
-        file: file_name.into(),
-        message_keys: inserted_translations,
-        locale: global_intern_string(&locale),
-    };
+    let source_file = SourceFile::Translation(TranslationFile::new(
+        file_name.into(),
+        global_intern_string(&locale),
+        inserted_translations,
+    ));
 
     database.sources.insert(file_key, source_file);
 

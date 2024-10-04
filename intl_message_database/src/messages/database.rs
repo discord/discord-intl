@@ -3,8 +3,8 @@ use rustc_hash::FxHashMap;
 use crate::messages::symbols::{KeySymbolMap, KeySymbolSet};
 
 use super::{
-    global_get_symbol, global_intern_string, KeySymbol, Message, MessageMeta,
-    MessagesError, MessagesResult, MessageValue, SourceFile,
+    DefinitionFile, global_get_symbol, global_intern_string, KeySymbol, Message, MessageMeta,
+    MessagesError, MessagesResult, MessageValue, SourceFile, SourceFileMeta,
 };
 
 #[derive(Debug)]
@@ -37,14 +37,14 @@ impl MessagesDatabase {
     }
 
     /// Create a new [SourceFile::Definition] entry in the sources map.
-    pub fn create_source_file(&mut self, file_key: KeySymbol, meta: MessageMeta) -> &SourceFile {
+    pub fn create_source_file(&mut self, file_key: KeySymbol, meta: SourceFileMeta) -> &SourceFile {
         self.sources.insert(
             file_key,
-            SourceFile::Definition {
-                file: file_key.to_string(),
-                message_keys: KeySymbolSet::default(),
+            SourceFile::Definition(DefinitionFile::new(
+                file_key.to_string(),
                 meta,
-            },
+                KeySymbolSet::default(),
+            )),
         );
         &self.sources[&file_key]
     }
@@ -76,8 +76,8 @@ impl MessagesDatabase {
             .ok_or(MessagesError::UnknownSourceFile(file_key))?;
 
         let source_locale = match source {
-            SourceFile::Definition { .. } => None,
-            SourceFile::Translation { locale, .. } => Some(locale),
+            SourceFile::Definition(_) => None,
+            SourceFile::Translation(translation) => Some(translation.locale()),
         };
 
         Ok(source.message_keys().into_iter().map(move |key| {

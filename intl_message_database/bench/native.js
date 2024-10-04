@@ -51,6 +51,10 @@ bench('get source file', () => {
   console.log(Object.entries(source).map(([key, value]) => [key, value?.raw]));
 });
 
+bench('export translations', () => {
+  const files = database.exportTranslations('messages.jsona');
+});
+
 bench('validate', () => {
   database.validateMessages();
   //   const allDiagnostics = validations.flatMap((v) => v.diagnostics);

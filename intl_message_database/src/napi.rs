@@ -12,6 +12,7 @@ use napi_derive::napi;
 use rustc_hash::FxHashMap;
 
 use crate::messages::{global_get_symbol_or_error, KeySymbol, MessagesDatabase, MessagesError};
+use crate::services::export::ExportTranslations;
 use crate::services::IntlService;
 use crate::services::precompile::{CompiledMessageFormat, IntlMessagePreCompiler};
 use crate::services::types::IntlTypesGenerator;
@@ -335,7 +336,17 @@ impl IntlMessagesDatabase {
         Ok(results)
     }
 
+    #[napi]
+    pub fn export_translations(
+        &self,
+        file_extension: Option<String>,
+    ) -> anyhow::Result<Vec<String>> {
+        let files = ExportTranslations::new(&self.database, file_extension).run()?;
+        Ok(files)
+    }
+
     #[napi(ts_return_type = "Record<string, IntlMessageValue | undefined>")]
+    /// Return something specific
     pub fn get_source_file_message_values(
         &self,
         env: Env,

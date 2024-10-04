@@ -11,7 +11,7 @@ use unescape_zero_copy::unescape_default;
 
 use intl_message_utils::RUNTIME_PACKAGE_NAME;
 
-use crate::messages::{KeySymbol, MessageMeta, MessagesError, MessagesResult};
+use crate::messages::{KeySymbol, MessageMeta, MessagesError, MessagesResult, SourceFileMeta};
 
 pub fn parse_message_definitions_file(file_name: &str, source: &str) -> PResult<Module> {
     let cm: Lrc<SourceMap> = Default::default();
@@ -28,8 +28,11 @@ pub fn parse_message_definitions_file(file_name: &str, source: &str) -> PResult<
     parser.parse_module()
 }
 
-pub fn extract_message_definitions(module: Module) -> MessageDefinitionsExtractor {
-    let mut extractor = MessageDefinitionsExtractor::new();
+pub fn extract_message_definitions(
+    source_file_path: &str,
+    module: Module,
+) -> MessageDefinitionsExtractor {
+    let mut extractor = MessageDefinitionsExtractor::new(source_file_path);
     module.visit_with(&mut extractor);
     extractor
 }
@@ -49,17 +52,17 @@ pub struct ExtractedMessage {
 pub struct MessageDefinitionsExtractor {
     pub message_definitions: Vec<ExtractedMessage>,
     pub failed_definitions: Vec<MessagesError>,
-    pub root_meta: Option<MessageMeta>,
+    pub root_meta: SourceFileMeta,
     define_messages_id: Option<Id>,
 }
 
 impl MessageDefinitionsExtractor {
-    fn new() -> Self {
+    fn new(source_file_path: &str) -> Self {
         MessageDefinitionsExtractor {
             define_messages_id: None,
             message_definitions: vec![],
             failed_definitions: vec![],
-            root_meta: None,
+            root_meta: SourceFileMeta::new(source_file_path),
         }
     }
 
@@ -131,7 +134,9 @@ impl MessageDefinitionsExtractor {
                     self.parse_string_value(keyvalue.value.borrow())
                         .map(|value| default_value = Some(value));
                 }
-                name => self.parse_meta_property(name, keyvalue.value.borrow(), &mut local_meta),
+                name => {
+                    self.parse_message_meta_property(name, keyvalue.value.borrow(), &mut local_meta)
+                }
             }
         }
 
@@ -167,16 +172,12 @@ impl MessageDefinitionsExtractor {
     /// Return a clone of the root meta, or a new object with the default
     /// values if none existed.
     fn clone_meta(&self) -> MessageMeta {
-        self.root_meta
-            .as_ref()
-            .map_or_else(Default::default, Clone::clone)
+        MessageMeta::from(&self.root_meta)
     }
 
     // Parses the given `object` as a meta definition, then stores the result
     // in `self.root_meta`.
     fn parse_root_meta_initializer(&mut self, object: &ObjectLit) {
-        let mut result = MessageMeta::default();
-
         for property in object.props.iter() {
             let Some(keyvalue) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
                 continue;
@@ -185,16 +186,38 @@ impl MessageDefinitionsExtractor {
                 continue;
             };
 
-            self.parse_meta_property(&name.sym, keyvalue.value.borrow(), &mut result);
+            self.parse_source_file_meta_property(&name.sym, keyvalue.value.borrow());
         }
+    }
 
-        self.root_meta = Some(result);
+    /// Interpret a given name/value pair to see if it represents a SourceFileMeta
+    /// property. If it does, apply the value to the corresponding field in
+    /// `target`. Otherwise, nothing is done.
+    fn parse_source_file_meta_property(&mut self, name: &str, value: &Expr) {
+        // NOTE: This effectively relies on TypeScript's checker to provide
+        // hints when the value types would be incorrect (e.g., `secret` is
+        // given a number value instead of a boolean).
+        match name {
+            "secret" => self
+                .parse_boolean_value(value)
+                .map(|value| self.root_meta.secret = value),
+            "bundleSecrets" => self
+                .parse_boolean_value(value)
+                .map(|value| self.root_meta.bundle_secrets = value),
+            "translate" => self
+                .parse_boolean_value(value)
+                .map(|value| self.root_meta.translate = value),
+            "translationsPath" => self
+                .parse_string_value(value)
+                .map(|value| self.root_meta.translations_path = value.into()),
+            _ => None,
+        };
     }
 
     /// Interpret a given name/value pair to see if it represents a MessageMeta
     /// property. If it does, apply the value to the corresponding field in
     /// `target`. Otherwise, nothing is done.
-    fn parse_meta_property(&self, name: &str, value: &Expr, target: &mut MessageMeta) {
+    fn parse_message_meta_property(&self, name: &str, value: &Expr, target: &mut MessageMeta) {
         // NOTE: This effectively relies on TypeScript's checker to provide
         // hints when the value types would be incorrect (e.g., `secret` is
         // given a number value instead of a boolean).
@@ -208,9 +231,6 @@ impl MessageDefinitionsExtractor {
             "translate" => self
                 .parse_boolean_value(value)
                 .map(|value| target.translate = value),
-            "translationsPath" => self
-                .parse_string_value(value)
-                .map(|value| target.translations_path = value),
             _ => None,
         };
     }

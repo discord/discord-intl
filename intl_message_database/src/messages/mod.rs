@@ -4,8 +4,8 @@ pub use message_definition::{FilePosition, Message};
 pub use message_variables_visitor::{
     MessageVariableInstance, MessageVariables, MessageVariablesVisitor, MessageVariableType,
 };
-pub use meta::MessageMeta;
-pub use source_file::SourceFile;
+pub use meta::{MessageMeta, SourceFileMeta};
+pub use source_file::{DefinitionFile, SourceFile, TranslationFile};
 pub use symbols::{
     global_get_symbol, global_get_symbol_or_error, global_intern_string, KeySymbol, KeySymbolMap,
 };
