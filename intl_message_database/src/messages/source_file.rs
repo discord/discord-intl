@@ -26,6 +26,7 @@ impl std::fmt::Display for SourceFileKind {
 pub struct DefinitionFile {
     file: String,
     meta: SourceFileMeta,
+    #[serde(rename = "messageKeys")]
     message_keys: KeySymbolSet,
 }
 
@@ -83,7 +84,7 @@ impl TranslationFile {
 /// SourceFiles allow interactive editing of files to automatically update all
 /// of the affected messages safely and efficiently.
 #[derive(Debug, Serialize)]
-#[serde(tag = "untagged")]
+#[serde(untagged)]
 pub enum SourceFile {
     Definition(DefinitionFile),
     Translation(TranslationFile),
