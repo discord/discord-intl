@@ -198,8 +198,8 @@ impl IntlMessagesDatabase {
         let source_file = crate::sources::process_translations_file(
             &mut self.database,
             &file_path,
-            &content,
             &locale,
+            &content,
         )?;
         Ok(source_file.to_string())
     }
