@@ -93,7 +93,7 @@ impl IntlService for ExportTranslations<'_> {
                 std::fs::create_dir_all(directory)?;
             }
 
-            let content = serde_json::to_string(&values)?;
+            let content = serde_json::to_string_pretty(&values)?;
             let mut output = std::fs::File::create(path)?;
             output.write_all(content.as_bytes())?;
         }
