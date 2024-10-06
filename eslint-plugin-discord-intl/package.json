@@ -1,0 +1,16 @@
+{
+  "name": "eslint-plugin-discord-intl",
+  "version": "0.4.2",
+  "license": "MIT",
+  "type": "commonjs",
+  "description": "ESLint plugin for validating and linting messages and translations using @discord/intl",
+  "main": "index.js",
+  "dependencies": {
+    "@discord/intl-loader-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/eslint": "^8.56.12",
+    "@types/estree": "^1.0.6",
+    "eslint": "^8"
+  }
+}
