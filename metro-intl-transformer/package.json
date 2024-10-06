@@ -6,7 +6,8 @@
   "exports": {
     ".": "./index.js",
     "./asset-plugin": "./asset-plugin.js",
-    "./babel-plugin": "./babel-plugin.js"
+    "./babel-plugin": "./babel-plugin.js",
+    "./babel-traverse-message-accesses": "./babel-traverse-message-accesses.js"
   },
   "dependencies": {
     "@discord/intl-loader-core": "workspace:*",
