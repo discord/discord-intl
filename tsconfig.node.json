@@ -10,6 +10,7 @@
     "noEmit": true
   },
   "include": [
+    "eslint-plugin-discord-intl/",
     "intl-loader-core/",
     "intl_message_database/",
     "metro-intl-transformer/",

@@ -19,6 +19,9 @@ cd(REPO_ROOT);
     .addCommand(await dbCommands())
     .addCommand(await ecosystemCommands())
     .addCommand(await utilCommands())
+    .addCommand(
+      await createJsPackageCommands('eslint-plugin-discord-intl', { aliases: ['eslint'] }),
+    )
     .addCommand(await createJsPackageCommands('metro-intl-transformer', { aliases: ['metro'] }))
     .addCommand(await createJsPackageCommands('rspack-intl-loader', { aliases: ['rspack'] }))
     .addCommand(
