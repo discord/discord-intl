@@ -1,4 +1,4 @@
-const { isMessageDefinitionsFile } = require('@discord/intl-loader-core');
+import { isMessageDefinitionsFile } from '@discord/intl-loader-core';
 
 /** @typedef {import('eslint').Rule.RuleListener} RuleListener */
 /** @typedef {import('eslint').Rule.RuleContext} RuleContext */
@@ -35,7 +35,9 @@ function traverseMessageAccesses(context, callback) {
   return /** @type {RuleListener} */ ({
     ImportDeclaration(path) {
       const importSource = /** @type {string} */ (path.source.value);
-      const isDefinition = isMessageDefinitionsFile(importSource);
+      // TODO: Make `isMessageDefinitionsFile` understand this properly.
+      const isDefinition =
+        isMessageDefinitionsFile(importSource) || importSource.endsWith('.messages');
       const extraImportSpecifiers = config.extraImports?.[importSource] ?? [];
       // This transformer only handles usages of intl messages, so only
       // imports of definitions files and configured extra specifiers need to
@@ -58,7 +60,9 @@ function traverseMessageAccesses(context, callback) {
           .flatMap((variable) => variable.references);
 
         for (const reference of bindingReferences) {
-          const parent = source.getAncestors(reference.identifier)[0];
+          // @ts-expect-error `identifier` is actually `Identifier & NodeParentExtension`.
+          const parent = reference.identifier.parent;
+
           // We only care about member expressions, since a direct reference to the
           // message source doesn't necessarily make it a message access.
           if (parent.type !== 'MemberExpression') continue;
@@ -80,10 +84,7 @@ function traverseMessageAccesses(context, callback) {
  * @returns {RuleListener} A visitor object for the Babel transform.
  */
 function traverseMessageDefinitions(context, callback) {
-  const config = context.settings;
   const source = context.sourceCode;
-
-  if (!isMessageDefinitionsFile(context.filename)) return {};
 
   return /** @type {RuleListener} */ ({
     CallExpression(path) {
@@ -110,6 +111,7 @@ function traverseMessageDefinitions(context, callback) {
 
         switch (property.value.type) {
           case 'Literal':
+          case 'TemplateLiteral':
             callback(
               property,
               /** @type {SimpleLiteral | TemplateLiteral} */ (property.value),
@@ -141,7 +143,4 @@ function traverseMessageDefinitions(context, callback) {
   });
 }
 
-module.exports = {
-  traverseMessageAccesses,
-  traverseMessageDefinitions,
-};
+export { traverseMessageAccesses, traverseMessageDefinitions };
