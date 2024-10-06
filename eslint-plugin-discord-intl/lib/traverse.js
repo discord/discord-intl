@@ -29,7 +29,7 @@ const { isMessageDefinitionsFile } = require('@discord/intl-loader-core');
  * @returns {RuleListener} A visitor object for the Babel transform.
  */
 function traverseMessageAccesses(context, callback) {
-  const config = context.settings;
+  const config = context.settings['@discord/discord-intl'];
   const source = context.sourceCode;
 
   return /** @type {RuleListener} */ ({
