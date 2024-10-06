@@ -1,21 +1,22 @@
-import { traverseMessageDefinitions } from '../lib/traverse.mjs';
+const util = require('node:util');
+const { traverseMessageDefinitions } = require('../lib/traverse');
 
 /**
  * @param {string} raw
  * @returns {string}
  */
 function trimLeadingWhitespace(raw) {
-  return raw.replace(/^(\s|\\[rtn])+/m, '');
+  return raw.replace(/^(\s|\\[rtn])+/, '');
 }
 /**
  * @param {string} raw
  * @returns {string}
  */
 function trimTrailingWhitespace(raw) {
-  return raw.replace(/(\s|\\[rtn])+$/m, '');
+  return raw.replace(/(\s|\\[rtn])+$/, '');
 }
 
-export default /** @type {import('eslint').Rule.RuleModule} */ ({
+module.exports = /** @type {import('eslint').Rule.RuleModule} */ ({
   meta: {
     fixable: 'code',
     docs: {
@@ -34,6 +35,8 @@ export default /** @type {import('eslint').Rule.RuleModule} */ ({
       const rawNoQuotes = sourceText.slice(1, -1);
 
       const trimmed = trimLeadingWhitespace(trimTrailingWhitespace(rawNoQuotes));
+      util.inspect(rawNoQuotes);
+      util.inspect(trimmed);
       if (trimmed === rawNoQuotes) return;
 
       context.report({

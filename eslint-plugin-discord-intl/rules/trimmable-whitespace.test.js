@@ -1,11 +1,11 @@
 // enforce-foo-bar.test.js
-import { RuleTester } from 'eslint';
-import trimmableWhitespace from './trimmable-whitespace.mjs';
+const { RuleTester } = require('eslint');
+const trimmableWhitespace = require('./trimmable-whitespace');
 
 const ruleTester = new RuleTester({
   // Must use at least ecmaVersion 2015 because
   // that's when `const` variables were introduced.
-  languageOptions: { ecmaVersion: 2015 },
+  parserOptions: { ecmaVersion: 2015, sourceType: 'module' },
 });
 
 /**
@@ -27,7 +27,22 @@ ruleTester.run('trimmable-whitespace', trimmableWhitespace, {
     },
     {
       name: 'templates',
-      code: defineMessages('{ A: `no trimmable whitespace`, QUASI: `${  space  }` }'),
+      code: defineMessages(
+        '{ A: `no trimmable whitespace`, QUASI: `${  space  }`, MULTILINE: `hi\n  yes` }',
+      ),
+    },
+    {
+      name: 'multi-line',
+      code: defineMessages(
+        `{ A: \`no trimmable
+        whitespace\`}`,
+      ),
+    },
+    {
+      name: 'object',
+      code: defineMessages(
+        '{ A: { message: "no whitespace", description: "  does not matter here  " }}',
+      ),
     },
   ],
   invalid: [
@@ -100,6 +115,16 @@ ruleTester.run('trimmable-whitespace', trimmableWhitespace, {
       name: 'multiline templates',
       code: defineMessages('{ A: `no trimmable whitespace`, QUASI: `\n\t${  space  }\n  ` }'),
       output: defineMessages('{ A: `no trimmable whitespace`, QUASI: `${  space  }` }'),
+      errors: 1,
+    },
+    {
+      name: 'object',
+      code: defineMessages(
+        '{ A: { message: " no whitespace", description: "  does not matter here  " }}',
+      ),
+      output: defineMessages(
+        '{ A: { message: "no whitespace", description: "  does not matter here  " }}',
+      ),
       errors: 1,
     },
   ],

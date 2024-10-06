@@ -1,4 +1,4 @@
-import { isMessageDefinitionsFile } from '@discord/intl-loader-core';
+const { isMessageDefinitionsFile } = require('@discord/intl-loader-core');
 
 /** @typedef {import('eslint').Rule.RuleListener} RuleListener */
 /** @typedef {import('eslint').Rule.RuleContext} RuleContext */
@@ -119,10 +119,10 @@ function traverseMessageDefinitions(context, callback) {
             );
             break;
           case 'ObjectExpression': {
-            const messageProperty = property.value.properties.find(
-              (prop) =>
-                prop.type === 'Property' && 'value' in prop.key && prop.key.value === 'message',
-            );
+            console.log('got expression');
+            const messageProperty = property.value.properties.find((prop) => {
+              return prop.type === 'Property' && 'name' in prop.key && prop.key.name === 'message';
+            });
             if (
               messageProperty == null ||
               messageProperty.type === 'SpreadElement' ||
@@ -143,4 +143,4 @@ function traverseMessageDefinitions(context, callback) {
   });
 }
 
-export { traverseMessageAccesses, traverseMessageDefinitions };
+module.exports = { traverseMessageAccesses, traverseMessageDefinitions };

@@ -1,11 +1,11 @@
 // enforce-foo-bar.test.js
-import { RuleTester } from 'eslint';
-import useStaticAccess from './use-static-access.mjs';
+const { RuleTester } = require('eslint');
+const useStaticAccess = require('./use-static-access');
 
 const ruleTester = new RuleTester({
   // Must use at least ecmaVersion 2015 because
   // that's when `const` variables were introduced.
-  languageOptions: { ecmaVersion: 2015 },
+  parserOptions: { ecmaVersion: 2015, sourceType: 'module' },
 });
 
 ruleTester.run('use-static-access', useStaticAccess, {

@@ -1,5 +1,12 @@
-import { traverseMessageAccesses } from '../lib/traverse.mjs';
-import identifierRegex from 'identifier-regex';
+const { traverseMessageAccesses } = require('../lib/traverse');
+
+/**
+ * Output from import('identifier-regex').then((regex) => regex()). Used
+ * directly because ESLint 8 doesn't support ESM plugins nicely, so we
+ * have to stick in common JS.
+ */
+const IDENTIFIER_REGEX =
+  /^(?!await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|import|in|instanceof|new|null|return|super|switch|this|throw|true|try|typeof|var|void|while|with|yield|implements|interface|package|private|protected|public|arguments|eval|globalThis|Infinity|NaN|undefined)[$_\p{ID_Start}][$_\u200C\u200D\p{ID_Continue}]*$/u;
 
 /**
  * Returns true if the given value is able to be written as an identifier rather than requiring a
@@ -8,10 +15,10 @@ import identifierRegex from 'identifier-regex';
  * @returns {boolean}
  */
 function isValidIdentifier(value) {
-  return identifierRegex({}).test(value);
+  return IDENTIFIER_REGEX.test(value);
 }
 
-export default /** @type {import('eslint').Rule.RuleModule} */ ({
+module.exports = /** @type {import('eslint').Rule.RuleModule} */ ({
   meta: {
     fixable: 'code',
     docs: {
