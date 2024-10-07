@@ -11,9 +11,9 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1"
 bitflags = "2"
-intl_markdown = { path = "../intl_markdown" }
-intl_message_utils = { path = "../intl_message_utils" }
-keyless_json = { path = "../keyless_json" }
+intl_markdown = { workspace = true }
+intl_message_utils = { workspace = true }
+keyless_json = { workspace = true }
 mimalloc = { version = "0.1", features = ["local_dynamic_tls"] }
 napi = { version = "3.0.0-alpha.8", features = ["error_anyhow", "serde-json"] }
 napi-derive = "3.0.0-alpha.7"

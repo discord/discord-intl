@@ -5,6 +5,7 @@ import { pnpm } from '../pnpm.js';
 import { buildNapiPackage, NAPI_TARGET_MAP } from '../napi.js';
 import { checkAllVersionsEqual, getPackageFamily, versionCommand } from '../versioning.js';
 import { hostPlatform } from '../util/platform.js';
+import { NPM_PACKAGES } from '../constants.js';
 
 /**
  * Return a new option, `--target`, that specifies which build target should be used for the parent
@@ -24,10 +25,8 @@ export function buildTargetOption() {
     .makeOptionMandatory(true);
 }
 
-const DB_PACKAGE_NAME = '@discord/intl-message-database';
-
 export default async function () {
-  const dbPackage = await pnpm.getPackage(DB_PACKAGE_NAME);
+  const dbPackage = await pnpm.getPackage(NPM_PACKAGES.DATABASE);
   const dbFamily = await getPackageFamily(dbPackage);
 
   const group = new Command('db')

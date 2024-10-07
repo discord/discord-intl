@@ -36,76 +36,7 @@ importers:
         specifier: 5.5.4
         version: 5.5.4
 
-  eslint-plugin-discord-intl:
-    dependencies:
-      '@discord/intl-loader-core':
-        specifier: workspace:*
-        version: link:../intl-loader-core
-    devDependencies:
-      '@types/eslint':
-        specifier: ^8.56.12
-        version: 8.56.12
-      '@types/estree':
-        specifier: ^1.0.6
-        version: 1.0.6
-      eslint:
-        specifier: 8.57.1
-        version: 8.57.1
-
-  intl:
-    dependencies:
-      '@formatjs/icu-skeleton-parser':
-        specifier: 1.8.2
-        version: 1.8.2
-      '@formatjs/intl':
-        specifier: ^2.10.1
-        version: 2.10.4(typescript@5.5.4)
-      '@intrnl/xxhash64':
-        specifier: ^0.1.2
-        version: 0.1.2
-      '@rspack/core':
-        specifier: 0.x || 1.x
-        version: 0.7.5
-      intl-messageformat:
-        specifier: ^10.5.11
-        version: 10.5.14
-      react:
-        specifier: '18'
-        version: 18.3.1
-      webpack:
-        specifier: ^5.0.0
-        version: 5.93.0(@swc/core@1.7.4)
-    devDependencies:
-      '@swc/cli':
-        specifier: ^0.3.12
-        version: 0.3.14(@swc/core@1.7.4)(chokidar@3.6.0)
-      '@swc/core':
-        specifier: ^1.4.11
-        version: 1.7.4
-      typescript:
-        specifier: 5.5.4
-        version: 5.5.4
-
-  intl-loader-core:
-    dependencies:
-      '@discord/intl-message-database':
-        specifier: workspace:*
-        version: link:../intl_message_database
-      chokidar:
-        specifier: ^3.6.0
-        version: 3.6.0
-      debug:
-        specifier: ^4.3.6
-        version: 4.3.6
-      fast-glob:
-        specifier: ^3.3.2
-        version: 3.3.2
-    devDependencies:
-      '@types/debug':
-        specifier: ^4.1.12
-        version: 4.1.12
-
-  intl_message_database:
+  crates/intl_message_database:
     optionalDependencies:
       '@discord/intl-message-database-darwin-arm64':
         specifier: workspace:*
@@ -139,25 +70,94 @@ importers:
         specifier: ^2.18.3
         version: 2.18.4
 
-  intl_message_database/npm/darwin-arm64: {}
+  crates/intl_message_database/npm/darwin-arm64: {}
 
-  intl_message_database/npm/darwin-x64: {}
+  crates/intl_message_database/npm/darwin-x64: {}
 
-  intl_message_database/npm/linux-arm64-gnu: {}
+  crates/intl_message_database/npm/linux-arm64-gnu: {}
 
-  intl_message_database/npm/linux-arm64-musl: {}
+  crates/intl_message_database/npm/linux-arm64-musl: {}
 
-  intl_message_database/npm/linux-x64-gnu: {}
+  crates/intl_message_database/npm/linux-x64-gnu: {}
 
-  intl_message_database/npm/linux-x64-musl: {}
+  crates/intl_message_database/npm/linux-x64-musl: {}
 
-  intl_message_database/npm/win32-arm64-msvc: {}
+  crates/intl_message_database/npm/win32-arm64-msvc: {}
 
-  intl_message_database/npm/win32-ia32-msvc: {}
+  crates/intl_message_database/npm/win32-ia32-msvc: {}
 
-  intl_message_database/npm/win32-x64-msvc: {}
+  crates/intl_message_database/npm/win32-x64-msvc: {}
 
-  metro-intl-transformer:
+  packages/eslint-plugin-discord-intl:
+    dependencies:
+      '@discord/intl-loader-core':
+        specifier: workspace:*
+        version: link:../intl-loader-core
+    devDependencies:
+      '@types/eslint':
+        specifier: ^8.56.12
+        version: 8.56.12
+      '@types/estree':
+        specifier: ^1.0.6
+        version: 1.0.6
+      eslint:
+        specifier: 8.57.1
+        version: 8.57.1
+
+  packages/intl:
+    dependencies:
+      '@formatjs/icu-skeleton-parser':
+        specifier: 1.8.2
+        version: 1.8.2
+      '@formatjs/intl':
+        specifier: ^2.10.1
+        version: 2.10.4(typescript@5.5.4)
+      '@intrnl/xxhash64':
+        specifier: ^0.1.2
+        version: 0.1.2
+      '@rspack/core':
+        specifier: 0.x || 1.x
+        version: 0.7.5
+      intl-messageformat:
+        specifier: ^10.5.11
+        version: 10.5.14
+      react:
+        specifier: '18'
+        version: 18.3.1
+      webpack:
+        specifier: ^5.0.0
+        version: 5.93.0(@swc/core@1.7.4)
+    devDependencies:
+      '@swc/cli':
+        specifier: ^0.3.12
+        version: 0.3.14(@swc/core@1.7.4)(chokidar@3.6.0)
+      '@swc/core':
+        specifier: ^1.4.11
+        version: 1.7.4
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+
+  packages/intl-loader-core:
+    dependencies:
+      '@discord/intl-message-database':
+        specifier: workspace:*
+        version: link:../../crates/intl_message_database
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
+      debug:
+        specifier: ^4.3.6
+        version: 4.3.6
+      fast-glob:
+        specifier: ^3.3.2
+        version: 3.3.2
+    devDependencies:
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
+
+  packages/metro-intl-transformer:
     dependencies:
       '@discord/intl-loader-core':
         specifier: workspace:*
@@ -176,7 +176,7 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
 
-  rspack-intl-loader:
+  packages/rspack-intl-loader:
     dependencies:
       '@discord/intl-loader-core':
         specifier: workspace:*
@@ -195,7 +195,7 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
 
-  swc-intl-message-transformer: {}
+  packages/swc-intl-message-transformer: {}
 
   tools:
     dependencies:
@@ -951,9 +951,6 @@ packages:
 
   '@types/eslint@8.56.12':
     resolution: {integrity: sha512-03ruubjWyOHlmljCVoxSuNDdmfZDzsrrz0P2LeJsOXr+ZwFQ+0yQIwNCwt/GYhV7Z31fgtXJTAEs+FYlEL851g==}
-
-  '@types/estree@1.0.5':
-    resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
 
   '@types/estree@1.0.6':
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
@@ -2799,14 +2796,12 @@ snapshots:
   '@types/eslint-scope@3.7.7':
     dependencies:
       '@types/eslint': 8.56.12
-      '@types/estree': 1.0.5
+      '@types/estree': 1.0.6
 
   '@types/eslint@8.56.12':
     dependencies:
       '@types/estree': 1.0.6
       '@types/json-schema': 7.0.15
-
-  '@types/estree@1.0.5': {}
 
   '@types/estree@1.0.6': {}
 
@@ -3880,7 +3875,7 @@ snapshots:
   webpack@5.93.0:
     dependencies:
       '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.5
+      '@types/estree': 1.0.6
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
@@ -3911,7 +3906,7 @@ snapshots:
   webpack@5.93.0(@swc/core@1.7.4):
     dependencies:
       '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.5
+      '@types/estree': 1.0.6
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1

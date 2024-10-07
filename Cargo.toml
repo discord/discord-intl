@@ -1,13 +1,20 @@
 [workspace]
 members = [
-    "intl_message_database",
-    "intl_markdown",
-    "intl_markdown_macros",
-    "intl_message_utils",
-    "keyless_json",
-    "swc-intl-message-transformer",
+    "crates/intl_message_database",
+    "crates/intl_markdown",
+    "crates/intl_markdown_macros",
+    "crates/intl_message_utils",
+    "crates/keyless_json",
+    "packages/swc-intl-message-transformer",
 ]
 resolver = "2"
+
+[workspace.dependencies]
+intl_markdown = { path = "./crates/intl_markdown" }
+intl_markdown_macros = { path = "./crates/intl_markdown_macros" }
+intl_message_database = { path = "./crates/intl_message_database" }
+intl_message_utils = { path = "./crates/intl_message_utils" }
+keyless_json = { path = "./crates/keyless_json" }
 
 [profile.release]
 codegen-units = 1

@@ -3,7 +3,9 @@ import path from 'node:path';
 
 import { Argument, Command } from 'commander';
 
+import { NPM_PACKAGES } from './constants.js';
 import { NAPI_TARGET_MAP } from './napi.js';
+import { pnpm } from './pnpm.js';
 
 export default async function () {
   const group = new Command('util').description(
@@ -60,13 +62,15 @@ export default async function () {
         const nativeExtensionMatch = basename.match(/^intl-message-database\.(.*)\.node$/);
         if (nativeExtensionMatch != null) {
           const platform = nativeExtensionMatch[1];
-          await moveTo(path.join('intl_message_database', 'npm', platform, basename));
+          const platformPackage = await pnpm.getPackage(`${NPM_PACKAGES.DATABASE}-${platform}`);
+          await moveTo(path.join(platformPackage.path, basename));
           continue;
         }
 
         // SWC transformer .wasm artifact moves into its package folder
         if (/^swc_intl_message_transformer\.wasm$/.test(basename)) {
-          await moveTo(path.join('swc-intl-message-transformer', basename));
+          const swcPackage = await pnpm.getPackage(NPM_PACKAGES.SWC_TRANSFORMER);
+          await moveTo(path.join(swcPackage.path, basename));
           continue;
         }
       }

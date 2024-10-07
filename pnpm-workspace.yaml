@@ -1,3 +1,5 @@
 packages:
-  - ./*
-  - ./intl_message_database/npm/*
+  - ./crates/intl_message_database
+  - ./crates/intl_message_database/npm/*
+  - ./packages/*
+  - ./tools
