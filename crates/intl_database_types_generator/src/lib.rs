@@ -250,8 +250,6 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
 }
 
 fn get_variable_type_name(kind: &MessageVariableType) -> &str {
-    // TODO: All of these undefined unions are technically incorrect and should
-    // be handled on the consuming side somehow.
     match kind {
         MessageVariableType::Any => "any",
         MessageVariableType::Number => "number",

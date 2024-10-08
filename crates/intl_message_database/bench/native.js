@@ -48,7 +48,7 @@ bench('get a message', () => {
 
 bench('get source file', () => {
   const source = database.getSourceFileMessageValues('./data/input/en-US.js');
-  console.log(Object.entries(source).map(([key, value]) => [key, value?.raw]));
+  // console.log(Object.entries(source).map(([key, value]) => [key, value?.raw]));
 });
 
 bench('export translations', () => {

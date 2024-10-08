@@ -1,7 +1,8 @@
 use std::fmt::Formatter;
 
-use intl_database_core::{KeySymbol, Message};
 use serde::{Serialize, Serializer};
+
+use intl_database_core::{KeySymbol, Message};
 
 pub enum DiagnosticSeverity {
     Info,
@@ -43,6 +44,8 @@ pub struct MessageDiagnostic {
     pub help: Option<String>,
 }
 
+fn validate_message_content(diagnostics: &mut Vec<MessageDiagnostic>, message: &Message) {}
+
 /// Validate the content of a message across all of its translations, returning
 /// a full set of diagnostics with information about each one.
 ///
@@ -57,17 +60,9 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
 
     // SAFETY: If the message has a source translation, it must have a source locale.
     let source_locale = message.source_locale().unwrap();
-
-    // If the source message couldn't be parsed, then it can't be used as a comparison.
-    // TODO: Re-add when parsing diagnostics are added.
-    // if let Err(err) = &source.value.parsed {
-    //     let diagnostic = Diagnostic::error().with_message("Source message could not be parsed");
-    //     return vec![diagnostic
-    //         .with_labels(vec![Label::primary(source.file(), source.full_span())])
-    //         .with_notes(vec![err.to_string()])];
-    // }
-
     let mut diagnostics = vec![];
+
+    validate_message_content(&mut diagnostics, message);
 
     let source_variables = &source.variables;
     let source_has_variables = source_variables
@@ -78,20 +73,6 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
         if *locale == source_locale {
             continue;
         }
-
-        // TODO: Re-add when parsing diagnostics are added.
-        // if let Err(err) = &translation.value.parsed {
-        //     diagnostics.push(
-        //         Diagnostic::error()
-        //             .with_message("Translation could not be parsed")
-        //             .with_labels(vec![Label::primary(
-        //                 translation.file(),
-        //                 translation.full_span(),
-        //             )])
-        //             .with_notes(vec![err.to_string()]),
-        //     );
-        //     continue;
-        // }
 
         let _translation_variables = match &translation.variables {
             // If the translation contains variables but the source does not,
