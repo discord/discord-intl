@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::napi::IntlMessagesDatabase;
+use crate::r#mod::IntlMessagesDatabase;
 
 #[test]
 pub fn test() {

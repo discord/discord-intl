@@ -1,0 +1,15 @@
+[package]
+name = "intl_database_js_source"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+intl_database_core = { workspace = true }
+intl_message_utils = { workspace = true }
+swc_common = "0.33.25"
+swc_core = { version = "0.90.x", features = [
+    "ecma_parser",
+    "ecma_ast",
+    "ecma_visit",
+] }
+unescape_zero_copy = { workspace = true }

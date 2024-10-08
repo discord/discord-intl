@@ -1,0 +1,13 @@
+[package]
+name = "intl_database_types_generator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+intl_database_core = { workspace = true }
+intl_database_service = { workspace = true }
+intl_message_utils = { workspace = true }
+rustc-hash = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+ustr = { workspace = true }

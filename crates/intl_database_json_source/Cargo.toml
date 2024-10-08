@@ -1,0 +1,9 @@
+[package]
+name = "intl_database_json_source"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+intl_database_core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

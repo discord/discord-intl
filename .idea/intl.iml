@@ -11,6 +11,13 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_message_utils/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/keyless_json/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/packages/swc-intl-message-transformer/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_exporter/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_js_source/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_json_source/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_service/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_types_generator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_validator/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/runtime-bench/data" />
       <excludeFolder url="file://$MODULE_DIR$/crates/intl_markdown/target" />

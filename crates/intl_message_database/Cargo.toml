@@ -1,6 +1,6 @@
 [package]
 name = "intl_message_database"
-description = "A core intl message management databae, supporting CRUD for messages with attribution to their source files."
+description = "An intl message management databae, supporting CRUD for messages with attribution to their source files, validation, type generation, exporting, and more"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -9,29 +9,29 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-anyhow = "1"
-bitflags = "2"
+anyhow = { workspace = true }
+intl_database_core = { workspace = true }
+intl_database_exporter = { workspace = true }
+intl_database_js_source = { workspace = true }
+intl_database_json_source = { workspace = true }
+intl_database_service = { workspace = true }
+intl_database_types_generator = { workspace = true }
 intl_markdown = { workspace = true }
 intl_message_utils = { workspace = true }
+intl_validator = { workspace = true }
 keyless_json = { workspace = true }
 mimalloc = { version = "0.1", features = ["local_dynamic_tls"] }
-napi = { version = "3.0.0-alpha.8", features = ["error_anyhow", "serde-json"] }
+napi = { workspace = true }
 napi-derive = "3.0.0-alpha.7"
 num_cpus = "1"
-rustc-hash = "2"
-serde = "1"
-serde_json = "1"
-swc_common = "0.33.25"
-swc_core = { version = "0.90.x", features = [
-    "ecma_parser",
-    "ecma_ast",
-    "ecma_visit",
-] }
-thiserror = "1"
+rustc-hash = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
 threadpool = "1.8.1"
-unescape_zero_copy = "2.1.1"
-xxhash-rust = { version = "0.8.10", features = ["xxh64"] }
-ustr = { version = "1.0.0", features = ["serde"] }
+unescape_zero_copy = { workspace = true }
+xxhash-rust = { workspace = true }
+ustr = { workspace = true }
 
 [build-dependencies]
 napi-build = "2"

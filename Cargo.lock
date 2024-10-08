@@ -83,9 +83,9 @@ checksum = "038dfcf04a5feb68e9c60b21c9625a54c2c0616e79b72b0fd87075a056ae1d1b"
 
 [[package]]
 name = "anyhow"
-version = "1.0.86"
+version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
+checksum = "86fdf8605db99b54d3cd748a44c6d04df638eb5dafb219b135d0149bd0db01f6"
 
 [[package]]
 name = "ast_node"
@@ -666,6 +666,71 @@ dependencies = [
 ]
 
 [[package]]
+name = "intl_database_core"
+version = "0.1.0"
+dependencies = [
+ "intl_markdown",
+ "intl_message_utils",
+ "rustc-hash 2.0.0",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "ustr",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "intl_database_exporter"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "intl_database_core",
+ "intl_database_service",
+ "intl_markdown",
+ "keyless_json",
+ "rustc-hash 2.0.0",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "intl_database_js_source"
+version = "0.1.0"
+dependencies = [
+ "intl_database_core",
+ "intl_message_utils",
+ "swc_common",
+ "swc_core",
+ "unescape_zero_copy",
+]
+
+[[package]]
+name = "intl_database_json_source"
+version = "0.1.0"
+dependencies = [
+ "intl_database_core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "intl_database_service"
+version = "0.1.0"
+
+[[package]]
+name = "intl_database_types_generator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "intl_database_core",
+ "intl_database_service",
+ "intl_message_utils",
+ "rustc-hash 2.0.0",
+ "thiserror",
+ "ustr",
+]
+
+[[package]]
 name = "intl_markdown"
 version = "0.1.0"
 dependencies = [
@@ -696,9 +761,15 @@ name = "intl_message_database"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bitflags",
+ "intl_database_core",
+ "intl_database_exporter",
+ "intl_database_js_source",
+ "intl_database_json_source",
+ "intl_database_service",
+ "intl_database_types_generator",
  "intl_markdown",
  "intl_message_utils",
+ "intl_validator",
  "keyless_json",
  "mimalloc",
  "napi",
@@ -708,8 +779,6 @@ dependencies = [
  "rustc-hash 2.0.0",
  "serde",
  "serde_json",
- "swc_common",
- "swc_core",
  "thiserror",
  "threadpool",
  "unescape_zero_copy",
@@ -724,6 +793,14 @@ dependencies = [
  "memchr",
  "once_cell",
  "xxhash-rust",
+]
+
+[[package]]
+name = "intl_validator"
+version = "0.1.0"
+dependencies = [
+ "intl_database_core",
+ "serde",
 ]
 
 [[package]]
@@ -1491,18 +1568,18 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.203"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7253ab4de971e72fb7be983802300c30b5a7f0c2e56fab8abfc6a214307c0094"
+checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.203"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "500cbc0ebeb6f46627f50f3f5811ccf6bf00643be300b4c3eabc0ef55dc5b5ba"
+checksum = "243902eda00fad750862fc144cea25caca5e20d615af0a81bee94ca738f1df1f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1511,9 +1588,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.127"
+version = "1.0.128"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8043c06d9f82bd7271361ed64f415fe5e12a77fdb52e573e7f06a516dea329ad"
+checksum = "6ff5456707a1de34e7e37f2a6fd3d3f808c318259cbd01ab6377795054b483d8"
 dependencies = [
  "itoa",
  "memchr",
@@ -2160,18 +2237,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.61"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c546c80d6be4bc6a00c0f01730c08df82eaa7a7a61f11d656526506112cc1709"
+checksum = "d50af8abc119fb8bb6dbabcfa89656f46f84aa0ac7688088608076ad2b459a84"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.61"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c3384250002a6d5af4d114f2845d37b57521033f30d5c3f46c4d70e1197533"
+checksum = "08904e7672f5eb876eaaf87e0ce17857500934f4981c4a0ab2b4aa98baac7fc3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2307,9 +2384,9 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 
 [[package]]
 name = "unescape_zero_copy"
-version = "2.1.1"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81d0af9f8b93450f8254de0050724d0d6b71c56fd5cfa0ecf51811eed6363a68"
+checksum = "5147732bdb7a159cb378e9dd3fe1adeefbae0989fe0a1d3daa4a90b80c963f96"
 
 [[package]]
 name = "unicase"

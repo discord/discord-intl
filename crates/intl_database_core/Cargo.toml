@@ -1,0 +1,16 @@
+[package]
+name = "intl_database_core"
+description = "A core database for managing intl messages, supporting CRUD for messages with attribution to their source files."
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+intl_markdown = { workspace = true }
+intl_message_utils = { workspace = true }
+rustc-hash = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+xxhash-rust = { workspace = true }
+ustr = { workspace = true }

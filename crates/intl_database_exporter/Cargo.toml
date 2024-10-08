@@ -1,0 +1,15 @@
+[package]
+name = "intl_database_exporter"
+description = "Serialization utilities for exporting message database contents to other systems and general formats"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+intl_database_core = { workspace = true }
+intl_database_service = { workspace = true }
+intl_markdown = { workspace = true }
+keyless_json = { workspace = true }
+rustc-hash = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

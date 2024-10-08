@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
+serde = { workspace = true }
 itoa = "1"
 ryu = "1"
-thiserror = "1"
+thiserror = { workspace = true }

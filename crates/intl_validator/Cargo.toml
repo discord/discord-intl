@@ -1,0 +1,9 @@
+[package]
+name = "intl_validator"
+description = "Validation utilities for both individual message values and aggregate messages across an entire database"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+intl_database_core = { workspace = true }
+serde = { workspace = true }

@@ -19,7 +19,7 @@ static BASE64_TABLE: &[u8] =
 ///
 /// Note that while this function is _generally_ the only place responsible for
 /// hashing a key, there is a mirrored, client-side hash for use at runtime
-/// that _must_ match this identically: `intl/hash.ts`.
+/// that _must_ match this identically: `packages/intl/hash.ts`.
 pub fn hash_message_key(content: &str) -> String {
     let hash = xxhash_rust::xxh64::xxh64(content.as_bytes(), KEY_HASH_SEED);
     let input: [u8; 8] = hash.to_ne_bytes();
@@ -54,6 +54,19 @@ pub fn is_message_definitions_file(file_name: &str) -> bool {
 
 pub fn is_message_translations_file(file_name: &str) -> bool {
     file_name.ends_with(".messages.json") || file_name.ends_with(".messages.jsona")
+}
+
+pub fn is_any_messages_file(file_name: &str) -> bool {
+    // Split into <prefix> <second_extension> <last_extension>. A file is a messages file
+    // if `last_extension` or `second_extension` is `messages`, meaning anything like `.messages.js`
+    // or `.messages.py` or anything else counts, as well as implicit final extensions, like
+    // `Feature.messages` in languages where extensions aren't used in imports.
+    let mut parts = file_name.rsplitn(3, '.');
+    let last_extension = parts.next();
+    let second_extension = parts.next();
+
+    last_extension.is_some_and(|ext| ext == "messages")
+        || second_extension.is_some_and(|ext| ext == "messages")
 }
 
 static DOUBLE_NEWLINE_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"\n\n"));
