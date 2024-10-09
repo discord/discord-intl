@@ -33,3 +33,15 @@ static UTF8_LENGTH_LOOKUP: [usize; 32] = [
 pub(crate) fn char_length_from_byte(byte: u8) -> usize {
     UTF8_LENGTH_LOOKUP[byte as usize >> 3]
 }
+
+/// Returns true if the char is valid as the starting character of a unicode identifier.
+#[inline(always)]
+pub(crate) fn is_unicode_identifier_start(c: char) -> bool {
+    unicode_xid::UnicodeXID::is_xid_start(c)
+}
+
+/// Returns true if the char is valid as any character after the start of a unicode identifier.
+#[inline(always)]
+pub(crate) fn is_unicode_identifier_continue(c: char) -> bool {
+    unicode_xid::UnicodeXID::is_xid_continue(c)
+}

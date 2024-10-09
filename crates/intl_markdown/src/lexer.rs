@@ -1,6 +1,9 @@
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
 
-use crate::byte_lookup::{byte_is_significant_punctuation, char_length_from_byte};
+use crate::byte_lookup::{
+    byte_is_significant_punctuation, char_length_from_byte, is_unicode_identifier_continue,
+    is_unicode_identifier_start,
+};
 use crate::token::{TextIndex, TextSpan};
 
 use super::{
@@ -903,10 +906,11 @@ impl<'source> Lexer<'source> {
         SyntaxKind::ICU_PLURAL_EXACT
     }
 
-    // We make a strict assertion that ICU identifiers are ASCII alphanumeric, since there's no
-    // need for them to ever be anything else, and using unicode _almost definitely_ means the
-    // translation has incorrectly translated the field name accidentally.
     fn consume_icu_ident(&mut self) -> SyntaxKind {
+        if !is_unicode_identifier_start(self.current_char()) {
+            self.advance();
+            return SyntaxKind::TEXT;
+        }
         // Idents must start with an alphabetic character or an underscore.
         if self.current() == b'_' || self.current().is_ascii_alphabetic() {
             self.advance();
@@ -915,12 +919,8 @@ impl<'source> Lexer<'source> {
             return SyntaxKind::TEXT;
         }
 
-        loop {
-            match self.current() {
-                b'_' => self.advance(),
-                c if c.is_ascii_alphanumeric() => self.advance(),
-                _ => break,
-            }
+        while is_unicode_identifier_continue(self.current_char()) {
+            self.advance();
         }
 
         SyntaxKind::ICU_IDENT
@@ -970,6 +970,15 @@ impl<'source> Lexer<'source> {
             "current parser position is not a ut8 char boundary"
         );
         self.text.as_bytes()[self.position]
+    }
+
+    /// Returns the complete char at the current position.
+    fn current_char(&self) -> char {
+        debug_assert!(
+            self.text.is_char_boundary(self.position),
+            "current parser position is not a ut8 char boundary"
+        );
+        self.text[self.position..].chars().nth(0).unwrap()
     }
 
     /// Returns the flags that are applied for the current token.

@@ -20,6 +20,7 @@ unicode-properties = "0"
 pulldown-cmark = "0.11.0"
 unescape_zero_copy = { workspace = true }
 memchr = { workspace = true }
+unicode-xid = { workspace = true }
 
 [dev-dependencies]
 test-case = "3"

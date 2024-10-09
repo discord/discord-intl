@@ -1,8 +1,18 @@
+use std::cell::RefCell;
 use std::fmt::Formatter;
+use std::rc::Rc;
 
 use serde::{Serialize, Serializer};
 
-use intl_database_core::{KeySymbol, Message};
+use intl_database_core::Message;
+use intl_markdown::visitor::visit_with_mut;
+
+use crate::message_diagnostic::DiagnosticBuilder;
+pub use crate::message_diagnostic::MessageDiagnostic;
+use crate::validators::ValidationVisitor;
+
+mod message_diagnostic;
+mod validators;
 
 pub enum DiagnosticSeverity {
     Info,
@@ -35,16 +45,26 @@ impl std::fmt::Display for DiagnosticSeverity {
     }
 }
 
-pub struct MessageDiagnostic {
-    pub key: KeySymbol,
-    pub file_key: KeySymbol,
-    pub locale: KeySymbol,
-    pub severity: DiagnosticSeverity,
-    pub description: String,
-    pub help: Option<String>,
+fn validate_message_content(diagnostics: &mut Vec<MessageDiagnostic>, message: &Message) {
+    for (locale, translation) in message.translations() {
+        let builder = DiagnosticBuilder::new(
+            message.key(),
+            translation.file_position.unwrap().file,
+            *locale,
+        );
+        let builder_ref = {
+            let builder = Rc::new(RefCell::new(builder));
+            let mut visitor = ValidationVisitor::new(vec![
+                Box::new(validators::NoUnicodeVariableNames::new(Rc::clone(&builder))),
+                Box::new(validators::NoRepeatedPluralNames::new(Rc::clone(&builder))),
+                Box::new(validators::NoRepeatedPluralNames::new(Rc::clone(&builder))),
+            ]);
+            visit_with_mut(&mut visitor, &translation.parsed);
+            builder
+        };
+        diagnostics.extend(builder_ref.take().diagnostics)
+    }
 }
-
-fn validate_message_content(diagnostics: &mut Vec<MessageDiagnostic>, message: &Message) {}
 
 /// Validate the content of a message across all of its translations, returning
 /// a full set of diagnostics with information about each one.

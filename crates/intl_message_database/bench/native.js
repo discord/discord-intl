@@ -37,12 +37,9 @@ bench('processing', () => {
 
 bench('get a message', () => {
   // console.log(
-  util.inspect(
-    database.getMessage('GUILD_SETTINGS_AUDIT_LOG_CHANNEL_PERMISSION_OVERRIDES_DENIED'),
-    {
-      depth: null,
-    },
-  );
+  //   util.inspect(database.getMessage('DISCORD'), {
+  //     depth: null,
+  //   }),
   // );
 });
 
@@ -56,15 +53,15 @@ bench('export translations', () => {
 });
 
 bench('validate', () => {
-  database.validateMessages();
-  //   const allDiagnostics = validations.flatMap((v) => v.diagnostics);
+  const validations = database.validateMessages();
+  // const allDiagnostics = validations.flatMap((v) => v.diagnostics);
   // console.log(
   //     util.inspect(
   //         allDiagnostics.filter((d) => d.severity === 'Error'),
   //         {depth: null},
   //     ),
   // );
-  // console.log(util.inspect(validations, {depth: null}));
+  // console.log(util.inspect(validations, { depth: null }));
 });
 
 bench('generate types', () => {
