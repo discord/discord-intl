@@ -210,9 +210,15 @@ export class MessageLoader {
     // requested locale. Shouldn't happen, but throwing here is much more
     // contextual than whatever error would result otherwise.
     if (this.localeImportMap[locale] == null) {
-      throw new Error(
-        `Requested to load locale ${locale}, which should be supported, but no source for translation data was provided.`,
-      );
+      if (this.supportedLocales.includes(locale)) {
+        // `supportedLocales` is determined by the `localeImportMap`, so if it's present but
+        // nullish, it's almost definitely a configuration error and deserves to be reported loudly.
+        throw new Error(
+          `Requested to load locale ${locale}, which should be supported, but no source for translation data was provided.`,
+        );
+      } else {
+        return;
+      }
     }
 
     // If the locale is already set in `messages`, then it doesn't need to be loaded again.
