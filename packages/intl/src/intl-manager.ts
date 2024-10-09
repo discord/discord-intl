@@ -1,5 +1,5 @@
 import { createIntl, IntlShape } from '@formatjs/intl';
-import { Formats, Formatters, IntlMessageFormat } from 'intl-messageformat';
+import { Formatters } from 'intl-messageformat';
 
 import type {
   FormatterImplementation,
@@ -10,6 +10,7 @@ import type {
 import { InternalIntlMessage } from './message';
 import { bindFormatValues, FormatBuilderConstructor } from './format';
 import { FormatJsLiteral } from './keyless-json';
+import { DEFAULT_FORMAT_CONFIG, FormatConfig } from './format-config';
 
 /**
  * Fallback locale used for all internationalization when an operation in the
@@ -41,14 +42,16 @@ export class IntlManager {
   defaultLocale: string;
   currentLocale: string;
   intl: IntlShape;
+  formatConfig: FormatConfig;
 
   _localeSubscriptions: Set<(locale: string) => void>;
 
   constructor(defaultLocale: string = DEFAULT_LOCALE) {
     this.defaultLocale = defaultLocale;
     this.currentLocale = defaultLocale;
+    this.formatConfig = DEFAULT_FORMAT_CONFIG;
     this.intl = createIntl({
-      formats: IntlMessageFormat.formats,
+      formats: DEFAULT_FORMAT_CONFIG,
       defaultLocale,
       locale: defaultLocale,
     });
@@ -148,7 +151,7 @@ export class IntlManager {
       message.ast,
       [this.currentLocale, this.defaultLocale],
       this.intl.formatters as Formatters,
-      this.intl.formats as Formats,
+      this.formatConfig,
       values,
     );
   }

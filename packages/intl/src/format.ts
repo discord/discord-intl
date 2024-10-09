@@ -17,14 +17,16 @@
  *   parameter, important to have React treat the resulting elements nicely.
  */
 
-import { FormatJsNode, FormatJsNodeType } from './keyless-json';
-import { Formats, Formatters, MissingValueError } from 'intl-messageformat';
-import { RichTextTagNames } from './types';
 import {
   parseDateTimeSkeleton,
   parseNumberSkeleton,
   parseNumberSkeletonFromString,
 } from '@formatjs/icu-skeleton-parser';
+
+import { FormatJsNode, FormatJsNodeType } from './keyless-json';
+import { Formatters, MissingValueError } from 'intl-messageformat';
+import type { FormatConfig } from './format-config';
+import type { RichTextTagNames } from './types';
 
 /**
  * Returns true if the tag name should be considered a rich text tag that
@@ -48,7 +50,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
   nodes: FormatJsNode[],
   locales: string | string[],
   formatters: Formatters,
-  formats: Formats,
+  formatConfig: FormatConfig,
   values: Record<string, string | object> = {},
   currentPluralValue?: number,
   originalMessage?: string,
@@ -102,11 +104,11 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
         const style =
-          node.style in formats.date
-            ? formats.date[node.style]
+          node.style in formatConfig.date
+            ? formatConfig.date[node.style]
             : node.style != null
               ? parseDateTimeSkeleton(node.style)
-              : undefined;
+              : formatConfig.time.medium;
         // @ts-expect-error Cast string values to dates properly.
         builder.pushLiteralText(formatters.getDateTimeFormat(locales, style).format(value));
         break;
@@ -115,8 +117,8 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
         const style =
-          node.style in formats.time
-            ? formats.time[node.style]
+          node.style in formatConfig.time
+            ? formatConfig.time[node.style]
             : node.style != null
               ? parseDateTimeSkeleton(node.style)
               : undefined; // TODO: parseSkeleton();
@@ -130,8 +132,8 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
         const style =
-          node.style in formats.number
-            ? formats.number[node.style]
+          node.style in formatConfig.number
+            ? formatConfig.number[node.style]
             : node.style != null
               ? parseNumberSkeleton(parseNumberSkeletonFromString(node.style))
               : undefined;
@@ -149,7 +151,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
           children,
           locales,
           formatters,
-          formats,
+          formatConfig,
           values,
           currentPluralValue,
         );
@@ -177,7 +179,14 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         if (option == null) {
           throw `${node.value} is not a known option for select value ${variableName}. Valid options are ${Object.keys(node.options).join(', ')}`;
         }
-        bindFormatValuesWithBuilder(builder, option.value, locales, formatters, formats, values);
+        bindFormatValuesWithBuilder(
+          builder,
+          option.value,
+          locales,
+          formatters,
+          formatConfig,
+          values,
+        );
         break;
       }
 
@@ -200,7 +209,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
           option.value,
           locales,
           formatters,
-          formats,
+          formatConfig,
           values,
           // @ts-expect-error assert this `as number` properly.
           (value as number) - (node.offset ?? 0),
@@ -216,7 +225,7 @@ export function bindFormatValues<Result>(
   nodes: FormatJsNode[],
   locales: string | string[],
   formatters: Formatters,
-  formats: Formats,
+  formatConfig: FormatConfig,
   values: Record<string, string | object> = {},
   currentPluralValue?: number,
 ): Result[] {
@@ -226,7 +235,7 @@ export function bindFormatValues<Result>(
     nodes,
     locales,
     formatters,
-    formats,
+    formatConfig,
     values,
     currentPluralValue,
   );
