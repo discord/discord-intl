@@ -7,4 +7,5 @@ edition = "2021"
 [dependencies]
 intl_database_core = { workspace = true }
 intl_markdown = { workspace = true }
+intl_markdown_visitor = { workspace = true }
 serde = { workspace = true }

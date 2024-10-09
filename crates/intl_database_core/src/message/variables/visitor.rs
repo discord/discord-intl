@@ -1,8 +1,9 @@
 use intl_markdown::{
     CodeBlock, CodeSpan, DEFAULT_TAG_NAMES, Emphasis, Heading, Hook, IcuDate, IcuNumber, IcuPlural,
-    IcuSelect, IcuTime, IcuVariable, Link, Paragraph, Strikethrough, Strong, TextOrPlaceholder,
-    Visitor,
+    IcuSelect, IcuTime, IcuVariable, Link, Paragraph, Strikethrough, Strong,
+    TextOrPlaceholder,
 };
+use intl_markdown_visitor::{Visit, VisitWith};
 
 use crate::database::symbol::key_symbol;
 use crate::KeySymbol;
@@ -29,7 +30,7 @@ impl MessageVariablesVisitor {
     }
 }
 
-impl Visitor for MessageVariablesVisitor {
+impl Visit for MessageVariablesVisitor {
     fn visit_code_block(&mut self, _code_block: &CodeBlock) {
         // This presumes that code blocks can't contain variables, which _should_ always be true
         self.variables.add_instance(
@@ -49,13 +50,14 @@ impl Visitor for MessageVariablesVisitor {
         );
     }
 
-    fn visit_emphasis(&mut self, _node: &Emphasis) {
+    fn visit_emphasis(&mut self, node: &Emphasis) {
         self.variables.add_instance(
             key_symbol(DEFAULT_TAG_NAMES.emphasis()),
             MessageVariableType::HookFunction,
             true,
             None,
         );
+        node.visit_children_with(self);
     }
 
     fn visit_heading(&mut self, heading: &Heading) {
@@ -66,6 +68,7 @@ impl Visitor for MessageVariablesVisitor {
             true,
             None,
         );
+        heading.visit_children_with(self);
     }
 
     fn visit_hook(&mut self, hook: &Hook) {
@@ -76,27 +79,17 @@ impl Visitor for MessageVariablesVisitor {
             false,
             None,
         );
+        hook.visit_children_with(self);
     }
 
-    fn visit_icu_date(&mut self, _date: &IcuDate) {
+    fn visit_icu_date(&mut self, date: &IcuDate) {
         self.current_variable_type = Some(MessageVariableType::Date);
+        date.visit_children_with(self);
     }
 
-    fn visit_icu_pound(&mut self) {
-        debug_assert!(
-            self.current_plural_variable_name.is_some(),
-            "Encountered IcuPound without a current plural variable name set."
-        );
-        self.variables.add_instance(
-            self.current_plural_variable_name.unwrap(),
-            MessageVariableType::Number,
-            false,
-            None,
-        );
-    }
-
-    fn visit_icu_number(&mut self, _number: &IcuNumber) {
+    fn visit_icu_number(&mut self, number: &IcuNumber) {
         self.current_variable_type = Some(MessageVariableType::Number);
+        number.visit_children_with(self);
     }
 
     fn visit_icu_plural(&mut self, plural: &IcuPlural) {
@@ -104,6 +97,7 @@ impl Visitor for MessageVariablesVisitor {
         self.current_plural_variable_name = Some(name_symbol);
         self.variables
             .add_instance(name_symbol, MessageVariableType::Plural, false, None);
+        plural.visit_children_with(self);
     }
 
     fn visit_icu_select(&mut self, select: &IcuSelect) {
@@ -111,10 +105,12 @@ impl Visitor for MessageVariablesVisitor {
         self.current_plural_variable_name = Some(name_symbol);
         // TODO(faulty): change this to ::Enum.
         self.current_variable_type = Some(MessageVariableType::Plural);
+        select.visit_children_with(self);
     }
 
-    fn visit_icu_time(&mut self, _time: &IcuTime) {
+    fn visit_icu_time(&mut self, time: &IcuTime) {
         self.current_variable_type = Some(MessageVariableType::Time);
+        time.visit_children_with(self);
     }
 
     fn visit_icu_variable(&mut self, variable: &IcuVariable) {
@@ -128,7 +124,7 @@ impl Visitor for MessageVariablesVisitor {
         );
     }
 
-    fn visit_link(&mut self, _node: &Link) {
+    fn visit_link(&mut self, link: &Link) {
         self.variables.add_instance(
             key_symbol(DEFAULT_TAG_NAMES.link()),
             MessageVariableType::LinkFunction,
@@ -138,6 +134,7 @@ impl Visitor for MessageVariablesVisitor {
             true,
             None,
         );
+        link.visit_children_with(self);
     }
 
     fn visit_link_destination(&mut self, node: &TextOrPlaceholder) {
@@ -162,37 +159,38 @@ impl Visitor for MessageVariablesVisitor {
                     None,
                 );
             }
-            TextOrPlaceholder::Placeholder(_) => {
-                // Placeholders are ICU elements that are already traversed separately.
-            }
+            TextOrPlaceholder::Placeholder(_) => node.visit_children_with(self),
         }
     }
 
-    fn visit_paragraph(&mut self, _paragraph: &Paragraph) {
+    fn visit_paragraph(&mut self, node: &Paragraph) {
         self.variables.add_instance(
             key_symbol(DEFAULT_TAG_NAMES.paragraph()),
             MessageVariableType::HookFunction,
             true,
             None,
         );
+        node.visit_children_with(self);
     }
 
-    fn visit_strikethrough(&mut self, _node: &Strikethrough) {
+    fn visit_strikethrough(&mut self, node: &Strikethrough) {
         self.variables.add_instance(
             key_symbol(DEFAULT_TAG_NAMES.strike_through()),
             MessageVariableType::HookFunction,
             true,
             None,
         );
+        node.visit_children_with(self);
     }
 
-    fn visit_strong(&mut self, _node: &Strong) {
+    fn visit_strong(&mut self, node: &Strong) {
         self.variables.add_instance(
             key_symbol(DEFAULT_TAG_NAMES.strong()),
             MessageVariableType::HookFunction,
             true,
             None,
         );
+        node.visit_children_with(self);
     }
 
     fn visit_thematic_break(&mut self) {
@@ -209,6 +207,19 @@ impl Visitor for MessageVariablesVisitor {
             key_symbol(DEFAULT_TAG_NAMES.br()),
             MessageVariableType::HookFunction,
             true,
+            None,
+        );
+    }
+
+    fn visit_icu_pound(&mut self) {
+        debug_assert!(
+            self.current_plural_variable_name.is_some(),
+            "Encountered IcuPound without a current plural variable name set."
+        );
+        self.variables.add_instance(
+            self.current_plural_variable_name.unwrap(),
+            MessageVariableType::Number,
+            false,
             None,
         );
     }

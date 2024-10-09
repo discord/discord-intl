@@ -17,7 +17,6 @@
 pub mod format;
 pub mod process;
 pub mod util;
-pub mod visitor;
 
 #[derive(Clone, Debug)]
 pub struct Document {

@@ -3,7 +3,7 @@ use std::ops::Deref;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use intl_markdown::visitor::visit_with_mut;
+use intl_markdown_visitor::visit_with_mut;
 
 use crate::database::symbol::{KeySymbol, KeySymbolMap};
 use crate::error::DatabaseResult;
@@ -134,6 +134,6 @@ pub fn collect_message_variables(
     ast: &intl_markdown::Document,
 ) -> DatabaseResult<MessageVariables> {
     let mut visitor = MessageVariablesVisitor::new();
-    visit_with_mut(&mut visitor, &ast);
+    visit_with_mut(&ast, &mut visitor);
     Ok(visitor.into_variables())
 }

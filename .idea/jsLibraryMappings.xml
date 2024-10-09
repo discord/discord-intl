@@ -2,5 +2,9 @@
 <project version="4">
   <component name="JavaScriptLibraryMappings">
     <includedPredefinedLibrary name="Node.js Core" />
+    <excludedPredefinedLibrary name="discord-intl/intl-loader-core/node_modules" />
+    <excludedPredefinedLibrary name="discord-intl/intl/node_modules" />
+    <excludedPredefinedLibrary name="discord-intl/metro-intl-transformer/node_modules" />
+    <excludedPredefinedLibrary name="discord-intl/rspack-intl-loader/node_modules" />
   </component>
 </project>

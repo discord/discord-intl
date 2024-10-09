@@ -1,28 +1,41 @@
-use intl_markdown::{IcuVariable, Visitor};
+use intl_database_core::MessageValue;
+use intl_markdown::IcuVariable;
+use intl_markdown_visitor::{Visit, visit_with_mut};
 
+use crate::diagnostic::ValueDiagnostic;
 use crate::DiagnosticSeverity;
-use crate::message_diagnostic::Diagnostics;
+use crate::validators::validator::Validator;
 
 pub struct NoUnicodeVariableNames {
-    diagnostics: Diagnostics,
+    diagnostics: Vec<ValueDiagnostic>,
 }
 
 impl NoUnicodeVariableNames {
-    pub fn new(diagnostics: Diagnostics) -> Self {
-        Self { diagnostics }
+    pub fn new() -> Self {
+        Self {
+            diagnostics: vec![],
+        }
     }
 }
 
-impl Visitor for NoUnicodeVariableNames {
+impl Validator for NoUnicodeVariableNames {
+    fn validate_ast(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
+        visit_with_mut(&message.parsed, self);
+        Some(self.diagnostics.clone())
+    }
+}
+
+impl Visit for NoUnicodeVariableNames {
     fn visit_icu_variable(&mut self, node: &IcuVariable) {
         let name = node.name();
         if !name.is_ascii() {
             let help_text = format!("\"{name}\" should be renamed to only use ASCII characters. If this is a translation, ensure the name matches the expected name in the source text");
-            self.diagnostics.borrow_mut().create(
-                DiagnosticSeverity::Error,
-                "Variable names should not contain unicode characters to avoid ambiguity during translation",
-                Some(help_text)
-            );
+            self.diagnostics.push(ValueDiagnostic {
+                span: None,
+                severity: DiagnosticSeverity::Error,
+                description: "Variable names should not contain unicode characters to avoid ambiguity during translation".into(),
+                help: Some(help_text),
+            });
         }
     }
 }

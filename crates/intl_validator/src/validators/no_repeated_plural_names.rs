@@ -1,52 +1,56 @@
-use intl_database_core::{key_symbol, KeySymbol};
-use intl_markdown::{IcuPlural, IcuPluralArm, IcuSelect, IcuVariable, Visitor};
+use intl_database_core::{key_symbol, KeySymbol, MessageValue};
+use intl_markdown::{IcuPlural, IcuPluralArm, IcuSelect, IcuVariable};
+use intl_markdown_visitor::{Visit, visit_with_mut, VisitWith};
 
+use crate::diagnostic::ValueDiagnostic;
 use crate::DiagnosticSeverity;
-use crate::message_diagnostic::Diagnostics;
+use crate::validators::validator::Validator;
 
 pub struct NoRepeatedPluralNames {
-    diagnostics: Diagnostics,
+    diagnostics: Vec<ValueDiagnostic>,
     current_plural_name_stack: Vec<Option<KeySymbol>>,
     is_in_plural_arm: bool,
 }
 
 impl NoRepeatedPluralNames {
-    pub fn new(diagnostics: Diagnostics) -> Self {
+    pub fn new() -> Self {
         Self {
-            diagnostics,
+            diagnostics: vec![],
             current_plural_name_stack: Vec::with_capacity(2),
             is_in_plural_arm: false,
         }
     }
 }
 
-impl Visitor for NoRepeatedPluralNames {
+impl Validator for NoRepeatedPluralNames {
+    fn validate_ast(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
+        visit_with_mut(&message.parsed, self);
+        Some(self.diagnostics.clone())
+    }
+}
+
+impl Visit for NoRepeatedPluralNames {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
         self.current_plural_name_stack
             .push(Some(key_symbol(node.name())));
-    }
-
-    fn exit_icu_plural(&mut self, _node: &IcuPlural) {
+        node.visit_children_with(self);
         self.current_plural_name_stack.pop();
     }
 
     /// The name node of the ICU segments will always be included in the traversal, but we don't
     /// want to trigger repetition validations for those, since they are the original. We only care
     /// about instances of the same name within the plural _arms_.
-    fn visit_icu_plural_arm(&mut self, _node: &IcuPluralArm) {
+    fn visit_icu_plural_arm(&mut self, node: &IcuPluralArm) {
         self.is_in_plural_arm = true;
-    }
-
-    fn exit_icu_plural_arm(&mut self, _node: &IcuPluralArm) {
+        node.visit_children_with(self);
         self.is_in_plural_arm = false;
     }
 
     // `select` does not count as a plural, but contains IcuPluralArms, so we need a temporary
     // block on the stack to prevent it from getting read.
-    fn visit_icu_select(&mut self, _node: &IcuSelect) {
+    fn visit_icu_select(&mut self, node: &IcuSelect) {
         self.current_plural_name_stack.push(None);
-    }
-    fn exit_icu_select(&mut self, _node: &IcuSelect) {
+        node.visit_children_with(self);
         self.current_plural_name_stack.pop();
     }
 
@@ -65,11 +69,14 @@ impl Visitor for NoRepeatedPluralNames {
         };
 
         if plural_name.eq(node.name()) {
-            self.diagnostics.borrow_mut().create(
-                DiagnosticSeverity::Warning,
-                "Plural variable names should use # instead of repeating the name of the variable",
-                Some(String::from("Replace this variable name with #")),
-            )
+            let diagnostic = ValueDiagnostic {
+                span: None,
+                severity: DiagnosticSeverity::Warning,
+                description: String::from("Plural variable names should use # instead of repeating the name of the variable"),
+                help: Some(String::from("Replace this variable name with #")),
+            };
+
+            self.diagnostics.push(diagnostic);
         }
     }
 }

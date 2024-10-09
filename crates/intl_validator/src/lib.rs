@@ -1,70 +1,14 @@
-use std::cell::RefCell;
-use std::fmt::Formatter;
-use std::rc::Rc;
-
-use serde::{Serialize, Serializer};
-
 use intl_database_core::Message;
-use intl_markdown::visitor::visit_with_mut;
 
-use crate::message_diagnostic::DiagnosticBuilder;
-pub use crate::message_diagnostic::MessageDiagnostic;
-use crate::validators::ValidationVisitor;
+pub use crate::content::validate_message_value;
+pub use crate::diagnostic::MessageDiagnostic;
+use crate::diagnostic::MessageDiagnosticsBuilder;
+pub use crate::severity::DiagnosticSeverity;
 
-mod message_diagnostic;
+mod content;
+mod diagnostic;
+mod severity;
 mod validators;
-
-pub enum DiagnosticSeverity {
-    Info,
-    Warning,
-    Error,
-}
-
-impl DiagnosticSeverity {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Info => "info",
-            Self::Warning => "warning",
-            Self::Error => "error",
-        }
-    }
-}
-
-impl Serialize for DiagnosticSeverity {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.as_str())
-    }
-}
-
-impl std::fmt::Display for DiagnosticSeverity {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-fn validate_message_content(diagnostics: &mut Vec<MessageDiagnostic>, message: &Message) {
-    for (locale, translation) in message.translations() {
-        let builder = DiagnosticBuilder::new(
-            message.key(),
-            translation.file_position.unwrap().file,
-            *locale,
-        );
-        let builder_ref = {
-            let builder = Rc::new(RefCell::new(builder));
-            let mut visitor = ValidationVisitor::new(vec![
-                Box::new(validators::NoUnicodeVariableNames::new(Rc::clone(&builder))),
-                Box::new(validators::NoRepeatedPluralNames::new(Rc::clone(&builder))),
-                Box::new(validators::NoRepeatedPluralNames::new(Rc::clone(&builder))),
-            ]);
-            visit_with_mut(&mut visitor, &translation.parsed);
-            builder
-        };
-        diagnostics.extend(builder_ref.take().diagnostics)
-    }
-}
 
 /// Validate the content of a message across all of its translations, returning
 /// a full set of diagnostics with information about each one.
@@ -80,9 +24,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
 
     // SAFETY: If the message has a source translation, it must have a source locale.
     let source_locale = message.source_locale().unwrap();
-    let mut diagnostics = vec![];
-
-    validate_message_content(&mut diagnostics, message);
+    let mut diagnostics = MessageDiagnosticsBuilder::new(message.key());
 
     let source_variables = &source.variables;
     let source_has_variables = source_variables
@@ -90,6 +32,11 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
         .is_some_and(|variables| variables.count() > 0);
 
     for (locale, translation) in message.translations() {
+        diagnostics.extend_from_value_diagnostics(
+            validate_message_value(translation),
+            translation.file_position.unwrap().file,
+            *locale,
+        );
         if *locale == source_locale {
             continue;
         }
@@ -102,7 +49,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
             Some(translation_variables)
                 if !source_has_variables && translation_variables.count() > 0 =>
             {
-                diagnostics.push(MessageDiagnostic {
+                diagnostics.add(MessageDiagnostic {
                         key: message.key(),
                         file_key: translation.file_position.unwrap().file,
                         locale: locale.clone(),
@@ -119,7 +66,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
             // also likely not intentional, but still won't break things.
             _ => {
                 if source_has_variables {
-                    diagnostics.push(MessageDiagnostic {
+                    diagnostics.add(MessageDiagnostic {
                         key: message.key(),
                         file_key: translation.file_position.unwrap().file,
                         locale: locale.clone(),
@@ -134,5 +81,5 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
         };
     }
 
-    diagnostics
+    diagnostics.diagnostics
 }
