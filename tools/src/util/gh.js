@@ -88,7 +88,7 @@ async function runWorkflow(filePath, args) {
   const workflowId = await getWorkflowIdFromPath(fullPath);
   const previousRun = await getLatestWorkflowRun(workflowId);
 
-  console.log('Triggering workflow...');
+  console.log(`Triggering workflow ${path.basename(filePath)} with args:`, args);
   await triggerWorkflow(path.basename(filePath), args);
   console.log('Waiting for run request to be registered...');
   const latestRun = await gh.waitForNextRunResponse(workflowId, previousRun.number);
