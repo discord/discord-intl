@@ -51,5 +51,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: intl-message-database.${{inputs.target}}.node
-          path: intl_message_database/npm/${{inputs.target}}/intl-message-database.${{inputs.target}}.node
+          path: crates/intl_message_database/npm/${{inputs.target}}/intl-message-database.${{inputs.target}}.node
           if-no-files-found: error

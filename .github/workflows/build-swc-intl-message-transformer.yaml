@@ -33,5 +33,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: swc_intl_message_transformer.wasm
-          path: swc-intl-message-transformer/swc_intl_message_transformer.wasm
+          path: packages/swc-intl-message-transformer/swc_intl_message_transformer.wasm
           if-no-files-found: error
