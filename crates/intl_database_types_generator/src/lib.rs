@@ -87,7 +87,7 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
 
         write!(
             result,
-            "   * ```\n   * {}\n   * ```\n",
+            "   * ```text\n   * {}\n   * ```\n",
             default_translation.raw,
         )?;
 
