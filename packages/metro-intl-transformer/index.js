@@ -37,11 +37,11 @@ function transformToString({
       `.compiled.messages.${getTranslationAssetExtension()}`,
     );
 
-    debug('Locale map created: %O', result.translationsLocaleMap);
     debug(
       `[${filename}] Resolving source file to compiled translations file ${compiledSourcePath}`,
     );
     result.translationsLocaleMap['en-US'] = compiledSourcePath;
+    debug('Locale map created: %O', result.translationsLocaleMap);
 
     return new MessageDefinitionsTransformer({
       messageKeys: result.messageKeys,

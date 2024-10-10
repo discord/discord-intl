@@ -17,6 +17,26 @@ function debugSourceFile(sourcePath, sourceFile) {
 }
 
 /**
+ *
+ * @param {string} sourcePath Path of the source file being processed, for debug logging
+ * @param {import('@discord/intl-message-database').IntlSourceFile} sourceFile SourceFile object from the database used to find translations.
+ * @param {string} translationsPath Fully-resolved path to the directory for translations.
+ * @returns {Record<string, string>}
+ */
+function buildTranslationsLocaleMap(sourcePath, sourceFile, translationsPath) {
+  if (sourceFile.meta.translate === false) {
+    debug(`[${sourcePath}] translate is set to false, no locale map is needed`);
+    return {};
+  }
+  const map = findAllTranslationFiles(translationsPath);
+  if (map instanceof Error) {
+    debug(`[${sourcePath}] Failed to build locale map: [${map.name}] ${map.message}`);
+    return {};
+  }
+  return map;
+}
+
+/**
  * @param {string} sourcePath
  * @param {string=} sourceContent
  * @param {{
@@ -49,13 +69,11 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
 
   const messageKeys = database.getSourceFileKeyMap(sourcePath);
   const translationsPath = path.resolve(path.dirname(sourcePath), sourceFile.meta.translationsPath);
-  let translationsLocaleMap = findAllTranslationFiles(translationsPath);
-  if (translationsLocaleMap instanceof Error) {
-    debug(
-      `[${sourcePath}] Failed to build translations locale map: [${translationsLocaleMap.name}] ${translationsLocaleMap.message}`,
-    );
-    translationsLocaleMap = {};
-  }
+  const translationsLocaleMap = buildTranslationsLocaleMap(
+    sourcePath,
+    sourceFile,
+    translationsPath,
+  );
 
   if (processTranslations) {
     database.processAllTranslationFiles(translationsLocaleMap);

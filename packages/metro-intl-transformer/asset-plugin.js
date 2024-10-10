@@ -48,7 +48,7 @@ async function fetchConfig() {
   let metroConfig;
   try {
     metroConfig = require(metroConfigPath);
-    debug(`Successfully loaded config: %o`, metroConfig);
+    debug(`Successfully loaded config metro config`);
   } catch {
     debug(`Failed to load Metro configuration. Using defaults instead.`);
     return defaultConfig;
@@ -56,8 +56,10 @@ async function fetchConfig() {
 
   const config = metroConfig.transformer?.intlAssetPlugin;
   if (config == null) {
+    debug('asset-plugin configuration was empty. Using defaults: %O', defaultConfig);
     return defaultConfig;
   }
+  debug(`discovered asset-plugin configuration: %O`, config);
 
   if (config.cacheDir != null && path.isAbsolute(config.cacheDir)) {
     throw new Error(
@@ -79,11 +81,11 @@ async function transformAsset(assetData) {
   const filename = assetData.files[0] ?? '';
   // If this isn't a translations file or if it's already a compiled artifact, then we don't want
   // to do any more processing on it.
-  if (
-    filename === '' ||
-    !isMessageTranslationsFile(filename) ||
-    /\.compiled.messages\./.test(filename)
-  ) {
+  if (filename === '' || !isMessageTranslationsFile(filename)) {
+    return assetData;
+  }
+  if (/\.compiled.messages\./.test(filename)) {
+    debug(`[${filename}] Compiled messages asset needs no further processing`);
     return assetData;
   }
 
