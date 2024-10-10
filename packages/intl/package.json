@@ -26,6 +26,7 @@
     "prepublishOnly": "pnpm build:release"
   },
   "dependencies": {
+    "@discord/intl-ast": "workspace:*",
     "@formatjs/icu-skeleton-parser": "1.8.2",
     "@formatjs/intl": "^2.10.1",
     "@intrnl/xxhash64": "^0.1.2",

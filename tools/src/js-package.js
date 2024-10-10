@@ -62,7 +62,7 @@ async function watchBuild(pack, watchPatterns) {
  * }=} options
  * @returns {Promise<Command>}
  */
-export async function createJsPackageCommands(name, options) {
+export async function createJsPackageCommands(name, options = {}) {
   const { build = false, prebuild, watch, aliases = [] } = options;
   const pack = await getPackage('@discord/' + name);
 

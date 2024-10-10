@@ -31,7 +31,8 @@
     "@discord/intl-message-database-win32-x64-msvc": "workspace:*"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.3"
+    "@napi-rs/cli": "^2.18.3",
+    "@discord/intl-ast": "workspace:*"
   },
   "engines": {
     "node": ">= 10"

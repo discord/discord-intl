@@ -1,5 +1,5 @@
 import { program } from 'commander';
-import { $, cd } from 'zx';
+import { cd } from 'zx';
 
 import { REPO_ROOT } from './src/constants.js';
 import utilCommands from './src/util-commands.js';
@@ -24,6 +24,7 @@ cd(REPO_ROOT);
     )
     .addCommand(await createJsPackageCommands('metro-intl-transformer', { aliases: ['metro'] }))
     .addCommand(await createJsPackageCommands('rspack-intl-loader', { aliases: ['rspack'] }))
+    .addCommand(await createJsPackageCommands('intl-ast', { build: true, watch: true }))
     .addCommand(
       await createJsPackageCommands('intl', {
         aliases: ['rt', 'runtime'],

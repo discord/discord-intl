@@ -66,6 +66,9 @@ importers:
         specifier: workspace:*
         version: link:npm/win32-x64-msvc
     devDependencies:
+      '@discord/intl-ast':
+        specifier: workspace:*
+        version: link:../../packages/intl-ast
       '@napi-rs/cli':
         specifier: ^2.18.3
         version: 2.18.4
@@ -106,6 +109,9 @@ importers:
 
   packages/intl:
     dependencies:
+      '@discord/intl-ast':
+        specifier: workspace:*
+        version: link:../intl-ast
       '@formatjs/icu-skeleton-parser':
         specifier: 1.8.2
         version: 1.8.2
@@ -134,6 +140,12 @@ importers:
       '@swc/core':
         specifier: ^1.4.11
         version: 1.7.4
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+
+  packages/intl-ast:
+    devDependencies:
       typescript:
         specifier: 5.5.4
         version: 5.5.4

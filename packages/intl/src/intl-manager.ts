@@ -1,3 +1,4 @@
+import { AstNodeIndices } from '@discord/intl-ast';
 import { createIntl, IntlShape } from '@formatjs/intl';
 import { Formatters } from 'intl-messageformat';
 
@@ -9,7 +10,6 @@ import type {
 } from './types';
 import { InternalIntlMessage } from './message';
 import { bindFormatValues, FormatBuilderConstructor } from './format';
-import { FormatJsLiteral } from './keyless-json';
 import { DEFAULT_FORMAT_CONFIG, FormatConfig } from './format-config';
 
 /**
@@ -123,7 +123,9 @@ export class IntlManager {
     // TODO: Figure out how to make this typing exact. This currently relies on
     // the generic typing being sound enough to know that the message can only
     // contain a single static text node and no placeholders or rich text.
-    return (resolved.ast[0] as FormatJsLiteral).value;
+    // As it stands, this is _technically_ typed as string | undefined, even though
+    // TypeScript doesn't actually complain about it.
+    return resolved.ast[0][AstNodeIndices.Value];
   }
 
   /**

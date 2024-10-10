@@ -23,7 +23,7 @@ import {
   parseNumberSkeletonFromString,
 } from '@formatjs/icu-skeleton-parser';
 
-import { FormatJsNode, FormatJsNodeType } from './keyless-json';
+import { AstNode, AstNodeIndices, FormatJsNodeType } from '@discord/intl-ast';
 import { Formatters, MissingValueError } from 'intl-messageformat';
 import type { FormatConfig } from './format-config';
 import type { RichTextTagNames } from './types';
@@ -47,7 +47,7 @@ export type FormatBuilderConstructor<Result> = new () => FormatBuilder<Result>;
 
 export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>(
   builder: Builder,
-  nodes: FormatJsNode[],
+  nodes: AstNode[],
   locales: string | string[],
   formatters: Formatters,
   formatConfig: FormatConfig,
@@ -56,15 +56,16 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
   originalMessage?: string,
 ) {
   // Hot path for static messages that are just parsed as a single string element.
-  if (nodes.length === 1 && nodes[0].type === FormatJsNodeType.Literal) {
-    builder.pushLiteralText(nodes[0].value);
+  if (nodes.length === 1 && nodes[0][AstNodeIndices.Type] === FormatJsNodeType.Literal) {
+    builder.pushLiteralText(nodes[0][AstNodeIndices.Value]);
     return;
   }
 
   for (const node of nodes) {
-    switch (node.type) {
+    const nodeType = node[AstNodeIndices.Type];
+    switch (nodeType) {
       case FormatJsNodeType.Literal:
-        builder.pushLiteralText(node.value);
+        builder.pushLiteralText(node[AstNodeIndices.Value]);
         continue;
 
       case FormatJsNodeType.Pound:
@@ -78,7 +79,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         continue;
     }
 
-    const { value: variableName } = node;
+    const variableName = node[AstNodeIndices.Value];
     // Enforce that all required values are provided by the caller, even if the
     // actual value is falsy/undefined.
     if (!(variableName in values) && !isRichTextTag(variableName)) {
@@ -86,8 +87,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
     }
 
     const value = values[variableName];
-
-    switch (node.type) {
+    switch (nodeType) {
       case FormatJsNodeType.Argument:
         // Empty values don't need to be added at all, they are purely for AST representation.
         if (variableName == '$_') break;
@@ -101,26 +101,28 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         }
         break;
       case FormatJsNodeType.Date: {
+        const nodeStyle = node[AstNodeIndices.Style];
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
         const style =
-          node.style in formatConfig.date
-            ? formatConfig.date[node.style]
-            : node.style != null
-              ? parseDateTimeSkeleton(node.style)
+          nodeStyle in formatConfig.date
+            ? formatConfig.date[nodeStyle]
+            : nodeStyle != null
+              ? parseDateTimeSkeleton(nodeStyle)
               : formatConfig.time.medium;
         // @ts-expect-error Cast string values to dates properly.
         builder.pushLiteralText(formatters.getDateTimeFormat(locales, style).format(value));
         break;
       }
       case FormatJsNodeType.Time: {
+        const nodeStyle = node[AstNodeIndices.Style];
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
         const style =
-          node.style in formatConfig.time
-            ? formatConfig.time[node.style]
-            : node.style != null
-              ? parseDateTimeSkeleton(node.style)
+          nodeStyle in formatConfig.time
+            ? formatConfig.time[nodeStyle]
+            : nodeStyle != null
+              ? parseDateTimeSkeleton(nodeStyle)
               : undefined; // TODO: parseSkeleton();
         builder.pushLiteralText(
           // @ts-expect-error Cast string values to dates properly.
@@ -129,13 +131,14 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         break;
       }
       case FormatJsNodeType.Number: {
+        const nodeStyle = node[AstNodeIndices.Style];
         // Distinct from FormatJS: We don't currently parse the skeleton ahead of time in the AST,
         // so this manages parsing the skeleton as well before passing it onto the date formatter.
         const style =
-          node.style in formatConfig.number
-            ? formatConfig.number[node.style]
-            : node.style != null
-              ? parseNumberSkeleton(parseNumberSkeletonFromString(node.style))
+          nodeStyle in formatConfig.number
+            ? formatConfig.number[nodeStyle]
+            : nodeStyle != null
+              ? parseNumberSkeleton(parseNumberSkeletonFromString(nodeStyle))
               : undefined;
         const scaledValue =
           // @ts-expect-error This is a weird cast that's not accurate, but works in the short term.
@@ -145,7 +148,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
       }
 
       case FormatJsNodeType.Tag: {
-        const { children } = node;
+        const children = node[AstNodeIndices.Children];
         const appliedChildren = bindFormatValues(
           builder.constructor as FormatBuilderConstructor<T>,
           children,
@@ -175,9 +178,11 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
       }
 
       case FormatJsNodeType.Select: {
-        const option = node.value in node.options ? node.options[node.value] : node.options.other;
+        const value = node[AstNodeIndices.Value];
+        const options = node[AstNodeIndices.Options];
+        const option = value in options ? options[value] : options.other;
         if (option == null) {
-          throw `${node.value} is not a known option for select value ${variableName}. Valid options are ${Object.keys(node.options).join(', ')}`;
+          throw `${value} is not a known option for select value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
         }
         bindFormatValuesWithBuilder(
           builder,
@@ -191,18 +196,22 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
       }
 
       case FormatJsNodeType.Plural: {
+        const value = node[AstNodeIndices.Value];
+        const options = node[AstNodeIndices.Options];
+        const offset = node[AstNodeIndices.Offset];
+        const pluralType = node[AstNodeIndices.PluralType];
         const option = (() => {
           const exactSelector = `=${value}`;
-          if (exactSelector in node.options) return node.options[exactSelector];
+          if (exactSelector in options) return options[exactSelector];
           const rule = formatters
-            .getPluralRules(locales, { type: node.pluralType })
+            .getPluralRules(locales, { type: pluralType })
             // @ts-expect-error Assert this `as number` properly.
-            .select((value as number) - (node.offset ?? 0));
-          return node.options[rule] ?? node.options.other;
+            .select((value as number) - (offset ?? 0));
+          return options[rule] ?? options.other;
         })();
 
         if (option == null) {
-          throw `${node.value} is not a known option for plural value ${variableName}. Valid options are ${Object.keys(node.options).join(', ')}`;
+          throw `${value} is not a known option for plural value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
         }
         bindFormatValuesWithBuilder(
           builder,
@@ -222,7 +231,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
 
 export function bindFormatValues<Result>(
   Builder: FormatBuilderConstructor<Result>,
-  nodes: FormatJsNode[],
+  nodes: AstNode[],
   locales: string | string[],
   formatters: Formatters,
   formatConfig: FormatConfig,

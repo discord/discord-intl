@@ -1,7 +1,13 @@
-import { FormatJsNode } from './keyless-json';
+import { AstNode, FullFormatJsNode } from '@discord/intl-ast';
 import { InternalIntlMessage } from './message';
 
-type MessagesData = Record<string, FormatJsNode[]>;
+/**
+ * Type representing the serialized content of a translations file, which is a record of hashed
+ * message keys to their AST structure. This type represents both compressed, keyless AstNodes as
+ * well as fully-typed, object FullFormatJsNodes as the message content, since either can be given
+ * depending on the configuration of the bundler/compiler.
+ */
+type MessagesData = Record<string, AstNode[] | FullFormatJsNode[]>;
 export interface IntlMessageGetterAdditions {
   onChange(callback: () => void): () => void;
 }

@@ -6,24 +6,20 @@ const fs = require('node:fs');
 const path = require('node:path');
 const util = require('node:util');
 const { bench, locales: allLocales } = require('./util');
-const { hydrateMessages } = require('./keyless-json');
+const { hydrateFormatJsAst, compressFormatJsToAst } = require('@discord/intl-ast');
 
 const locales = allLocales;
 
 const database = new IntlMessagesDatabase();
 
-/** @type {IntlCompiledMessageFormat} */
-const COMPILATION_FORMAT = IntlCompiledMessageFormat.KeylessJson;
+const COMPILATION_FORMAT = /** @type {IntlCompiledMessageFormat} */ (
+  IntlCompiledMessageFormat.KeylessJson
+);
 
 bench('processing', () => {
   database.processDefinitionsFile('./data/input/en-US.js');
-  //   native.processDefinitionsFile(database, './data/input/en-US.untranslated.js');
-  //   native.processDefinitionsFile(database, './data/input/international.untranslated.js');
-
-  // // Single threaded:
-  // for (const locale of locales) {
-  //     native.processTranslationsFile(database, `./data/input/${locale}.jsona`, locale);
-  // }
+  database.processDefinitionsFile('./data/input/en-US.untranslated.js');
+  database.processDefinitionsFile('./data/input/international.untranslated.js');
 
   // Multithreaded:
   /** @type {Record<string, string>} */
@@ -112,10 +108,24 @@ bench('parse json', () => {
   }
 });
 
-if (COMPILATION_FORMAT === IntlCompiledMessageFormat.KeylessJson) {
-  bench('hydrate json', () => {
-    for (const [, data] of Object.entries(COMPILED_FILES)) {
-      hydrateMessages(data);
-    }
-  });
+switch (COMPILATION_FORMAT) {
+  case IntlCompiledMessageFormat.KeylessJson:
+    bench('hydrate json', () => {
+      for (const [, data] of Object.entries(COMPILED_FILES)) {
+        for (const [, message] of Object.entries(data)) {
+          hydrateFormatJsAst(message);
+        }
+      }
+    });
+    break;
+
+  case IntlCompiledMessageFormat.Json:
+    bench('compress json', () => {
+      for (const [, data] of Object.entries(COMPILED_FILES)) {
+        for (const [, message] of Object.entries(data)) {
+          compressFormatJsToAst(message);
+        }
+      }
+    });
+    break;
 }
