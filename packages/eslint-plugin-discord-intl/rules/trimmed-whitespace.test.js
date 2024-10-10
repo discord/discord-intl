@@ -1,6 +1,6 @@
 // enforce-foo-bar.test.js
 const { RuleTester } = require('eslint');
-const trimmableWhitespace = require('./trimmable-whitespace');
+const trimmedWhitespace = require('./trimmed-whitespace');
 
 const ruleTester = new RuleTester({
   // Must use at least ecmaVersion 2015 because
@@ -19,22 +19,22 @@ function defineMessages(messages) {
   `;
 }
 
-ruleTester.run('trimmable-whitespace', trimmableWhitespace, {
+ruleTester.run('trimmed-whitespace', trimmedWhitespace, {
   valid: [
     {
       name: 'normal strings',
-      code: defineMessages("{ A: 'no trimmable whitespace' }"),
+      code: defineMessages("{ A: 'no trimmed whitespace' }"),
     },
     {
       name: 'templates',
       code: defineMessages(
-        '{ A: `no trimmable whitespace`, QUASI: `${  space  }`, MULTILINE: `hi\n  yes` }',
+        '{ A: `no trimmed whitespace`, QUASI: `${  space  }`, MULTILINE: `hi\n  yes` }',
       ),
     },
     {
       name: 'multi-line',
       code: defineMessages(
-        `{ A: \`no trimmable
+        `{ A: \`no trimmed
         whitespace\`}`,
       ),
     },
@@ -107,14 +107,14 @@ ruleTester.run('trimmable-whitespace', trimmableWhitespace, {
     },
     {
       name: 'template quasis',
-      code: defineMessages('{ A: `no trimmable whitespace`, QUASI: ` ${  space  } ` }'),
-      output: defineMessages('{ A: `no trimmable whitespace`, QUASI: `${  space  }` }'),
+      code: defineMessages('{ A: `no trimmed whitespace`, QUASI: ` ${  space  } ` }'),
+      output: defineMessages('{ A: `no trimmed whitespace`, QUASI: `${  space  }` }'),
       errors: 1,
     },
     {
       name: 'multiline templates',
-      code: defineMessages('{ A: `no trimmable whitespace`, QUASI: `\n\t${  space  }\n  ` }'),
-      output: defineMessages('{ A: `no trimmable whitespace`, QUASI: `${  space  }` }'),
+      code: defineMessages('{ A: `no trimmed whitespace`, QUASI: `\n\t${  space  }\n  ` }'),
+      output: defineMessages('{ A: `no trimmed whitespace`, QUASI: `${  space  }` }'),
       errors: 1,
     },
     {

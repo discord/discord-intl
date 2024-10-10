@@ -50,14 +50,12 @@ bench('export translations', () => {
 
 bench('validate', () => {
   const validations = database.validateMessages();
-  // const allDiagnostics = validations.flatMap((v) => v.diagnostics);
   // console.log(
-  //     util.inspect(
-  //         allDiagnostics.filter((d) => d.severity === 'Error'),
-  //         {depth: null},
-  //     ),
+  //   util.inspect(
+  //     validations.filter((d) => d.severity === 'warning' && !d.description.startsWith('Plural')),
+  //     { depth: null },
+  //   ),
   // );
-  // console.log(util.inspect(validations, { depth: null }));
 });
 
 bench('generate types', () => {

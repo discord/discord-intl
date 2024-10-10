@@ -1,6 +1,6 @@
 module.exports = {
   rules: {
-    'trimmed-whitespace': require('./rules/trimmable-whitespace'),
+    'trimmed-whitespace': require('./rules/trimmed-whitespace'),
     'use-static-access': require('./rules/use-static-access'),
   },
   configs: {
