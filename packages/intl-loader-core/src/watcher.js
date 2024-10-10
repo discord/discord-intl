@@ -35,10 +35,17 @@ function processFile(filePath, assetExtension) {
     // Convert the file name from `.messages.js` to `.compiled.messages.jsona` for output.
     const outputPath = filePath.replace(/\.messages\.js$/, `.compiled.messages.${assetExtension}`);
     const result = processDefinitionsFile(filePath);
-    precompileFileForLocale(filePath, result.locale, { format: IntlCompiledMessageFormat.Json });
+    precompileFileForLocale(filePath, result.locale, {
+      format: IntlCompiledMessageFormat.KeylessJson,
+    });
 
     database.processDefinitionsFile(filePath);
-    database.precompile(filePath, DEFAULT_LOCALE, outputPath, IntlCompiledMessageFormat.Json);
+    database.precompile(
+      filePath,
+      DEFAULT_LOCALE,
+      outputPath,
+      IntlCompiledMessageFormat.KeylessJson,
+    );
     debug(`Wrote definitions to: ${outputPath}`);
   } catch (e) {
     debug('[INTL Error] Failed to compile messages');

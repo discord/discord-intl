@@ -101,7 +101,7 @@ async function transformAsset(assetData) {
 
   const result = processTranslationsFile(filename);
   precompileFileForLocale(filename, result.locale, {
-    format: IntlCompiledMessageFormat.Json,
+    format: IntlCompiledMessageFormat.KeylessJson,
     outputFile,
   });
 

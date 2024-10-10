@@ -57,7 +57,7 @@ function transformToString({
     // @ts-expect-error Without the `outputFile` option, this always returns a Buffer, but the
     // option allows the function to return void instead.
     return precompileFileForLocale(filename, result.locale, {
-      format: IntlCompiledMessageFormat.Json,
+      format: IntlCompiledMessageFormat.KeylessJson,
     });
   }
 

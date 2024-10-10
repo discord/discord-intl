@@ -121,7 +121,7 @@ function processTranslationsFile(sourcePath, sourceContent, options = {}) {
  * @returns {Buffer | void}
  */
 function precompileFileForLocale(sourcePath, locale, options = {}) {
-  const { format = IntlCompiledMessageFormat.Json, outputFile } = options;
+  const { format = IntlCompiledMessageFormat.KeylessJson, outputFile } = options;
   return outputFile != null
     ? database.precompile(sourcePath, locale, outputFile, format)
     : database.precompileToBuffer(sourcePath, locale, format);

@@ -93,7 +93,7 @@ const intlLoader = function intlLoader(source) {
     }
 
     const compiledResult = precompileFileForLocale(sourcePath, locale, {
-      format: IntlCompiledMessageFormat.Json,
+      format: IntlCompiledMessageFormat.KeylessJson,
     });
 
     // Translations are still treated as JS files that need to be pre-parsed.
