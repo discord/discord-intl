@@ -17,16 +17,16 @@ export enum FormatJsNodeType {
 //
 // Everything in the `@discord/intl` system works with this compressed AST format, but utilities are
 // provided to convert between this and the FormatJS compatible version as needed.
-export type LiteralNode = [FormatJsNodeType.Literal, string];
+export type LiteralNode = [string];
 export type ArgumentNode = [FormatJsNodeType.Argument, string];
 export type NumberNode = [FormatJsNodeType.Number, string, string | undefined];
 export type DateNode = [FormatJsNodeType.Date, string, string | undefined];
 export type TimeNode = [FormatJsNodeType.Time, string, string | undefined];
-export type SelectNode = [FormatJsNodeType.Select, string, Record<string, { value: AstNode[] }>];
+export type SelectNode = [FormatJsNodeType.Select, string, Record<string, AstNode[]>];
 export type PluralNode = [
   FormatJsNodeType.Plural,
   string,
-  Record<string, { value: AstNode[] }>,
+  Record<string, AstNode[]>,
   number,
   FormatJsPluralType,
 ];
@@ -152,12 +152,19 @@ function hydratePlural(keyless: Array<any>): FullFormatJsNode {
   for (const key in options) {
     hydrateArray(options[key].value);
   }
+  const valueOptions = options.map((option) => ({ value: option }));
   // `pluralType` is technically only valid on `Plural` nodes, even
   // though the structure is identical to `Select`.
   if (type === FormatJsNodeType.Plural) {
-    return { type, value, options, offset, pluralType };
+    return {
+      type,
+      value,
+      options,
+      offset: valueOptions,
+      pluralType,
+    };
   } else {
-    return { type, value, options, offset };
+    return { type, value, options: valueOptions, offset };
   }
 }
 
@@ -165,6 +172,7 @@ function hydrateSingle(keyless: Array<any>): FullFormatJsNode {
   const [type] = keyless;
   switch (type) {
     case FormatJsNodeType.Literal:
+      return { type: 0, value: keyless[0] };
     case FormatJsNodeType.Argument:
       return { type, value: keyless[1] };
     case FormatJsNodeType.Number:
@@ -226,10 +234,10 @@ export function compressFormatJsToAst(
   if (Array.isArray(node)) {
     return node.map((element) => compressFormatJsToAst(element));
   }
-  console.log('compressing');
 
   switch (node.type) {
     case FormatJsNodeType.Literal:
+      return [node.value];
     case FormatJsNodeType.Argument:
       return [node.type, node.value];
     case FormatJsNodeType.Number:
@@ -237,16 +245,16 @@ export function compressFormatJsToAst(
     case FormatJsNodeType.Time:
       return [node.type, node.value, node.style];
     case FormatJsNodeType.Select: {
-      const reducedOptions: Record<string, { value: AstNode[] }> = {};
+      const reducedOptions: Record<string, AstNode[]> = {};
       for (const [name, option] of Object.entries(node.options)) {
-        reducedOptions[name] = { value: compressFormatJsToAst(option.value) };
+        reducedOptions[name] = compressFormatJsToAst(option.value);
       }
       return [node.type, node.value, reducedOptions];
     }
     case FormatJsNodeType.Plural: {
-      const reducedOptions: Record<string, { value: AstNode[] }> = {};
+      const reducedOptions: Record<string, AstNode[]> = {};
       for (const [name, option] of Object.entries(node.options)) {
-        reducedOptions[name] = { value: compressFormatJsToAst(option.value) };
+        reducedOptions[name] = compressFormatJsToAst(option.value);
       }
       return [node.type, node.value, reducedOptions, node.offset, node.pluralType];
     }

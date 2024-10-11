@@ -3,15 +3,15 @@
 //! of this compilation should match _exactly_ with FormatJS's `@formatjs/cli compile --ast` when
 //! serialized to JSON. However, this format also allows more compact representations like keyless
 //! JSON or even binary formats.
-use serde::{self, Serialize, Serializer};
 use serde::ser::SerializeMap;
+use serde::{self, Serialize, Serializer};
 
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
     IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
     Paragraph, Strikethrough, Strong, TextOrPlaceholder,
 };
-use crate::icu::serialize::{fjs_types, FormatJsElementType};
+use crate::icu::serialize::FormatJsElementType;
 use crate::icu::tags::DEFAULT_TAG_NAMES;
 
 /// Compile a parsed ICU-Markdown document into a FormatJS Node tree, that can then be directly
@@ -26,6 +26,7 @@ pub fn compile_to_format_js(document: &Document) -> FormatJsNode {
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum FormatJsNode<'a> {
+    Literal(&'a str),
     SingleNode(FormatJsSingleNode<'a>),
     ListNode(Vec<FormatJsNode<'a>>),
 }
@@ -33,6 +34,10 @@ pub enum FormatJsNode<'a> {
 impl<'a> FormatJsNode<'a> {
     fn list(values: Vec<FormatJsNode<'a>>) -> Self {
         Self::from(values)
+    }
+
+    fn literal(value: &'a str) -> Self {
+        Self::Literal(value)
     }
 }
 
@@ -49,7 +54,7 @@ pub struct FormatJsSingleNode<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub offset: Option<u64>,
+    pub offset: Option<usize>,
     #[serde(rename = "pluralType", skip_serializing_if = "Option::is_none")]
     pub plural_type: Option<IcuPluralKind>,
 }
@@ -59,12 +64,6 @@ impl<'a> FormatJsSingleNode<'a> {
         Self::default()
             .with_type(FormatJsElementType::Tag)
             .with_value(tag_name.into())
-    }
-
-    fn literal(value: &'a str) -> Self {
-        Self::default()
-            .with_type(FormatJsElementType::Literal)
-            .with_value(value)
     }
 
     fn variable(name: &'a str) -> Self {
@@ -105,7 +104,7 @@ impl<'a> FormatJsSingleNode<'a> {
         self
     }
 
-    fn with_offset(mut self, offset: u64) -> Self {
+    fn with_offset(mut self, offset: usize) -> Self {
         self.offset = Some(offset);
         self
     }
@@ -137,42 +136,25 @@ impl Serialize for FormatJsNodeOptions<'_> {
     where
         S: Serializer,
     {
-        // TODO(faulty): It'd be really nice to serialize options as a direct object, like:
-        // `{"one":[<content>],"other":[<content>]}`, but that's not possible to do while keeping
-        // perfect compatibility with FormatJS. We would want to skip the `FormatJsPluralArm`
-        // serialization for the entry value here and instead just use `arm.content()` directly.
-        // For now, this yields `{"one":{"value":[<content>]}}` in keyless JSON, which is close
-        // enough, though the repetition of `"value"` all over the place is disappointing.
         let mut arms = serializer.serialize_map(Some(self.0.len()))?;
         for arm in self.0 {
-            arms.serialize_entry(arm.selector(), &FormatJsPluralArm(arm))?;
+            arms.serialize_entry(arm.selector(), arm.content())?;
         }
         arms.end()
     }
 }
 
-pub struct FormatJsPluralArm<'a>(&'a IcuPluralArm);
-impl Serialize for FormatJsPluralArm<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut arm = serializer.serialize_map(Some(1))?;
-        arm.serialize_entry(fjs_types::VALUE, &FormatJsNode::from(self.0.content()))?;
-        arm.end()
-    }
-}
 //#endregion
 
 //#region AST to Node conversions
 impl<'a> From<&'a str> for FormatJsNode<'a> {
     fn from(value: &'a str) -> Self {
-        FormatJsSingleNode::literal(value).into()
+        FormatJsNode::Literal(value)
     }
 }
 impl<'a> From<&'a String> for FormatJsNode<'a> {
     fn from(value: &'a String) -> Self {
-        FormatJsSingleNode::literal(&value).into()
+        FormatJsNode::Literal(value)
     }
 }
 
@@ -192,7 +174,7 @@ impl<'a> From<&'a Document> for FormatJsNode<'a> {
 impl<'a> From<&'a InlineContent> for FormatJsNode<'a> {
     fn from(value: &'a InlineContent) -> Self {
         match value {
-            InlineContent::Text(text) => FormatJsSingleNode::literal(&text).into(),
+            InlineContent::Text(text) => FormatJsNode::literal(text),
             InlineContent::Emphasis(emphasis) => FormatJsNode::from(emphasis),
             InlineContent::Strong(strong) => FormatJsNode::from(strong),
             InlineContent::Link(link) => FormatJsNode::from(link),
@@ -237,10 +219,9 @@ impl_from_for_tag_node!(Strikethrough, DEFAULT_TAG_NAMES.strike_through(), conte
 impl<'a> From<&'a CodeSpan> for FormatJsNode<'a> {
     fn from(value: &'a CodeSpan) -> Self {
         FormatJsSingleNode::tag(DEFAULT_TAG_NAMES.code())
-            .with_children(FormatJsNode::ListNode(vec![FormatJsSingleNode::literal(
-                &value.content(),
-            )
-            .into()]))
+            .with_children(FormatJsNode::ListNode(vec![FormatJsNode::literal(
+                value.content(),
+            )]))
             .into()
     }
 }
@@ -259,7 +240,10 @@ fn compile_link_children<'a>(
 ) -> FormatJsNode<'a> {
     let destination = match destination {
         TextOrPlaceholder::Text(text) => {
-            vec![FormatJsNode::from(text), FormatJsSingleNode::empty().into()]
+            vec![
+                FormatJsNode::literal(text),
+                FormatJsSingleNode::empty().into(),
+            ]
         }
         TextOrPlaceholder::Placeholder(icu) => vec![FormatJsNode::from(icu)],
         TextOrPlaceholder::Handler(handler_name) => {
@@ -406,7 +390,7 @@ mod tests {
 
     macro_rules! lit {
         ($name:literal) => {
-            FormatJsSingleNode::literal($name)
+            FormatJsNode::Literal($name)
         };
     }
 

@@ -1,7 +1,8 @@
-use intl_database_core::{KeySymbol, MessagesDatabase, MessageValue};
+use thiserror::Error;
+
+use intl_database_core::{KeySymbol, MessageValue, MessagesDatabase};
 use intl_database_service::IntlDatabaseService;
 use intl_markdown::compile_to_format_js;
-use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum IntlMessagePreCompilerError {

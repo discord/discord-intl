@@ -1,8 +1,8 @@
 extern crate core;
 
-pub use ast::*;
 pub use ast::format::format_ast;
 pub use ast::process::process_cst_to_ast;
+pub use ast::*;
 pub use icu::compile::compile_to_format_js;
 pub use icu::format::format_icu_string;
 pub use icu::tags::DEFAULT_TAG_NAMES;
@@ -11,7 +11,7 @@ pub use syntax::SyntaxKind;
 pub use token::SyntaxToken;
 pub use tree_builder::cst::Document as CstDocument;
 
-mod ast;
+pub mod ast;
 mod block_parser;
 mod byte_lookup;
 mod delimiter;
