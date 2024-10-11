@@ -22,6 +22,9 @@ cd(REPO_ROOT);
     .addCommand(
       await createJsPackageCommands('eslint-plugin-discord-intl', { aliases: ['eslint'] }),
     )
+    .addCommand(
+      await createJsPackageCommands('babel-plugin-transform-discord-intl', { aliases: ['babel'] }),
+    )
     .addCommand(await createJsPackageCommands('metro-intl-transformer', { aliases: ['metro'] }))
     .addCommand(await createJsPackageCommands('rspack-intl-loader', { aliases: ['rspack'] }))
     .addCommand(await createJsPackageCommands('intl-ast', { build: true, watch: true }))

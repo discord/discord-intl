@@ -1,0 +1,20 @@
+{
+  "name": "@discord/babel-plugin-transform-discord-intl",
+  "version": "0.6.3-rc.0",
+  "license": "MIT",
+  "type": "commonjs",
+  "description": "Babel plugin for transforming message accesses and definitions",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./traverse": "./traverse.js"
+  },
+  "dependencies": {
+    "@discord/intl-loader-core": "workspace:*",
+    "@typescript-eslint/scope-manager": "^8.8.1"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.24.9",
+    "@types/babel__traverse": "7.20.6"
+  }
+}

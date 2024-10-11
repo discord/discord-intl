@@ -91,6 +91,22 @@ importers:
 
   crates/intl_message_database/npm/win32-x64-msvc: {}
 
+  packages/babel-plugin-transform-discord-intl:
+    dependencies:
+      '@discord/intl-loader-core':
+        specifier: workspace:*
+        version: link:../intl-loader-core
+      '@typescript-eslint/scope-manager':
+        specifier: ^8.8.1
+        version: 8.8.1
+    devDependencies:
+      '@babel/types':
+        specifier: ^7.24.9
+        version: 7.25.2
+      '@types/babel__traverse':
+        specifier: 7.20.6
+        version: 7.20.6
+
   packages/eslint-plugin-discord-intl:
     dependencies:
       '@discord/intl-loader-core':
@@ -177,6 +193,9 @@ importers:
 
   packages/metro-intl-transformer:
     dependencies:
+      '@discord/babel-plugin-transform-discord-intl':
+        specifier: workspace:*
+        version: link:../babel-plugin-transform-discord-intl
       '@discord/intl-loader-core':
         specifier: workspace:*
         version: link:../intl-loader-core
