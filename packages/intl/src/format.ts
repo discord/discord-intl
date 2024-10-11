@@ -56,17 +56,17 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
   originalMessage?: string,
 ) {
   // Hot path for static messages that are just parsed as a single string element.
-  if (nodes.length === 1 && typeof nodes[0][0] === 'string') {
-    builder.pushLiteralText(nodes[0][0]);
+  if (nodes.length === 1 && typeof nodes[0] === 'string') {
+    builder.pushLiteralText(nodes[0]);
     return;
   }
 
   for (const node of nodes) {
-    const nodeType = node[AstNodeIndices.Type];
-    if (typeof nodeType === 'string') {
-      builder.pushLiteralText(nodeType);
+    if (typeof node === 'string') {
+      builder.pushLiteralText(node);
       continue;
     }
+    const nodeType = node[AstNodeIndices.Type];
     switch (nodeType) {
       case FormatJsNodeType.Pound:
         // Replace `#` in plural rules with the actual numeric value. Only

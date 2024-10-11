@@ -281,7 +281,7 @@ export function isCompressedAst(
 ): boolean {
   // Not an array at all means this is a singular fully-typed node.
   if (!Array.isArray(node)) return false;
-  // Otherwise just check the first element. If it's an array, then the ast is compressed as
-  // keyless.
-  return Array.isArray(node[0]);
+  // Otherwise just check the first element. If it's an array or a direct string, then the ast is
+  // compressed as keyless.
+  return Array.isArray(node[0]) || typeof node[0] === 'string';
 }
