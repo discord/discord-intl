@@ -121,7 +121,7 @@ export class IntlManager {
     if (resolved == null || resolved.ast.length === 0) return '';
 
     const value = resolved.ast[0] as LiteralNode;
-    if (typeof value[0] !== 'string') {
+    if (typeof value !== 'string') {
       throw new Error(
         'Attempted to call `string` formatting on a non-literal message: ' +
           JSON.stringify(resolved),
@@ -133,7 +133,7 @@ export class IntlManager {
     // contain a single static text node and no placeholders or rich text.
     // As it stands, this is _technically_ typed as string | undefined, even though
     // TypeScript doesn't actually complain about it.
-    return value[0];
+    return value;
   }
 
   /**

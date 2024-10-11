@@ -138,7 +138,7 @@ impl Serialize for FormatJsNodeOptions<'_> {
     {
         let mut arms = serializer.serialize_map(Some(self.0.len()))?;
         for arm in self.0 {
-            arms.serialize_entry(arm.selector(), arm.content())?;
+            arms.serialize_entry(arm.selector(), &FormatJsNode::from(arm.content()))?;
         }
         arms.end()
     }

@@ -17,7 +17,7 @@ export enum FormatJsNodeType {
 //
 // Everything in the `@discord/intl` system works with this compressed AST format, but utilities are
 // provided to convert between this and the FormatJS compatible version as needed.
-export type LiteralNode = [string];
+export type LiteralNode = string;
 export type ArgumentNode = [FormatJsNodeType.Argument, string];
 export type NumberNode = [FormatJsNodeType.Number, string, string | undefined];
 export type DateNode = [FormatJsNodeType.Date, string, string | undefined];
@@ -135,10 +135,11 @@ export type FullFormatJsNode =
 // AST.
 export const FORMAT_JS_POUND: FullFormatJsPound = Object.freeze({ type: 7 });
 
-function hydrateArray(elements: Array<Array<any>>) {
+function hydrateArray(elements: Array<any>): elements is Array<FullFormatJsNode> {
   for (let i = 0; i < elements.length; i++) {
-    elements[i] = hydrateFormatJsAst(elements[i]);
+    elements[i] = hydrateSingle(elements[i]);
   }
+  return true;
 }
 
 function hydratePlural(keyless: Array<any>): FullFormatJsNode {
@@ -150,29 +151,24 @@ function hydratePlural(keyless: Array<any>): FullFormatJsNode {
   // This saves multiple allocations compared to building a new object
   // from scratch, either for the whole options object or for each value.
   for (const key in options) {
-    hydrateArray(options[key].value);
+    hydrateArray(options[key]);
+    options[key] = { value: options[key] };
   }
-  const valueOptions = options.map((option) => ({ value: option }));
   // `pluralType` is technically only valid on `Plural` nodes, even
   // though the structure is identical to `Select`.
   if (type === FormatJsNodeType.Plural) {
-    return {
-      type,
-      value,
-      options,
-      offset: valueOptions,
-      pluralType,
-    };
+    return { type, value, options, offset, pluralType };
   } else {
-    return { type, value, options: valueOptions, offset };
+    return { type, value, options, offset };
   }
 }
 
-function hydrateSingle(keyless: Array<any>): FullFormatJsNode {
+function hydrateSingle(keyless: string | Array<any>): FullFormatJsNode {
+  if (typeof keyless === 'string') {
+    return { type: 0, value: keyless };
+  }
   const [type] = keyless;
   switch (type) {
-    case FormatJsNodeType.Literal:
-      return { type: 0, value: keyless[0] };
     case FormatJsNodeType.Argument:
       return { type, value: keyless[1] };
     case FormatJsNodeType.Number:
@@ -201,18 +197,27 @@ function hydrateSingle(keyless: Array<any>): FullFormatJsNode {
  */
 export function hydrateFormatJsAst(keyless: Array<Array<any>>): FullFormatJsNode[];
 export function hydrateFormatJsAst(keyless: Array<any>): FullFormatJsNode | FullFormatJsNode[] {
-  // If the first element of the array is itself an array, then we have a list
-  // of elements to parse rather than a single object.
-  if (Array.isArray(keyless[0])) {
+  // If the first element of the array is a string, then we _do_ have an array of elements, but the
+  // first one is a literal node.
+  if (typeof keyless[0] === 'string') {
     hydrateArray(keyless);
     return keyless;
-  } else if (keyless.length === 0) {
+  }
+
+  if (keyless.length === 0) {
     // Some entries can be empty arrays, like an empty set of children, and those can
     // be preserved.
     return keyless;
   }
 
-  return hydrateSingle(keyless);
+  // If the first element is otherwise not an array, then it must be a
+  // type identifier for a single node.
+  if (!Array.isArray(keyless[0])) {
+    return hydrateSingle(keyless);
+  }
+
+  hydrateArray(keyless);
+  return keyless;
 }
 
 //#endregion
@@ -237,7 +242,7 @@ export function compressFormatJsToAst(
 
   switch (node.type) {
     case FormatJsNodeType.Literal:
-      return [node.value];
+      return node.value;
     case FormatJsNodeType.Argument:
       return [node.type, node.value];
     case FormatJsNodeType.Number:
