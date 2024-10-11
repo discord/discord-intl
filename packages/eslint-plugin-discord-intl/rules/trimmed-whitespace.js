@@ -1,4 +1,3 @@
-const util = require('node:util');
 const { traverseMessageDefinitions } = require('../lib/traverse');
 
 /**
@@ -35,8 +34,6 @@ module.exports = /** @type {import('eslint').Rule.RuleModule} */ ({
       const rawNoQuotes = sourceText.slice(1, -1);
 
       const trimmed = trimLeadingWhitespace(trimTrailingWhitespace(rawNoQuotes));
-      util.inspect(rawNoQuotes);
-      util.inspect(trimmed);
       if (trimmed === rawNoQuotes) return;
 
       context.report({

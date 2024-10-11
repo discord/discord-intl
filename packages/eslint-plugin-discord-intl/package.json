@@ -6,11 +6,13 @@
   "description": "ESLint plugin for validating and linting messages and translations using @discord/intl",
   "main": "index.js",
   "dependencies": {
-    "@discord/intl-loader-core": "workspace:*"
+    "@discord/intl-loader-core": "workspace:*",
+    "@typescript-eslint/scope-manager": "^8.8.1"
   },
   "devDependencies": {
     "@types/eslint": "^8.56.12",
     "@types/estree": "^1.0.6",
+    "@typescript-eslint/parser": "^8.8.1",
     "eslint": "8.57.1"
   }
 }

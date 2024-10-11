@@ -1,18 +1,80 @@
 const { isMessageDefinitionsFile } = require('@discord/intl-loader-core');
 
+/** @typedef {import('eslint').Rule.NodeParentExtension} NodeParentExtension */
+/** @typedef {import('eslint').SourceCode} SourceCode */
+/** @typedef {import('eslint').Scope.ScopeManager} ScopeManager */
+/** @typedef {import('eslint').Scope.Reference} Reference */
 /** @typedef {import('eslint').Rule.RuleListener} RuleListener */
 /** @typedef {import('eslint').Rule.RuleContext} RuleContext */
+/** @typedef {import('estree').Node} Node */
 /** @typedef {import('estree').MemberExpression} MemberExpression */
+/** @typedef {import('estree').ImportDeclaration} ImportDeclaration */
+/** @typedef {import('estree').ImportSpecifier} ImportSpecifier */
+/** @typedef {import('estree').ImportDefaultSpecifier} ImportDefaultSpecifier */
+/** @typedef {import('estree').ImportNamespaceSpecifier} ImportNamespaceSpecifier */
 /** @typedef {import('estree').BaseModuleSpecifier} BaseModuleSpecifier */
 /** @typedef {import('estree').ObjectExpression} ObjectExpression */
 /** @typedef {import('estree').SimpleLiteral} SimpleLiteral */
 /** @typedef {import('estree').TemplateLiteral} TemplateLiteral */
 /** @typedef {import('estree').Property} Property */
+/** @typedef {import('estree').Identifier} Identifier */
 
 /**
- * @typedef {(node: MemberExpression, importer: BaseModuleSpecifier) => void} MessageAccessCallback
+ * @typedef DiscordIntlPluginConfig
+ * @property {Record<string, string[]>} [extraImports]
+ */
+
+/**
+ * @param {DiscordIntlPluginConfig | undefined} config
+ * @param {ImportDeclaration} path
+ * @returns {Array<ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier>}
+ */
+function getImportedMessagesObjectSpecifiers(config, path) {
+  const importSource = /** @type {string} */ (path.source.value);
+  // TODO: Make `isMessageDefinitionsFile` understand this properly.
+  const isDefinition = isMessageDefinitionsFile(importSource) || importSource.endsWith('.messages');
+  const extraImportSpecifiers = config?.extraImports?.[importSource] ?? [];
+  // This transformer only handles usages of intl messages, so only
+  // imports of definitions files and configured extra specifiers need to
+  // be handled.
+  if (!isDefinition && extraImportSpecifiers.length === 0) {
+    return [];
+  }
+
+  return path.specifiers.filter(
+    (specifier) =>
+      (isDefinition && specifier.type === 'ImportDefaultSpecifier') ||
+      extraImportSpecifiers.includes(specifier.local.name),
+  );
+}
+
+/**
+ *
+ * @param {RuleContext} context
+ * @param {Node} node
+ * @returns {Reference[]}
+ */
+function getBindingReferences(context, node) {
+  return (
+    context.sourceCode
+      .getDeclaredVariables(node)
+      // This should only ever yield 1 variable, so flatMap is unnecessary, but it is safer to
+      // use in case this changes in the future.
+      .flatMap((variable) => /** @type {Reference[]} */ (variable.references))
+  );
+}
+
+/**
  * @typedef {(
- *  property: Property,
+ *  node: MemberExpression & NodeParentExtension,
+ *  importer: BaseModuleSpecifier & NodeParentExtension
+ * ) => void} MessageAccessCallback
+ * @typedef {(
+ *  reference: Identifier & NodeParentExtension,
+ *  importer: BaseModuleSpecifier & NodeParentExtension
+ * ) => void} MessagesReferenceCallback
+ * @typedef {(
+ *  property: Property & NodeParentExtension,
  *  value: SimpleLiteral | TemplateLiteral,
  *  definition: ObjectExpression | undefined,
  * ) => void} MessageDefinitionCallback
@@ -30,44 +92,26 @@ const { isMessageDefinitionsFile } = require('@discord/intl-loader-core');
  */
 function traverseMessageAccesses(context, callback) {
   const config = context.settings['@discord/discord-intl'];
-  const source = context.sourceCode;
 
   return /** @type {RuleListener} */ ({
     ImportDeclaration(path) {
-      const importSource = /** @type {string} */ (path.source.value);
-      // TODO: Make `isMessageDefinitionsFile` understand this properly.
-      const isDefinition =
-        isMessageDefinitionsFile(importSource) || importSource.endsWith('.messages');
-      const extraImportSpecifiers = config.extraImports?.[importSource] ?? [];
-      // This transformer only handles usages of intl messages, so only
-      // imports of definitions files and configured extra specifiers need to
-      // be handled.
-      if (!isDefinition && extraImportSpecifiers.length === 0) {
-        return;
-      }
-
-      const specifiers = path.specifiers.filter(
-        (specifier) =>
-          (isDefinition && specifier.type === 'ImportDefaultSpecifier') ||
-          extraImportSpecifiers.includes(specifier.local.name),
-      );
+      const specifiers = getImportedMessagesObjectSpecifiers(config, path);
+      if (specifiers.length === 0) return;
 
       for (const specifier of specifiers) {
-        const bindingReferences = source
-          .getDeclaredVariables(specifier)
-          // This should only ever yield 1 variable, so flatMap is unnecessary, but it is safer to
-          // use in case this changes in the future.
-          .flatMap((variable) => variable.references);
+        const bindingReferences = getBindingReferences(context, specifier);
 
         for (const reference of bindingReferences) {
-          // @ts-expect-error `identifier` is actually `Identifier & NodeParentExtension`.
-          const parent = reference.identifier.parent;
+          const parent = /** @type {MemberExpression & NodeParentExtension} */ (
+            // @ts-expect-error `identifier` is actually `Identifier & NodeParentExtension`.
+            reference.identifier.parent
+          );
 
           // We only care about member expressions, since a direct reference to the
           // message source doesn't necessarily make it a message access.
           if (parent.type !== 'MemberExpression') continue;
 
-          callback(/** @type {MemberExpression} */ parent, specifier);
+          callback(parent, /** @type {BaseModuleSpecifier & NodeParentExtension} */ (specifier));
         }
       }
     },
@@ -113,13 +157,12 @@ function traverseMessageDefinitions(context, callback) {
           case 'Literal':
           case 'TemplateLiteral':
             callback(
-              property,
+              /** @type {Property & NodeParentExtension} */ (property),
               /** @type {SimpleLiteral | TemplateLiteral} */ (property.value),
               undefined,
             );
             break;
           case 'ObjectExpression': {
-            console.log('got expression');
             const messageProperty = property.value.properties.find((prop) => {
               return prop.type === 'Property' && 'name' in prop.key && prop.key.name === 'message';
             });
@@ -132,7 +175,7 @@ function traverseMessageDefinitions(context, callback) {
             }
 
             callback(
-              property,
+              /** @type {Property & NodeParentExtension} */ (property),
               /** @type {SimpleLiteral} */ (messageProperty.value),
               property.value,
             );
@@ -143,4 +186,37 @@ function traverseMessageDefinitions(context, callback) {
   });
 }
 
-module.exports = { traverseMessageAccesses, traverseMessageDefinitions };
+/**
+ * Visit all `Identifier`s that act as accesses to a complete intl messages object. This includes
+ * all references, including message accesses, object passing, and includes the original import
+ * for completeness.
+ *
+ * @param {RuleContext} context The rule context from ESLint
+ * @param {MessagesReferenceCallback} callback Function to call for each instance of a message access
+ * @returns {RuleListener} A visitor object for the Babel transform.
+ */
+function traverseMessageObjectReferences(context, callback) {
+  const config = context.settings['@discord/discord-intl'];
+
+  return /** @type {RuleListener} */ ({
+    ImportDeclaration(path) {
+      const specifiers = getImportedMessagesObjectSpecifiers(config, path);
+      for (const specifier of specifiers) {
+        const bindingReferences = getBindingReferences(context, specifier);
+
+        for (const reference of bindingReferences) {
+          callback(
+            /** @type {Identifier & NodeParentExtension} */ (reference.identifier),
+            /** @type {BaseModuleSpecifier & NodeParentExtension} */ (specifier),
+          );
+        }
+      }
+    },
+  });
+}
+
+module.exports = {
+  traverseMessageAccesses,
+  traverseMessageDefinitions,
+  traverseMessageObjectReferences,
+};
