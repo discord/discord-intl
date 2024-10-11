@@ -32,10 +32,12 @@ export class InternalIntlMessage {
 // appended, rather than creating a bunch of intermediate strings.
 function serializeAst(ast: AstNode[], result: { value: string }) {
   for (const node of ast) {
+    if (typeof node[0] === 'string') {
+      result.value += node[0];
+      return;
+    }
+
     switch (node[AstNodeIndices.Type]) {
-      case FormatJsNodeType.Literal:
-        result.value += node[AstNodeIndices.Value];
-        return;
       case FormatJsNodeType.Argument:
         // Empties are an artifact of our parsing strategy, not necessary here.
         if (result.value === '$_') return;
@@ -71,7 +73,7 @@ function serializeAst(ast: AstNode[], result: { value: string }) {
         }
         for (const [name, arm] of Object.entries(node[AstNodeIndices.Options])) {
           result.value += ' ' + name + ' {';
-          serializeAst(arm.value, result);
+          serializeAst(arm, result);
           result.value += '}';
         }
         return;
@@ -83,7 +85,7 @@ function serializeAst(ast: AstNode[], result: { value: string }) {
         result.value += '{' + node[AstNodeIndices.Value] + ', select, ';
         for (const [name, arm] of Object.entries(node[AstNodeIndices.Options])) {
           result.value += ' ' + name + ' {';
-          serializeAst(arm.value, result);
+          serializeAst(arm, result);
           result.value += '}';
         }
         return;

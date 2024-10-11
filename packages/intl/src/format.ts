@@ -56,18 +56,18 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
   originalMessage?: string,
 ) {
   // Hot path for static messages that are just parsed as a single string element.
-  if (nodes.length === 1 && nodes[0][AstNodeIndices.Type] === FormatJsNodeType.Literal) {
-    builder.pushLiteralText(nodes[0][AstNodeIndices.Value]);
+  if (nodes.length === 1 && typeof nodes[0][0] === 'string') {
+    builder.pushLiteralText(nodes[0][0]);
     return;
   }
 
   for (const node of nodes) {
     const nodeType = node[AstNodeIndices.Type];
+    if (typeof nodeType === 'string') {
+      builder.pushLiteralText(nodeType);
+      continue;
+    }
     switch (nodeType) {
-      case FormatJsNodeType.Literal:
-        builder.pushLiteralText(node[AstNodeIndices.Value]);
-        continue;
-
       case FormatJsNodeType.Pound:
         // Replace `#` in plural rules with the actual numeric value. Only
         // numeric values are replaced, otherwise the value is completed ignored?
@@ -184,14 +184,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         if (option == null) {
           throw `${value} is not a known option for select value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
         }
-        bindFormatValuesWithBuilder(
-          builder,
-          option.value,
-          locales,
-          formatters,
-          formatConfig,
-          values,
-        );
+        bindFormatValuesWithBuilder(builder, option, locales, formatters, formatConfig, values);
         break;
       }
 
@@ -215,7 +208,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
         }
         bindFormatValuesWithBuilder(
           builder,
-          option.value,
+          option,
           locales,
           formatters,
           formatConfig,
