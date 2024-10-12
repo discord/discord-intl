@@ -59,7 +59,7 @@ const intlLoader = function intlLoader(source) {
     // considers the leading drive name (like `C:\`) as a scheme, which is incorrect. It also
     // appears to process all paths as the posix style, meaning backlashes aren't preserved (e.g.,
     // the output of `C:\path\to\file` is interpreted as `C:\pathtofile`.
-    result.translationsLocaleMap['en-US'] = sourcePath + '?forceTranslation';
+    result.translationsLocaleMap[result.locale] = sourcePath + '?forceTranslation';
     for (const locale in result.translationsLocaleMap) {
       result.translationsLocaleMap[locale] = makePosixRelativePath(
         sourcePath,

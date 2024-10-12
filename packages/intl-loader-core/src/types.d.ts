@@ -40,6 +40,17 @@ export interface MessageDefinitionsTransformerOptions {
    * code to provide context for debugging in errors and warning messages.
    */
   debug?: boolean;
+  /**
+   * Control how value exports are written in the transformed file to match what any downstream
+   * transformer or interpreter may expect. `esm` will leave exports as `export default` and other
+   * module features supported in ES6 and onward. `commonjs` will explicitly use `module.exports`
+   * with a single object containing `default` as the key for a default export. `transpiledEsModule`
+   * does the same, but includes the compatibility field `__esModule` to indicate that the module
+   * "was transpiled" to this syntax.
+   *
+   * @default esm
+   */
+  exportMode?: 'esm' | 'commonjs' | 'transpiledEsModule';
 }
 
 /**

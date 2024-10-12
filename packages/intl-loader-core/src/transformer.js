@@ -111,6 +111,25 @@ class MessageDefinitionsTransformer {
   }
 
   /**
+   * Return the lines to export fields from this module, as determined by the `exportMode` on this
+   * transformer.
+   */
+  exportFields() {
+    switch (this.options.exportMode ?? 'esm') {
+      case 'esm':
+        return [`export {${this.loaderName}};`, `export default binds;`];
+      case 'commonjs':
+        return [`module.exports = { messagesLoader: ${this.loaderName}, default: binds };`];
+      case 'transpiledEsModule':
+        return [
+          `Object.defineProperty(exports, "__esModule", { value: true });`,
+          `exports["messageLoader"] = ${this.loaderName};`,
+          `exports["default"] = binds;`,
+        ];
+    }
+  }
+
+  /**
    * Returns the reduced, transformed output for this file. Currently not
    * configurable, but could be told to include default messages or preserve
    * information as necessary.
@@ -124,9 +143,10 @@ class MessageDefinitionsTransformer {
       `const _keys = ${JSON.stringify(this.options.messageKeys)};`,
       `const _locales = ${this.getLocaleRequireMap()};`,
       `const _defaultLocale = ${JSON.stringify(this.options.defaultLocale)};`,
-      `export const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
+      `const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
       ...this.debugModeSetup(),
-      `export default ${this.loaderName}.getBinds();`,
+      `const binds = ${this.loaderName}.getBinds();`,
+      ...this.exportFields(),
     ].join('\n');
   }
 }

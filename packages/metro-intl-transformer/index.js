@@ -40,7 +40,7 @@ function transformToString({
     debug(
       `[${filename}] Resolving source file to compiled translations file ${compiledSourcePath}`,
     );
-    result.translationsLocaleMap['en-US'] = compiledSourcePath;
+    result.translationsLocaleMap[result.locale] = compiledSourcePath;
     debug('Locale map created: %O', result.translationsLocaleMap);
 
     return new MessageDefinitionsTransformer({
