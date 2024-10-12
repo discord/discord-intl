@@ -191,6 +191,12 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
 
+  packages/jest-processor-discord-intl:
+    dependencies:
+      '@discord/intl-loader-core':
+        specifier: workspace:*
+        version: link:../intl-loader-core
+
   packages/metro-intl-transformer:
     dependencies:
       '@discord/babel-plugin-transform-discord-intl':
