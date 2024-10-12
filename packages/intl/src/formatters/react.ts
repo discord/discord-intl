@@ -56,7 +56,12 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
     }
 
     pushLiteralText(text: string) {
-      this.result.push(text);
+      const last = this.result[this.result.length - 1];
+      if (typeof last === 'string') {
+        this.result[this.result.length - 1] += text;
+      } else {
+        this.result.push(text);
+      }
     }
 
     pushObject(value: object) {
