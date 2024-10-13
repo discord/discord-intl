@@ -49,11 +49,10 @@ export interface IntlMessageGetter extends IntlMessageGetterAdditions {
 /**
  * Getter function that retrieves a message that best matches the requested
  * locale. `FormatValues` represents either an object containing all of the
- * value types that are required to format the message, or `undefined` to
- * represent that there are no values required and the message is a plain
- * string.
+ * value types that are required to format the message, or `{}` to represent
+ * that there are no values required and the message is a plain string.
  */
-export interface TypedIntlMessageGetter<FormatValues extends object | undefined>
+export interface TypedIntlMessageGetter<FormatValues extends object>
   extends IntlMessageGetterAdditions {
   // TODO: This is lossy and unfortunate that typing can't be propagated
   // to the returned message type, but doing so causes problems with
@@ -94,11 +93,7 @@ export interface TypedIntlMessageGetter<FormatValues extends object | undefined>
    * downstream will ensure that all format values are always checked for all
    * possible cases of the message.
    */
-  __phantom: object extends FormatValues
-    ? any
-    : FormatValues extends undefined
-      ? any
-      : keyof FormatValues;
+  __phantom: object extends FormatValues ? any : {} extends FormatValues ? any : keyof FormatValues;
 }
 
 /**
@@ -145,7 +140,7 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
  * If T is a union of message types including both rich messages requiring
  * values _and_ plain string messages with no values, this type will still
  * properly resolve all of the required values, assuming that the getters for
- * the plain messages use the convention of passing `undefined` as the generic
+ * the plain messages use the convention of passing `{}` as the generic
  * argument, representing "no values should be passed for this message".
  *
  *
@@ -173,13 +168,13 @@ export type FormatValuesFor<T> =
   // be supplied, represented by the `never`. This prevents accidentally
   // passing an object, even an empty one, for those strings, and allows the
   // formatter to optimize a little more on each call.
-  [T] extends [undefined]
+  [{}] extends [T]
     ? never
     : // The `never` condition needs to be repeated here, but this time _without_
       // the `[]` syntax, so that only the union elements with actual values are
       // included in the union. Without this, the `infer U` on the latter side
       // fails to resolve and the type just becomes `never`.
-      UnionToIntersection<T extends undefined ? never : T>;
+      UnionToIntersection<{} extends T ? never : T>;
 
 /**
  * A template type for replaceable placeholder types to be defined by formatter
@@ -254,7 +249,7 @@ export type RequiredFormatValues<
   Values extends IntlMessageGetter,
   FunctionTypes extends FunctionTypeMap,
 > =
-  IntlMessageGetterInnerType<Values> extends undefined
+  {} extends IntlMessageGetterInnerType<Values>
     ? {}
     : CheckStrictAny<
         IntlMessageGetterInnerType<Values>,

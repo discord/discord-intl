@@ -116,7 +116,7 @@ export class IntlManager {
    * For static messages with no rich text and no dynamic placeholders, use this method to
    * immediately return the plain string value of the message in the current locale.
    */
-  string<T extends TypedIntlMessageGetter<undefined>>(message: T): string {
+  string<T extends TypedIntlMessageGetter<{}>>(message: T): string {
     const resolved = message(this.currentLocale);
     if (resolved == null || resolved.ast.length === 0) return '';
 

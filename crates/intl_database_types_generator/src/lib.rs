@@ -5,8 +5,8 @@ use thiserror::Error;
 use ustr::Ustr;
 
 use intl_database_core::{
-    KeySymbol, KeySymbolMap, KeySymbolSet, Message, MessagesDatabase, MessageValue,
-    MessageVariableType,
+    KeySymbol, KeySymbolMap, KeySymbolSet, Message, MessageValue, MessageVariableType,
+    MessagesDatabase,
 };
 use intl_database_service::IntlDatabaseService;
 
@@ -237,15 +237,11 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
             ));
         }
 
-        if entries.is_empty() {
-            Ok(format!("  '{name}': TypedIntlMessageGetter<undefined>,"))
-        } else {
-            entries.sort();
-            Ok(format!(
-                "  '{name}': TypedIntlMessageGetter<{{{}}}>,",
-                entries.join(", ")
-            ))
-        }
+        entries.sort();
+        Ok(format!(
+            "  '{name}': TypedIntlMessageGetter<{{{}}}>,",
+            entries.join(", ")
+        ))
     }
 }
 
