@@ -26,20 +26,31 @@ pub trait RawMessage {
     fn name(&self) -> KeySymbol;
 }
 
+#[derive(Default)]
+pub struct RawPosition {
+    pub line: u32,
+    pub col: u32,
+}
+
 pub struct RawMessageDefinition {
     pub name: KeySymbol,
     pub value: MessageValue,
-    pub offset: u32,
+    pub position: RawPosition,
     pub meta: MessageMeta,
 }
 
 impl RawMessageDefinition {
-    pub fn new<V: AsRef<str>>(name: KeySymbol, offset: u32, value: V, meta: MessageMeta) -> Self {
+    pub fn new<V: AsRef<str>>(
+        name: KeySymbol,
+        position: RawPosition,
+        value: V,
+        meta: MessageMeta,
+    ) -> Self {
         let value = MessageValue::from_raw(value.as_ref());
         Self {
             name,
             value,
-            offset,
+            position,
             meta,
         }
     }
@@ -53,16 +64,16 @@ impl RawMessage for RawMessageDefinition {
 
 pub struct RawMessageTranslation {
     pub name: KeySymbol,
-    pub offset: u32,
+    pub position: RawPosition,
     pub value: MessageValue,
 }
 
 impl RawMessageTranslation {
-    pub fn new<V: AsRef<str>>(name: KeySymbol, offset: u32, value: V) -> Self {
+    pub fn new<V: AsRef<str>>(name: KeySymbol, position: RawPosition, value: V) -> Self {
         let value = MessageValue::from_raw(value.as_ref());
         Self {
             name,
-            offset,
+            position,
             value,
         }
     }

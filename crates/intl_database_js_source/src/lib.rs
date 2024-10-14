@@ -17,11 +17,12 @@ impl MessageDefinitionSource for JsMessageSource {
         file_name: KeySymbol,
         content: &str,
     ) -> MessageSourceResult<(SourceFileMeta, impl Iterator<Item = RawMessageDefinition>)> {
-        let module = parse_message_definitions_file(&file_name, content).map_err(|error| {
-            let diagnostic = HANDLER.with(|handler| error.into_diagnostic(&handler).message());
-            MessageSourceError::ParseError(SourceFileKind::Definition, diagnostic)
-        })?;
-        let extractor = extract_message_definitions(&file_name, module);
+        let (source, module) =
+            parse_message_definitions_file(&file_name, content).map_err(|error| {
+                let diagnostic = HANDLER.with(|handler| error.into_diagnostic(&handler).message());
+                MessageSourceError::ParseError(SourceFileKind::Definition, diagnostic)
+            })?;
+        let extractor = extract_message_definitions(&file_name, source, module);
         Ok((
             extractor.root_meta,
             extractor.message_definitions.into_iter(),

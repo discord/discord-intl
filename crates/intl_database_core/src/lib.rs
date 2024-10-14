@@ -1,10 +1,10 @@
 pub use database::message::Message;
-pub use database::MessagesDatabase;
 pub use database::source::{
     MessageDefinitionSource, MessageSourceError, MessageSourceResult, MessageTranslationSource,
-    RawMessage, RawMessageDefinition, RawMessageTranslation,
+    RawMessage, RawMessageDefinition, RawMessageTranslation, RawPosition,
 };
 pub use database::symbol::{get_key_symbol, key_symbol, KeySymbol, KeySymbolMap, KeySymbolSet};
+pub use database::MessagesDatabase;
 pub use error::{DatabaseError, DatabaseResult};
 pub use message::meta::{MessageMeta, SourceFileMeta};
 pub use message::source_file::{
@@ -12,7 +12,7 @@ pub use message::source_file::{
 };
 pub use message::value::MessageValue;
 pub use message::variables::{
-    collect_message_variables, MessageVariableInstance, MessageVariables, MessageVariableType,
+    collect_message_variables, MessageVariableInstance, MessageVariableType, MessageVariables,
 };
 
 mod database;

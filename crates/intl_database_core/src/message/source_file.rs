@@ -15,7 +15,8 @@ pub struct FilePosition {
     /// Positional offset where the message value starts in the file.
     /// Used for presenting diagnostics at an accurate location and
     /// jumping to definitions.
-    pub offset: u32,
+    pub line: u32,
+    pub col: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]

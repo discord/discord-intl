@@ -1,21 +1,24 @@
 use std::borrow::{Borrow, Cow};
-
-use swc_common::{FileName, SourceMap, Spanned};
+use swc_common::source_map::Pos;
 use swc_common::sync::Lrc;
+use swc_common::{BytePos, FileName, SourceMap, Spanned};
 use swc_core::ecma::ast::{
     ExportDecl, ExportDefaultExpr, Expr, Id, ImportDecl, ImportSpecifier, Lit, Module, ObjectLit,
 };
-use swc_core::ecma::parser::{lexer::Lexer, Parser, PResult, StringInput, Syntax};
+use swc_core::ecma::parser::{lexer::Lexer, PResult, Parser, StringInput, Syntax};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use unescape_zero_copy::unescape_default;
 
 use intl_database_core::{
-    MessageMeta, MessageSourceError, MessageSourceResult, RawMessageDefinition,
+    MessageMeta, MessageSourceError, MessageSourceResult, RawMessageDefinition, RawPosition,
     SourceFileMeta,
 };
 use intl_message_utils::RUNTIME_PACKAGE_NAME;
 
-pub fn parse_message_definitions_file(file_name: &str, source: &str) -> PResult<Module> {
+pub fn parse_message_definitions_file(
+    file_name: &str,
+    source: &str,
+) -> PResult<(Lrc<SourceMap>, Module)> {
     let cm: Lrc<SourceMap> = Default::default();
 
     let fm = cm.new_source_file(FileName::Custom(file_name.into()), source.into());
@@ -27,14 +30,16 @@ pub fn parse_message_definitions_file(file_name: &str, source: &str) -> PResult<
     );
 
     let mut parser = Parser::new_from(lexer);
-    parser.parse_module()
+    let module = parser.parse_module()?;
+    Ok((cm, module))
 }
 
 pub fn extract_message_definitions(
     source_file_path: &str,
+    source_file: Lrc<SourceMap>,
     module: Module,
 ) -> MessageDefinitionsExtractor {
-    let mut extractor = MessageDefinitionsExtractor::new(source_file_path);
+    let mut extractor = MessageDefinitionsExtractor::new(source_file_path, source_file);
     module.visit_with(&mut extractor);
     extractor
 }
@@ -45,15 +50,17 @@ pub struct MessageDefinitionsExtractor {
     pub failed_definitions: Vec<MessageSourceError>,
     pub root_meta: SourceFileMeta,
     define_messages_id: Option<Id>,
+    source_map: Lrc<SourceMap>,
 }
 
 impl MessageDefinitionsExtractor {
-    fn new(source_file_path: &str) -> Self {
+    fn new(source_file_path: &str, source_map: Lrc<SourceMap>) -> Self {
         MessageDefinitionsExtractor {
             define_messages_id: None,
             message_definitions: vec![],
             failed_definitions: vec![],
             root_meta: SourceFileMeta::new(source_file_path),
+            source_map,
         }
     }
 
@@ -75,7 +82,7 @@ impl MessageDefinitionsExtractor {
             let parse_result = if let Some(object) = keyvalue.value.as_object() {
                 self.parse_complete_definition(&name, &object)
             } else if let Some(lit @ Lit::Str(string)) = keyvalue.value.as_lit() {
-                self.parse_oneline_definition(&name, &string.value, lit.span_lo().0)
+                self.parse_oneline_definition(&name, &string.value, lit.span_lo())
             } else if let Some(template) = keyvalue.value.as_tpl() {
                 // With JS, you can write static strings as template strings to
                 // avoid needing to escape different quotes, like:
@@ -86,7 +93,7 @@ impl MessageDefinitionsExtractor {
                 let is_static = template.quasis.len() == 1 && template.exprs.len() == 0;
 
                 match string_value {
-                    Some(string) if is_static => self.parse_oneline_definition(&name, &string, template.span_lo().0),
+                    Some(string) if is_static => self.parse_oneline_definition(&name, &string, template.span_lo()),
                     _ => Err(MessageSourceError::DefinitionRestrictionViolated("Encountered non-static template string. Interpolations are currently invalid".into()))
                 }
             } else {
@@ -111,6 +118,7 @@ impl MessageDefinitionsExtractor {
     ) -> MessageSourceResult<RawMessageDefinition> {
         let mut default_value: Option<String> = None;
         let mut local_meta = self.clone_meta();
+        let mut message_loc = BytePos::default();
 
         for property in object.props.iter() {
             let Some(keyvalue) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
@@ -122,6 +130,7 @@ impl MessageDefinitionsExtractor {
 
             match name.sym.as_str() {
                 "message" => {
+                    message_loc = keyvalue.value.span_lo();
                     self.parse_string_value(keyvalue.value.borrow())
                         .map(|value| default_value = Some(value));
                 }
@@ -137,9 +146,14 @@ impl MessageDefinitionsExtractor {
             return Err(MessageSourceError::NoMessageValue(key.into()));
         };
 
+        let loc = self.source_map.lookup_char_pos(message_loc);
+
         Ok(RawMessageDefinition::new(
             key.into(),
-            object.span.lo.0,
+            RawPosition {
+                line: loc.line as u32,
+                col: loc.col.to_u32(),
+            },
             default_value,
             local_meta,
         ))
@@ -150,11 +164,15 @@ impl MessageDefinitionsExtractor {
         &self,
         key: &str,
         value: &str,
-        offset: u32,
+        pos: BytePos,
     ) -> MessageSourceResult<RawMessageDefinition> {
+        let loc = self.source_map.lookup_char_pos(pos);
         Ok(RawMessageDefinition::new(
             key.into(),
-            offset,
+            RawPosition {
+                line: loc.line as u32,
+                col: loc.col.to_u32(),
+            },
             self.apply_string_escapes(value),
             self.clone_meta(),
         ))
@@ -336,7 +354,7 @@ mod tests {
     #[test]
     fn test_parsing() {
         let module = parse_message_definitions_file("testing.js", "const t = hello".into());
-        println!("{:#?}", module);
+        println!("{:#?}", module.expect("successful parse").1);
     }
 
     #[test]

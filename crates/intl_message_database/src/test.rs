@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::r#mod::IntlMessagesDatabase;
+use crate::napi::IntlMessagesDatabase;
 
 #[test]
 pub fn test() {
     let input_root = Path::new("./data/input").canonicalize().expect("success");
-    let output_root = Path::new("./data/input").canonicalize().expect("success");
+    let output_root = Path::new("./data/output").canonicalize().expect("success");
     let definitions_path = input_root.join("en-US.js").to_string_lossy().to_string();
     let mut database = IntlMessagesDatabase::new();
 
@@ -37,9 +37,13 @@ pub fn test() {
         .process_definitions_file(definitions_path, Some("en-US".into()))
         .expect("failed to process definitions");
 
-    for (locale, [input, output]) in source_files {
-        let source_file = database
-            .process_translation_file(input, locale.into())
-            .expect("failed to process translation");
-    }
+    // for (locale, [input, output]) in source_files {
+    //     let source_file = database
+    //         .process_translation_file(input, locale.into())
+    //         .expect("failed to process translation");
+    // }
+
+    let source = input_root.join("en-US.js").to_string_lossy().to_string();
+    let output = input_root.join("en-US.d.ts").to_string_lossy().to_string();
+    database.generate_types(source, output, None);
 }

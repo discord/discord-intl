@@ -3,7 +3,7 @@ use std::vec::IntoIter;
 
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 
-use intl_database_core::{key_symbol, RawMessageTranslation};
+use intl_database_core::{key_symbol, RawMessageTranslation, RawPosition};
 
 /// Custom deserialization visitor that converts a map like {"key": "value"} into a vector of
 /// entries [RawMessageTranslation]. This is much more efficient than reading the file as plain
@@ -30,7 +30,11 @@ impl<'de> Visitor<'de> for TranslationEntryVisitor {
             }
             let (key, value) = entry.unwrap();
 
-            entries.push(RawMessageTranslation::new(key_symbol(key), 0u32, value))
+            entries.push(RawMessageTranslation::new(
+                key_symbol(key),
+                RawPosition::default(),
+                value,
+            ))
         }
 
         Ok(Translations { entries })

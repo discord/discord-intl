@@ -1,8 +1,8 @@
 use std::iter::FusedIterator;
 
 use intl_database_core::{
-    DatabaseError, DatabaseResult, DefinitionFile, FilePosition, key_symbol, KeySymbol,
-    KeySymbolSet, MessageDefinitionSource, MessagesDatabase, MessageTranslationSource, RawMessage,
+    key_symbol, DatabaseError, DatabaseResult, DefinitionFile, FilePosition, KeySymbol,
+    KeySymbolSet, MessageDefinitionSource, MessageTranslationSource, MessagesDatabase, RawMessage,
     RawMessageDefinition, RawMessageTranslation, SourceFile, SourceFileMeta, TranslationFile,
 };
 use intl_database_js_source::JsMessageSource;
@@ -112,7 +112,8 @@ pub fn insert_definitions(
     for definition in &mut iterator {
         let position = FilePosition {
             file: file_key,
-            offset: definition.offset,
+            line: definition.position.line,
+            col: definition.position.col,
         };
         let value = definition.value.with_file_position(position);
         db.insert_definition(&definition.name, value, locale_key, definition.meta, true)?;
@@ -169,7 +170,8 @@ pub fn insert_translations(
     for translation in &mut iterator {
         let position = FilePosition {
             file: file_key,
-            offset: translation.offset,
+            line: translation.position.line,
+            col: translation.position.col,
         };
         let value = translation.value.with_file_position(position);
         db.insert_translation(translation.name, locale_key, value, true)?;

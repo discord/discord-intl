@@ -4,16 +4,16 @@
 //! including parallelism for processing multiple files at once.
 //!
 //! This is the preferred way of using the library wherever possible.
-use std::collections::HashMap;
-
 use napi::bindgen_prelude::*;
 use napi::JsUnknown;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
+use std::collections::HashMap;
+use std::io::Write;
 
 use intl_database_core::{
-    DatabaseError, DatabaseResult, DEFAULT_LOCALE, get_key_symbol, key_symbol, KeySymbol,
-    MessagesDatabase, RawMessageTranslation,
+    get_key_symbol, key_symbol, DatabaseError, DatabaseResult, KeySymbol, MessagesDatabase,
+    RawMessageTranslation, DEFAULT_LOCALE,
 };
 use intl_database_exporter::{ExportTranslations, IntlMessagePreCompiler};
 use intl_database_service::IntlDatabaseService;
@@ -194,15 +194,21 @@ impl IntlMessagesDatabase {
         output_file_path: String,
         allow_nullability: Option<bool>,
     ) -> anyhow::Result<()> {
-        let mut output_file = std::fs::File::create(output_file_path)?;
+        let mut output_file = std::fs::File::create(output_file_path.clone())?;
         let source_file_key = get_key_symbol_or_error(source_file_path)?;
-        IntlTypesGenerator::new(
+        let mut generator = IntlTypesGenerator::new(
             &self.database,
             source_file_key,
             &mut output_file,
+            output_file_path.clone(),
             allow_nullability.unwrap_or(false),
-        )
-        .run()
+        );
+        generator.run()?;
+        let map_file_path = output_file_path + ".map";
+        let mut source_map_file = std::fs::File::create(map_file_path)?;
+        let source_map = generator.into_sourcemap()?;
+        source_map_file.write(source_map.as_bytes())?;
+        Ok(())
     }
 
     #[napi]

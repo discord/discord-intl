@@ -60,7 +60,7 @@ bench('validate', () => {
 
 bench('generate types', () => {
   const paths = database.getAllSourceFilePaths();
-  database.generateTypes(paths[0], './data/output/generated.d.ts');
+  database.generateTypes('./data/input/en-US.js', './data/output/generated.d.ts');
 });
 
 /**

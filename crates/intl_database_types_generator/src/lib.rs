@@ -1,6 +1,11 @@
-use std::fmt::Write;
-
 use rustc_hash::FxHashSet;
+use sora::{Mapping, Mappings, SourceMapBuilder};
+use std::fmt::Write;
+use std::io::{
+    BufRead,
+    // Needed because this file uses both fmt::Write and io::Write for the write! macro.
+    Write as IoWrite,
+};
 use thiserror::Error;
 use ustr::Ustr;
 
@@ -10,11 +15,64 @@ use intl_database_core::{
 };
 use intl_database_service::IntlDatabaseService;
 
+/// Struct for tracking the current position that has been written in a Write buffer.
+struct PositionTrackingWriter<'a, W: std::io::Write> {
+    output: &'a mut W,
+    line: usize,
+    col: usize,
+}
+
+impl<'a, W: std::io::Write> PositionTrackingWriter<'a, W> {
+    fn new(output: &'a mut W) -> Self {
+        Self {
+            output,
+            line: 1,
+            col: 0,
+        }
+    }
+}
+
+impl<W: std::io::Write> std::io::Write for PositionTrackingWriter<'_, W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let mut lines = BufRead::lines(buf).peekable();
+        loop {
+            let Some(Ok(line)) = lines.next() else {
+                break;
+            };
+
+            match lines.peek() {
+                // If there's another line, reset the column and increment the line count.
+                Some(_) => {
+                    self.col = 1;
+                    self.line += 1;
+                }
+                // Count the column only on the last line of the given buffer.
+                None => {
+                    if buf.last().is_some_and(|last| b'\n' == *last) {
+                        self.line += 1;
+                        self.col = 1;
+                    } else {
+                        self.col += line.len();
+                    }
+                    break;
+                }
+            }
+        }
+        self.output.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.output.flush()
+    }
+}
+
 pub struct IntlTypesGenerator<'a, W: std::io::Write> {
     database: &'a MessagesDatabase,
     source_file_key: KeySymbol,
-    output: &'a mut W,
+    output_file_path: String,
+    output: PositionTrackingWriter<'a, W>,
     allow_nullability: bool,
+    source_map: Vec<Mapping>,
 }
 
 impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
@@ -22,13 +80,16 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
         database: &'a MessagesDatabase,
         source_file_key: KeySymbol,
         output: &'a mut W,
+        output_file_path: String,
         allow_nullability: bool,
     ) -> Self {
         Self {
             database,
             source_file_key,
-            output,
+            output: PositionTrackingWriter::new(output),
+            output_file_path,
             allow_nullability,
+            source_map: Vec::with_capacity(database.messages.len()),
         }
     }
 
@@ -239,9 +300,22 @@ impl<'a, W: std::io::Write> IntlTypesGenerator<'a, W> {
 
         entries.sort();
         Ok(format!(
-            "  '{name}': TypedIntlMessageGetter<{{{}}}>,",
+            "'{name}': TypedIntlMessageGetter<{{{}}}>,",
             entries.join(", ")
         ))
+    }
+
+    pub fn into_sourcemap(mut self) -> std::io::Result<String> {
+        self.source_map
+            .sort_by_key(|mapping| mapping.generated().line);
+        let builder = SourceMapBuilder::default()
+            .with_mappings(Mappings::new(self.source_map))
+            .with_file(self.output_file_path.into())
+            .with_sources(vec![Some(self.source_file_key.as_str().into())]);
+        // SAFETY: We don't have `source_content`, because it's unnecessary but required by
+        // basically every library out there. That's the only thing missing from this map.
+        let map = unsafe { builder.build_unchecked() };
+        map.to_string()
     }
 }
 
@@ -330,7 +404,27 @@ declare const messages: {{
             let spurious_variables = self.build_spurious_variables_info(message)?;
             let doc_comment = self.make_doc_comment(message, known_locales, &spurious_variables)?;
             let type_def = self.make_getter_type_def(message, &spurious_variables)?;
-            write!(self.output, "{doc_comment}\n{type_def}\n")?;
+            write!(self.output, "{doc_comment}\n  ")?;
+            // Ordering is important here. `self.output` tracks the line and column position in the
+            // written output, and we want to know that number precisely when adding the source map
+            // entry here. So the doc comment is written first to get it out of the way, then we
+            // know we're at the start of the name token for the message entry, so we can add that
+            // current position to the map.
+            if let Some(definition_position) = message
+                .get_source_translation()
+                .and_then(|definition| definition.file_position)
+            {
+                self.source_map.push(
+                    Mapping::new(self.output.line as u32, self.output.col as u32).with_source(
+                        0,
+                        // I couldn't possibly tell you whether 0- or 1-based indexing is correct.
+                        // The spec doesn't say which.
+                        definition_position.line - 1,
+                        definition_position.col,
+                    ),
+                )
+            }
+            write!(self.output, "{type_def}\n")?;
         }
 
         write!(self.output, "}};\nexport default messages;")?;
