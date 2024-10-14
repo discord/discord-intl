@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl",
-  "version": "0.8.0",
+  "version": "0.9.0-rc.0",
   "license": "MIT",
   "description": "Client runtime for managing messages and translations in a React project.",
   "main": "./src/index.ts",
