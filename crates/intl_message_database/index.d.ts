@@ -21,7 +21,6 @@ export declare class IntlMessagesDatabase {
   precompileToBuffer(filePath: string, locale: string, format?: IntlCompiledMessageFormat | undefined | null): Buffer
   validateMessages(): Array<IntlDiagnostic>
   exportTranslations(fileExtension?: string | undefined | null): Array<string>
-  /** Return something specific */
   getSourceFileMessageValues(filePath: string): Record<string, IntlMessageValue | undefined>
 }
 
