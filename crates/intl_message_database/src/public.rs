@@ -13,7 +13,7 @@ use intl_database_core::{
     get_key_symbol, key_symbol, DatabaseError, DatabaseResult, KeySymbol, Message, MessageValue,
     MessagesDatabase, RawMessageTranslation, SourceFile, DEFAULT_LOCALE,
 };
-use intl_database_exporter::{CompiledMessageFormat, ExportTranslations, IntlMessagePreCompiler};
+use intl_database_exporter::{ExportTranslations, IntlMessageBundler, IntlMessageBundlerOptions};
 use intl_database_service::IntlDatabaseService;
 use intl_database_types_generator::IntlTypesGenerator;
 use intl_validator::{validate_message, MessageDiagnostic};
@@ -178,9 +178,9 @@ pub fn precompile(
     file_path: &str,
     locale: &str,
     output_path: &str,
-    format: Option<CompiledMessageFormat>,
+    options: IntlMessageBundlerOptions,
 ) -> anyhow::Result<()> {
-    let buffer = precompile_to_buffer(database, file_path, locale, format)?;
+    let buffer = precompile_to_buffer(database, file_path, locale, options)?;
     std::fs::write(output_path, buffer)?;
     Ok(())
 }
@@ -189,7 +189,7 @@ pub fn precompile_to_buffer(
     database: &MessagesDatabase,
     file_path: &str,
     locale: &str,
-    format: Option<CompiledMessageFormat>,
+    options: IntlMessageBundlerOptions,
 ) -> anyhow::Result<Vec<u8>> {
     let locale_key = get_key_symbol_or_error(&locale)?;
     let source_key = get_key_symbol_or_error(file_path)?;
@@ -197,14 +197,7 @@ pub fn precompile_to_buffer(
         .get_source_file(source_key)
         .map_or(0, |source| source.message_keys().len());
     let mut result: Vec<u8> = Vec::with_capacity(keys_count * 80);
-    IntlMessagePreCompiler::new(
-        &database,
-        &mut result,
-        source_key,
-        locale_key,
-        format.unwrap_or(CompiledMessageFormat::Json).into(),
-    )
-    .run()?;
+    IntlMessageBundler::new(&database, &mut result, source_key, locale_key, options).run()?;
     Ok(result.into())
 }
 

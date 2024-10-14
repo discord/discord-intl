@@ -9,10 +9,9 @@ use napi::JsUnknown;
 use napi_derive::napi;
 use std::collections::HashMap;
 
-use crate::napi::types::{IntlCompiledMessageFormat, IntlDiagnostic};
+use crate::napi::types::{IntlDiagnostic, IntlMessageBundlerOptions};
 use crate::public;
 use intl_database_core::MessagesDatabase;
-use intl_database_exporter::CompiledMessageFormat;
 
 mod types;
 
@@ -152,14 +151,14 @@ impl IntlMessagesDatabase {
         file_path: String,
         locale: String,
         output_path: String,
-        format: Option<IntlCompiledMessageFormat>,
+        options: Option<IntlMessageBundlerOptions>,
     ) -> anyhow::Result<()> {
         public::precompile(
             &self.database,
             &file_path,
             &locale,
             &output_path,
-            format.map(CompiledMessageFormat::from),
+            options.unwrap_or_default().into(),
         )
     }
 
@@ -168,13 +167,13 @@ impl IntlMessagesDatabase {
         &self,
         file_path: String,
         locale: String,
-        format: Option<IntlCompiledMessageFormat>,
+        options: Option<IntlMessageBundlerOptions>,
     ) -> anyhow::Result<Buffer> {
         let result = public::precompile_to_buffer(
             &self.database,
             &file_path,
             &locale,
-            format.map(CompiledMessageFormat::from),
+            options.unwrap_or_default().into(),
         )?;
         Ok(result.into())
     }

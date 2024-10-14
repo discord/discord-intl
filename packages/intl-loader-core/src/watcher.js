@@ -23,8 +23,10 @@ const DEFAULT_LOCALE = 'en-US';
 /**
  * @param {string} filePath
  * @param {string} assetExtension
+ * @param {import('./processing').IntlPrecompileOptions} [options]
  */
-function processFile(filePath, assetExtension) {
+function processFile(filePath, assetExtension, options = {}) {
+  const { format = IntlCompiledMessageFormat.KeylessJson, bundleSecrets = false } = options;
   debug(`Processing file: ${filePath}`);
   if (!isMessageDefinitionsFile(filePath)) {
     debug(`${filePath} is not a definitions file. Skipping processing`);
@@ -35,17 +37,16 @@ function processFile(filePath, assetExtension) {
     // Convert the file name from `.messages.js` to `.compiled.messages.jsona` for output.
     const outputPath = filePath.replace(/\.messages\.js$/, `.compiled.messages.${assetExtension}`);
     const result = processDefinitionsFile(filePath);
-    precompileFileForLocale(filePath, result.locale, {
-      format: IntlCompiledMessageFormat.KeylessJson,
+    precompileFileForLocale(filePath, result.locale, undefined, {
+      format,
+      bundleSecrets,
     });
 
     database.processDefinitionsFile(filePath);
-    database.precompile(
-      filePath,
-      DEFAULT_LOCALE,
-      outputPath,
-      IntlCompiledMessageFormat.KeylessJson,
-    );
+    database.precompile(filePath, DEFAULT_LOCALE, outputPath, {
+      format: IntlCompiledMessageFormat.KeylessJson,
+      bundleSecrets,
+    });
     debug(`Wrote definitions to: ${outputPath}`);
   } catch (e) {
     debug('[INTL Error] Failed to compile messages');
@@ -59,11 +60,12 @@ function processFile(filePath, assetExtension) {
  *  watch?: boolean,
  *  ignore?: string[],
  *  assetExtension?: string
+ *  precompileOptions?: import('./processing').IntlPrecompileOptions,
  * }} options
  */
 async function compileIntlMessageFiles(
   watchedFolders,
-  { watch = true, ignore = [], assetExtension = 'json' } = {},
+  { watch = true, ignore = [], assetExtension = 'json', precompileOptions = {} } = {},
 ) {
   const ignoredPatterns = ignore.concat(ALWAYS_IGNORE_PATTERNS);
   const globs = watchedFolders.flatMap((folder) =>
@@ -79,7 +81,7 @@ async function compileIntlMessageFiles(
     absolute: true,
     onlyFiles: true,
   })) {
-    processFile(filePath.toString(), assetExtension);
+    processFile(filePath.toString(), assetExtension, precompileOptions);
   }
   debug('Initial message scan completed.');
 
@@ -89,7 +91,7 @@ async function compileIntlMessageFiles(
       .watch(globs, { ignored: ignoredPatterns, ignoreInitial: true })
       .on('all', (event, filePath) => {
         debug(`Got event ${event} for ${filePath}`);
-        processFile(filePath, assetExtension);
+        processFile(filePath, assetExtension, precompileOptions);
       });
   } else {
     debug('Not watching files because `watch` option was false');

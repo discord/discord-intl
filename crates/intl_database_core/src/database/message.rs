@@ -56,26 +56,24 @@ impl Message {
     }
 
     //#region Accessors
-    pub fn is_defined(&self) -> bool {
-        self.source_locale.is_some()
-    }
-
     pub fn translations(&self) -> &KeySymbolMap<MessageValue> {
         &self.translations
     }
-
     pub fn key(&self) -> KeySymbol {
         self.key
     }
-
     pub fn hashed_key(&self) -> &String {
         &self.hashed_key
     }
-
     pub fn source_locale(&self) -> &Option<KeySymbol> {
         &self.source_locale
     }
+    pub fn meta(&self) -> &MessageMeta {
+        &self.meta
+    }
     //#endregion
+
+    //#region Mutation
 
     /// Create or update the definition for this message with the given information.
     pub fn set_definition(&mut self, source: MessageValue, locale: KeySymbol, meta: MessageMeta) {
@@ -100,6 +98,13 @@ impl Message {
 
     pub fn remove_translation(&mut self, locale: KeySymbol) -> Option<MessageValue> {
         self.translations.remove(&locale)
+    }
+
+    //#endregion
+
+    //#region Queries
+    pub fn is_defined(&self) -> bool {
+        self.source_locale.is_some()
     }
 
     /// Return the translation entry for the default locale for this message.
@@ -143,4 +148,6 @@ impl Message {
 
         merged
     }
+
+    //#endregion
 }

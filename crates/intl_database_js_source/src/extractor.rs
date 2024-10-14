@@ -210,9 +210,6 @@ impl MessageDefinitionsExtractor {
             "secret" => self
                 .parse_boolean_value(value)
                 .map(|value| self.root_meta.secret = value),
-            "bundleSecrets" => self
-                .parse_boolean_value(value)
-                .map(|value| self.root_meta.bundle_secrets = value),
             "translate" => self
                 .parse_boolean_value(value)
                 .map(|value| self.root_meta.translate = value),
@@ -234,9 +231,6 @@ impl MessageDefinitionsExtractor {
             "secret" => self
                 .parse_boolean_value(value)
                 .map(|value| target.secret = value),
-            "bundleSecrets" => self
-                .parse_boolean_value(value)
-                .map(|value| target.bundle_secrets = value),
             "translate" => self
                 .parse_boolean_value(value)
                 .map(|value| target.translate = value),

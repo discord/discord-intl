@@ -17,8 +17,8 @@ export declare class IntlMessagesDatabase {
   getSourceFileKeyMap(filePath: string): Record<string, string>
   getMessage(key: string): IntlMessage
   generateTypes(sourceFilePath: string, outputFilePath: string, allowNullability?: boolean | undefined | null): void
-  precompile(filePath: string, locale: string, outputPath: string, format?: IntlCompiledMessageFormat | undefined | null): void
-  precompileToBuffer(filePath: string, locale: string, format?: IntlCompiledMessageFormat | undefined | null): Buffer
+  precompile(filePath: string, locale: string, outputPath: string, options?: IntlMessageBundlerOptions | undefined | null): void
+  precompileToBuffer(filePath: string, locale: string, options?: IntlMessageBundlerOptions | undefined | null): Buffer
   validateMessages(): Array<IntlDiagnostic>
   exportTranslations(fileExtension?: string | undefined | null): Array<string>
   getSourceFileMessageValues(filePath: string): Record<string, IntlMessageValue | undefined>
@@ -55,10 +55,14 @@ export interface IntlMessage {
   meta: IntlMessageMeta
 }
 
+export interface IntlMessageBundlerOptions {
+  format?: IntlCompiledMessageFormat
+  bundleSecrets?: boolean
+}
+
 export interface IntlMessageMeta {
   secret: boolean
   translate: boolean
-  bundleSecrets: boolean
   translationsPath: string
 }
 

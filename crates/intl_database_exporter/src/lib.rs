@@ -1,5 +1,7 @@
+pub use bundle::{
+    CompiledMessageFormat, IntlMessageBundler, IntlMessageBundlerError, IntlMessageBundlerOptions,
+};
 pub use export::ExportTranslations;
-pub use precompile::{CompiledMessageFormat, IntlMessagePreCompiler, IntlMessagePreCompilerError};
 
+mod bundle;
 mod export;
-mod precompile;

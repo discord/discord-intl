@@ -89,7 +89,9 @@ export async function createJsPackageCommands(name, options = {}) {
         `Run the build process for ${name} and automatically reload changes when watched files change.`,
       )
       .action(async () => {
-        const paths = Array.isArray(watch) ? watch : [pack.path + '/**'];
+        const paths = Array.isArray(watch)
+          ? watch.map((pattern) => pack.path + '/' + pattern)
+          : [pack.path + '/**'];
         await watchBuild(pack, paths);
       });
   }

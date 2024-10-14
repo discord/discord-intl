@@ -20,6 +20,15 @@ const {
  * The final extension to use when searching for and creating assets. Defaults to `json`. Note that
  * all compiled assets will include the initial extension `.compiled.messages.`, followed by this
  * configuration.
+ *
+ * @property {boolean=} bundleSecrets
+ * Whether messages marked as `secret` will be preserved in the bundled message assets. When false,
+ * secret messages have their values replaced with obfuscated text to prevent leaking information.
+ *
+ * @property {IntlCompiledMessageFormat=} format
+ * The format to which messages shouuld be compiled during bundling. `Json` will cause the messages
+ * to be compiled to a FormatJS-like compatible format, while `KeylessJson` will use a much more
+ * compressed, `@discord/intl`-specific format. `KeylessJson` is the default.
  */
 
 /**
@@ -30,6 +39,7 @@ const {
 const defaultConfig = {
   cacheDir: path.join('.cache', 'intl'),
   assetExtension: 'json',
+  bundleSecrets: false,
 };
 
 /**
@@ -76,7 +86,12 @@ const pluginConfig = fetchConfig();
  * @param {any} assetData
  */
 async function transformAsset(assetData) {
-  const { cacheDir, assetExtension } = await pluginConfig;
+  const {
+    cacheDir,
+    assetExtension,
+    format = IntlCompiledMessageFormat.KeylessJson,
+    bundleSecrets = false,
+  } = await pluginConfig;
 
   const filename = assetData.files[0] ?? '';
   // If this isn't a translations file or if it's already a compiled artifact, then we don't want
@@ -102,9 +117,9 @@ async function transformAsset(assetData) {
   }
 
   const result = processTranslationsFile(filename);
-  precompileFileForLocale(filename, result.locale, {
-    format: IntlCompiledMessageFormat.KeylessJson,
-    outputFile,
+  precompileFileForLocale(filename, result.locale, outputFile, {
+    format,
+    bundleSecrets,
   });
 
   return {

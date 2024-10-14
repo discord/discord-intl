@@ -1,7 +1,6 @@
 const path = require('node:path');
 
 const {
-  IntlCompiledMessageFormat,
   MessageDefinitionsTransformer,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
@@ -9,6 +8,7 @@ const {
   getLocaleFromTranslationsFileName,
   processTranslationsFile,
   precompileFileForLocale,
+  IntlCompiledMessageFormat,
 } = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:rspack-intl-loader');
 
@@ -33,11 +33,16 @@ function makePosixRelativePath(source, file) {
  * default export of that content.
  *
  * @param {string} source
- * @this {import('webpack').LoaderContext<{}>}
+ * @this {import('webpack').LoaderContext<{
+ *   format: IntlCompiledMessageFormat,
+ *   bundleSecrets: boolean
+ * }>}
  */
 const intlLoader = function intlLoader(source) {
   const sourcePath = this.resourcePath;
   const forceTranslation = this.resourceQuery === '?forceTranslation';
+  const { bundleSecrets = false, format = IntlCompiledMessageFormat.KeylessJson } =
+    this.getOptions();
 
   debug(`[${sourcePath}] Processing intl messages file (forceTranslation=${forceTranslation})`);
 
@@ -92,8 +97,9 @@ const intlLoader = function intlLoader(source) {
       );
     }
 
-    const compiledResult = precompileFileForLocale(sourcePath, locale, {
-      format: IntlCompiledMessageFormat.KeylessJson,
+    const compiledResult = precompileFileForLocale(sourcePath, locale, undefined, {
+      format,
+      bundleSecrets,
     });
 
     // Translations are still treated as JS files that need to be pre-parsed.

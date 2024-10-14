@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceFileMeta {
     /// Whether the message should be considered private and not suitable for
-    /// inclusion in production builds. Along with `bundle_secrets`, this will
-    /// control how the messages are bundled. `secret` messages also have
-    /// additional rules and guardrails applied to them to help ensure secrecy
-    /// while letting them be used freely in development and getting
+    /// inclusion in production builds. Message consumers can use this
+    /// information to control how messages are bundled. `secret` messages also
+    /// have  additional rules and guardrails applied to them to help ensure
+    /// secrecy while letting them be used freely in development and getting
     /// translations prepared for synchronized launches.
     pub secret: bool,
     /// Whether the message is suitable to be sent for translation, and whether
@@ -21,13 +21,6 @@ pub struct SourceFileMeta {
     /// include this message. When `false`, the default message value will be
     /// used in all locales, no matter if there is a translation present.
     pub translate: bool,
-    /// Whether messages marked as `secret` should have their content preserved
-    /// in builds that include the message. When `false`, secret messages will
-    /// be fully obfuscated in built output. Setting to `true` allows for
-    /// testing builds with secret content as they will appear once the message
-    /// becomes non-secret.
-    #[serde(rename = "bundleSecrets")]
-    pub bundle_secrets: bool,
     /// A (normally relative) path to a directory where translations for the messages in this source
     /// file should be found.
     #[serde(rename = "translationsPath")]
@@ -43,7 +36,6 @@ impl SourceFileMeta {
         Self {
             secret: false,
             translate: true,
-            bundle_secrets: false,
             translations_path: "./messages".into(),
             source_file_path: source_file_path.into(),
         }
@@ -55,10 +47,6 @@ impl SourceFileMeta {
     }
     pub fn with_translate(mut self, translate: bool) -> Self {
         self.translate = translate;
-        self
-    }
-    pub fn with_bundle_secrets(mut self, bundle_secrets: bool) -> Self {
-        self.bundle_secrets = bundle_secrets;
         self
     }
     pub fn with_translations_path(mut self, translations_path: &str) -> Self {
@@ -93,10 +81,10 @@ impl SourceFileMeta {
 #[derive(Copy, Clone, Debug, Default, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MessageMeta {
     /// Whether the message should be considered private and not suitable for
-    /// inclusion in production builds. Along with `bundle_secrets`, this will
-    /// control how the messages are bundled. `secret` messages also have
-    /// additional rules and guardrails applied to them to help ensure secrecy
-    /// while letting them be used freely in development and getting
+    /// inclusion in production builds. Message consumers can use this
+    /// information to control how messages are bundled. `secret` messages also
+    /// have  additional rules and guardrails applied to them to help ensure
+    /// secrecy while letting them be used freely in development and getting
     /// translations prepared for synchronized launches.
     pub secret: bool,
     /// Whether the message is suitable to be sent for translation, and whether
@@ -104,13 +92,6 @@ pub struct MessageMeta {
     /// include this message. When `false`, the default message value will be
     /// used in all locales, no matter if there is a translation present.
     pub translate: bool,
-    /// Whether messages marked as `secret` should have their content preserved
-    /// in builds that include the message. When `false`, secret messages will
-    /// be fully obfuscated in built output. Setting to `true` allows for
-    /// testing builds with secret content as they will appear once the message
-    /// becomes non-secret.
-    #[serde(rename = "bundleSecrets")]
-    pub bundle_secrets: bool,
 }
 
 impl MessageMeta {
@@ -122,10 +103,6 @@ impl MessageMeta {
         self.translate = translate;
         self
     }
-    pub fn with_bundle_secrets(mut self, bundle_secrets: bool) -> Self {
-        self.bundle_secrets = bundle_secrets;
-        self
-    }
 }
 
 impl From<&SourceFileMeta> for MessageMeta {
@@ -133,7 +110,6 @@ impl From<&SourceFileMeta> for MessageMeta {
         MessageMeta {
             secret: value.secret,
             translate: value.translate,
-            bundle_secrets: value.bundle_secrets,
         }
     }
 }

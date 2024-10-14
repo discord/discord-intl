@@ -7,6 +7,13 @@ const { database } = require('./database');
 const { findAllTranslationFiles, getLocaleFromTranslationsFileName } = require('./util');
 
 /**
+ * @typedef {{
+ *   format?: IntlCompiledMessageFormat,
+ *   bundleSecrets?: boolean,
+ * }} IntlPrecompileOptions
+ */
+
+/**
  * @param {string} sourcePath
  * @param {import('@discord/intl-message-database').IntlSourceFile} sourceFile
  */
@@ -129,20 +136,21 @@ function processTranslationsFile(sourcePath, sourceContent, options = {}) {
  * but if `outputFile` is given then the content will be written directly to the file and the
  * function becomes `void`.
  *
+ * Compiling automatically handles filtering out messages based on the meta information like
+ * `translate`, `secret`, and `bundleSecrets`, to ensure that all consumers apply these values
+ * accurately and consistently.
+ *
  * @param {string} sourcePath
  * @param {string} locale
- * @param {{
- *   format?: IntlCompiledMessageFormat,
- *   outputFile?: string
- * }=} options
+ * @param {string=} outputFile
+ * @param {IntlPrecompileOptions} [options]
  *
  * @returns {Buffer | void}
  */
-function precompileFileForLocale(sourcePath, locale, options = {}) {
-  const { format = IntlCompiledMessageFormat.KeylessJson, outputFile } = options;
+function precompileFileForLocale(sourcePath, locale, outputFile, options = {}) {
   return outputFile != null
-    ? database.precompile(sourcePath, locale, outputFile, format)
-    : database.precompileToBuffer(sourcePath, locale, format);
+    ? database.precompile(sourcePath, locale, outputFile, options)
+    : database.precompileToBuffer(sourcePath, locale, options);
 }
 
 /**

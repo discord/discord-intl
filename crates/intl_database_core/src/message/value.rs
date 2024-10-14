@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use intl_markdown::{Document, parse_intl_message};
+use intl_markdown::{parse_intl_message, Document};
 use intl_message_utils::message_may_have_blocks;
 
 use super::source_file::FilePosition;

@@ -16,6 +16,7 @@ const debug = require('debug')('intl:metro-intl-transformer');
  *  getPrelude: () => string
  *  getTranslationAssetExtension: () => string,
  *  getTranslationImport: (importPath: string) => string,
+ *  bundleSecrets?: boolean,
  * }} options
  * @returns {string | Buffer}
  */
@@ -25,6 +26,7 @@ function transformToString({
   getPrelude,
   getTranslationAssetExtension,
   getTranslationImport,
+  bundleSecrets = false,
 }) {
   if (isMessageDefinitionsFile(filename)) {
     debug(`[${filename}] Processing as a definitions file`);
@@ -58,6 +60,7 @@ function transformToString({
     // option allows the function to return void instead.
     return precompileFileForLocale(filename, result.locale, {
       format: IntlCompiledMessageFormat.KeylessJson,
+      bundleSecrets,
     });
   }
 

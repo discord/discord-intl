@@ -33,6 +33,12 @@ pub fn parse_intl_message(content: &str, include_blocks: bool) -> Document {
     process_cst_to_ast(source, &cst)
 }
 
+/// Return a new Document with the given content as the only value, treated as a raw string with
+/// no parsing or semantics applied.
+pub fn raw_string_to_document(content: &str) -> Document {
+    Document::from_literal(content)
+}
+
 pub fn format_to_icu_string(document: &Document) -> Result<String, std::fmt::Error> {
     format_icu_string(document)
 }

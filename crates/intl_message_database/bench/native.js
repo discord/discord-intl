@@ -16,10 +16,16 @@ const COMPILATION_FORMAT = /** @type {IntlCompiledMessageFormat} */ (
   IntlCompiledMessageFormat.KeylessJson
 );
 
+const SOURCE_FILES = [
+  // './data/input/en-US.js',
+  './data/input/en-US.untranslated.js',
+  // './data/input/international.untranslated.js',
+];
+
 bench('processing', () => {
-  database.processDefinitionsFile('./data/input/en-US.js');
-  database.processDefinitionsFile('./data/input/en-US.untranslated.js');
-  database.processDefinitionsFile('./data/input/international.untranslated.js');
+  for (const file of SOURCE_FILES) {
+    database.processDefinitionsFile(file);
+  }
 
   // Multithreaded:
   /** @type {Record<string, string>} */
@@ -40,7 +46,7 @@ bench('get a message', () => {
 });
 
 bench('get source file', () => {
-  const source = database.getSourceFileMessageValues('./data/input/en-US.js');
+  const source = database.getSourceFileMessageValues(SOURCE_FILES[0]);
   // console.log(Object.entries(source).map(([key, value]) => [key, value?.raw]));
 });
 
@@ -59,8 +65,7 @@ bench('validate', () => {
 });
 
 bench('generate types', () => {
-  const paths = database.getAllSourceFilePaths();
-  database.generateTypes('./data/input/en-US.js', './data/output/generated.d.ts');
+  database.generateTypes(SOURCE_FILES[0], './data/output/generated.d.ts');
 });
 
 /**
@@ -78,12 +83,10 @@ function getPrecompileFormat(format) {
 bench(`precompile (${getPrecompileFormat(COMPILATION_FORMAT)})`, () => {
   const locales = database.getKnownLocales();
   for (const locale of locales) {
-    database.precompile(
-      './data/input/en-US.js',
-      locale,
-      `./data/output/${locale}.json`,
-      COMPILATION_FORMAT,
-    );
+    database.precompile(SOURCE_FILES[0], locale, `./data/output/${locale}.json`, {
+      format: COMPILATION_FORMAT,
+      bundleSecrets: true,
+    });
   }
 });
 
@@ -94,7 +97,6 @@ bench('read compiled files', () => {
   const files = fs.readdirSync('./data/output/');
   for (const file of files) {
     if (path.extname(file) === '.json') {
-      // if (file === 'en-US.json') {
       COMPILED_FILES[path.basename(file)] = fs.readFileSync(`./data/output/${file}`).toString();
     }
   }

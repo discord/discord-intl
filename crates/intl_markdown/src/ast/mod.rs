@@ -23,6 +23,15 @@ pub struct Document {
     blocks: Vec<BlockNode>,
 }
 impl Document {
+    /// Return a new Document with the given content as the only value, treated as a raw string with
+    /// no parsing or semantics applied.
+    pub fn from_literal(content: &str) -> Self {
+        Self {
+            blocks: vec![BlockNode::InlineContent(vec![InlineContent::Text(
+                content.into(),
+            )])],
+        }
+    }
     pub fn blocks(&self) -> &Vec<BlockNode> {
         &self.blocks
     }

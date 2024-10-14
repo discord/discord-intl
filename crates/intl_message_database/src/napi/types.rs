@@ -7,6 +7,26 @@ use intl_database_exporter::CompiledMessageFormat;
 use intl_validator::MessageDiagnostic;
 
 #[napi(object)]
+#[derive(Default)]
+pub struct IntlMessageBundlerOptions {
+    pub format: Option<IntlCompiledMessageFormat>,
+    pub bundle_secrets: Option<bool>,
+}
+
+impl Into<intl_database_exporter::IntlMessageBundlerOptions> for IntlMessageBundlerOptions {
+    fn into(self) -> intl_database_exporter::IntlMessageBundlerOptions {
+        let mut options = intl_database_exporter::IntlMessageBundlerOptions::default();
+        if let Some(bundle_secrets) = self.bundle_secrets {
+            options = options.with_bundle_secrets(bundle_secrets);
+        }
+        if let Some(format) = self.format {
+            options = options.with_format(format.into());
+        }
+        options
+    }
+}
+
+#[napi(object)]
 pub struct IntlDiagnostic {
     pub key: String,
     pub file: String,
@@ -50,8 +70,6 @@ pub struct IntlSourceFile {
 pub struct IntlMessageMeta {
     pub secret: bool,
     pub translate: bool,
-    #[napi(js_name = "bundleSecrets")]
-    pub bundle_secrets: bool,
     #[napi(js_name = "translationsPath")]
     pub translations_path: String,
 }

@@ -18,14 +18,18 @@ module.exports = {
    * @returns {string}
    */
   process(source, filePath, _config) {
+    const precompileOptions = {
+      format: IntlCompiledMessageFormat.KeylessJson,
+      // Always bundle secrets when running tests
+      bundleSecrets: true,
+    };
+
     const forceTranslation = filePath === '?forceTranslation';
     if (isMessageDefinitionsFile(filePath) && !forceTranslation) {
       const result = processDefinitionsFile(filePath, source, { processTranslations: false });
 
       const sourceMessages = /** @type {Buffer} */ (
-        precompileFileForLocale(filePath, result.locale, {
-          format: IntlCompiledMessageFormat.KeylessJson,
-        })
+        precompileFileForLocale(filePath, result.locale, undefined, precompileOptions)
       ).toString();
 
       result.translationsLocaleMap[result.locale] = 'intl$sentinel-use-local';
@@ -48,29 +52,27 @@ module.exports = {
         // compatible values as a safe default.
         exportMode: 'transpiledEsModule',
       }).getOutput();
-    }
-
-    const locale = getLocaleFromTranslationsFileName(filePath);
-    if (isMessageTranslationsFile(filePath)) {
-      processTranslationsFile(filePath, source, { locale });
-    } else if (!forceTranslation) {
-      throw new Error(
-        'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
-      );
-    }
-
-    const compiledResult = /** @type {Buffer} */ (
-      precompileFileForLocale(filePath, locale, {
-        format: IntlCompiledMessageFormat.KeylessJson,
-      })
-    );
-
-    if (forceTranslation) {
-      return (
-        'module.exports.default = JSON.parse(' + JSON.stringify(compiledResult?.toString()) + ')'
-      );
     } else {
-      return compiledResult.toString();
+      const locale = getLocaleFromTranslationsFileName(filePath);
+      if (isMessageTranslationsFile(filePath)) {
+        processTranslationsFile(filePath, source, { locale });
+      } else if (!forceTranslation) {
+        throw new Error(
+          'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
+        );
+      }
+
+      const compiledResult = /** @type {Buffer} */ (
+        precompileFileForLocale(filePath, locale, undefined, precompileOptions)
+      );
+
+      if (forceTranslation) {
+        return (
+          'module.exports.default = JSON.parse(' + JSON.stringify(compiledResult?.toString()) + ')'
+        );
+      } else {
+        return compiledResult.toString();
+      }
     }
   },
 };
