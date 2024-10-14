@@ -2,7 +2,7 @@ const path = require('node:path');
 
 const chokidar = require('chokidar');
 const fg = require('fast-glob');
-const debug = require('debug')('intl:metro-intl-transformer:watcher');
+const debug = require('debug')('intl:loader-core:watcher');
 const {
   isMessageDefinitionsFile,
   IntlCompiledMessageFormat,
