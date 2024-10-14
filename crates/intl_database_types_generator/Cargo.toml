@@ -11,4 +11,4 @@ rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 ustr = { workspace = true }
-sora = { version = "0.0.3", features = ["builder"] }
+sourcemap = "9.0.0"
