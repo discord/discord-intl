@@ -64,7 +64,7 @@
  */
 class MessageDefinitionsTransformer {
   /**
-   * @param {import('./types.d.ts').MessageDefinitionsTransformerOptions} options
+   * @param {import('../types.d.ts').MessageDefinitionsTransformerOptions} options
    */
   constructor(options) {
     this.options = options;

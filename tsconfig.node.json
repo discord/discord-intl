@@ -10,11 +10,13 @@
     "noEmit": true
   },
   "include": [
-    "eslint-plugin-discord-intl/",
-    "intl-loader-core/",
-    "intl_message_database/",
-    "metro-intl-transformer/",
-    "rspack-intl-loader/",
-    "swc-intl-message-transformer/",
+    "crates/intl_message_database/",
+    "packages/babel-plugin-transform-discord-intl/",
+    "packages/eslint-plugin-discord-intl/",
+    "packages/intl-loader-core/",
+    "packages/jest-processor-discord-intl/",
+    "packages/metro-intl-transformer/",
+    "packages/rspack-intl-loader/",
+    "packages/swc-intl-message-transformer/",
   ],
 }

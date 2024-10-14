@@ -43,7 +43,7 @@ function buildTranslationsLocaleMap(sourcePath, sourceFile, translationsPath) {
  *   processTranslations?: boolean,
  *   locale?: string
  * }=} options
- * @returns {import('./types').ProcessDefinitionsResult}
+ * @returns {import('../types').ProcessDefinitionsResult}
  */
 function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   const {
@@ -95,7 +95,7 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
  * @param {{
  *   locale?: string,
  * }=} options
- * @returns {import('./types').ProcessTranslationsResult}
+ * @returns {import('../types').ProcessTranslationsResult}
  */
 function processTranslationsFile(sourcePath, sourceContent, options = {}) {
   const { locale = getLocaleFromTranslationsFileName(sourcePath) } = options;

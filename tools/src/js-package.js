@@ -28,7 +28,9 @@ async function runBuildScript(pack) {
  */
 async function watchBuild(pack, watchPatterns) {
   console.log(`Setting up file watching for ${pack.name}:`);
-  console.log(`+ ${watchPatterns.join(',')}`);
+  for (const pattern of watchPatterns) {
+    console.log(`+ ${pattern}`);
+  }
 
   async function buildAndCatch() {
     await runBuildScript(pack)
@@ -87,7 +89,8 @@ export async function createJsPackageCommands(name, options = {}) {
         `Run the build process for ${name} and automatically reload changes when watched files change.`,
       )
       .action(async () => {
-        await watchBuild(pack, [pack.path + '/**']);
+        const paths = Array.isArray(watch) ? watch : [pack.path + '/**'];
+        await watchBuild(pack, paths);
       });
   }
 

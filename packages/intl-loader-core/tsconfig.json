@@ -1,0 +1,12 @@
+{
+  "extends": ["../../tsconfig.node.json"],
+  "compilerOptions": {
+    "lib": ["es2015"],
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "./types",
+    "target": "ES2015",
+  },
+  "include": ["src", "index.js", "types.d.ts"]
+}

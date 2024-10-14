@@ -36,7 +36,13 @@ cd(REPO_ROOT);
         watch: true,
       }),
     )
-    .addCommand(await createJsPackageCommands('intl-loader-core', { aliases: ['loader'] }))
+    .addCommand(
+      await createJsPackageCommands('intl-loader-core', {
+        aliases: ['loader'],
+        build: true,
+        watch: ['index.js', 'src/**'],
+      }),
+    )
     .addCommand(
       await createJsPackageCommands('swc-intl-message-transformer', {
         aliases: ['swc'],

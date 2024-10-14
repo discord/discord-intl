@@ -190,6 +190,9 @@ importers:
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
+      typescript:
+        specifier: '*'
+        version: 5.5.4
 
   packages/jest-processor-discord-intl:
     dependencies:
