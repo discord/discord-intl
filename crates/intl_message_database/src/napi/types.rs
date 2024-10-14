@@ -10,6 +10,8 @@ use intl_validator::MessageDiagnostic;
 pub struct IntlDiagnostic {
     pub key: String,
     pub file: String,
+    pub line: u32,
+    pub col: u32,
     pub locale: String,
     pub severity: String,
     pub description: String,
@@ -20,7 +22,9 @@ impl From<MessageDiagnostic> for IntlDiagnostic {
     fn from(value: MessageDiagnostic) -> Self {
         Self {
             key: value.key.to_string(),
-            file: value.file_key.to_string(),
+            file: value.file_position.file.to_string(),
+            line: value.file_position.line,
+            col: value.file_position.col,
             locale: value.locale.to_string(),
             severity: value.severity.to_string(),
             description: value.description,

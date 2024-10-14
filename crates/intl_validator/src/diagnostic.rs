@@ -1,10 +1,10 @@
-use intl_database_core::KeySymbol;
+use intl_database_core::{FilePosition, KeySymbol};
 
 use crate::DiagnosticSeverity;
 
 pub struct MessageDiagnostic {
     pub key: KeySymbol,
-    pub file_key: KeySymbol,
+    pub file_position: FilePosition,
     pub locale: KeySymbol,
     pub severity: DiagnosticSeverity,
     pub description: String,
@@ -39,7 +39,7 @@ impl MessageDiagnosticsBuilder {
     pub fn extend_from_value_diagnostics(
         &mut self,
         value_diagnostics: Vec<ValueDiagnostic>,
-        file_key: KeySymbol,
+        file_position: FilePosition,
         locale: KeySymbol,
     ) {
         let converted_diagnostics =
@@ -47,7 +47,7 @@ impl MessageDiagnosticsBuilder {
                 .into_iter()
                 .map(|diagnostic| MessageDiagnostic {
                     key: self.key,
-                    file_key,
+                    file_position,
                     locale,
                     severity: diagnostic.severity,
                     description: diagnostic.description,
