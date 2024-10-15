@@ -26,7 +26,7 @@ const {
  * secret messages have their values replaced with obfuscated text to prevent leaking information.
  *
  * @property {IntlCompiledMessageFormat=} format
- * The format to which messages shouuld be compiled during bundling. `Json` will cause the messages
+ * The format to which messages should be compiled during bundling. `Json` will cause the messages
  * to be compiled to a FormatJS-like compatible format, while `KeylessJson` will use a much more
  * compressed, `@discord/intl`-specific format. `KeylessJson` is the default.
  */
@@ -39,6 +39,7 @@ const {
 const defaultConfig = {
   cacheDir: path.join('.cache', 'intl'),
   assetExtension: 'json',
+  format: IntlCompiledMessageFormat.KeylessJson,
   bundleSecrets: false,
 };
 

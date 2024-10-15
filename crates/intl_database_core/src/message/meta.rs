@@ -78,7 +78,7 @@ impl SourceFileMeta {
 }
 
 /// Meta information about how a message should be handled and processed. MessageMeta
-#[derive(Copy, Clone, Debug, Default, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MessageMeta {
     /// Whether the message should be considered private and not suitable for
     /// inclusion in production builds. Message consumers can use this
@@ -92,6 +92,15 @@ pub struct MessageMeta {
     /// include this message. When `false`, the default message value will be
     /// used in all locales, no matter if there is a translation present.
     pub translate: bool,
+}
+
+impl Default for MessageMeta {
+    fn default() -> Self {
+        Self {
+            secret: false,
+            translate: true,
+        }
+    }
 }
 
 impl MessageMeta {

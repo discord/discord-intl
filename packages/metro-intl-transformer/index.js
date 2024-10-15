@@ -16,6 +16,7 @@ const debug = require('debug')('intl:metro-intl-transformer');
  *  getPrelude: () => string
  *  getTranslationAssetExtension: () => string,
  *  getTranslationImport: (importPath: string) => string,
+ *  format: IntlCompiledMessageFormat,
  *  bundleSecrets?: boolean,
  * }} options
  * @returns {string | Buffer}
@@ -26,6 +27,7 @@ function transformToString({
   getPrelude,
   getTranslationAssetExtension,
   getTranslationImport,
+  format = IntlCompiledMessageFormat.KeylessJson,
   bundleSecrets = false,
 }) {
   if (isMessageDefinitionsFile(filename)) {
@@ -59,7 +61,7 @@ function transformToString({
     // @ts-expect-error Without the `outputFile` option, this always returns a Buffer, but the
     // option allows the function to return void instead.
     return precompileFileForLocale(filename, result.locale, undefined, {
-      format: IntlCompiledMessageFormat.KeylessJson,
+      format,
       bundleSecrets,
     });
   }
