@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-message-database-linux-arm64-musl",
-  "version": "0.9.0-rc.2",
+  "version": "0.9.0",
   "license": "MIT",
   "os": [
     "linux"
