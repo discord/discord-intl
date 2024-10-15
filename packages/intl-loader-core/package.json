@@ -23,7 +23,7 @@
   },
   "scripts": {
     "build": "tsc && cp types.d.ts types/",
-    "build:release": "build",
+    "build:release": "tsc && cp types.d.ts types/",
     "prepublishOnly": "pnpm build:release"
   },
   "dependencies": {
