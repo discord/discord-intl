@@ -17,9 +17,9 @@ const COMPILATION_FORMAT = /** @type {IntlCompiledMessageFormat} */ (
 );
 
 const SOURCE_FILES = [
-  // './data/input/en-US.js',
+  './data/input/en-US.js',
   './data/input/en-US.untranslated.js',
-  // './data/input/international.untranslated.js',
+  './data/input/international.untranslated.js',
 ];
 
 bench('processing', () => {

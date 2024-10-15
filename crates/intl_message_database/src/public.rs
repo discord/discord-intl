@@ -156,16 +156,15 @@ pub fn generate_types(
     output_file_path: &str,
     allow_nullability: Option<bool>,
 ) -> anyhow::Result<()> {
-    let mut output_file = std::fs::File::create(&output_file_path)?;
     let source_file_key = get_key_symbol_or_error(source_file_path)?;
     let mut generator = IntlTypesGenerator::new(
         &database,
         source_file_key,
-        &mut output_file,
         output_file_path.to_string(),
         allow_nullability.unwrap_or(false),
     );
     generator.run()?;
+    std::fs::write(&output_file_path, generator.take_buffer())?;
     let map_file_path = String::from(output_file_path) + ".map";
     let mut source_map_file = std::fs::File::create(map_file_path)?;
     let source_map = generator.into_sourcemap()?;
