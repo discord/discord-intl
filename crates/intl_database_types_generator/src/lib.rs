@@ -199,6 +199,7 @@ impl IntlDatabaseService for IntlTypesGenerator<'_> {
                     "\n",
                     &definition_position.map(source_map_entry),
                     &type_def,
+                    ","
                 ]
             )?;
         }
