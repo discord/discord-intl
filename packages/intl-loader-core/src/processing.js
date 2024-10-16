@@ -61,9 +61,9 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   debug(`[${sourcePath}] Processing definitions with locale "${locale}"`);
 
   if (sourceContent != null) {
-    database.processDefinitionsFileContent(sourcePath, sourceContent);
+    database.processDefinitionsFileContent(sourcePath, sourceContent, locale);
   } else {
-    database.processDefinitionsFile(sourcePath);
+    database.processDefinitionsFile(sourcePath, locale);
   }
 
   const sourceFile = database.getSourceFile(sourcePath);
