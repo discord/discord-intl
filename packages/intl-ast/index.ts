@@ -185,7 +185,9 @@ function hydrateSingle(keyless: string | Array<any>): FullFormatJsNode {
     case FormatJsNodeType.Tag: {
       const [type, value, children, control] = keyless;
       hydrateArray(children);
-      hydrateArray(control);
+      if (control != null) {
+        hydrateArray(control);
+      }
       return { type, value, children, control };
     }
     default:
