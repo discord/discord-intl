@@ -1,6 +1,6 @@
 use intl_markdown::{
     CodeBlock, CodeSpan, Emphasis, Heading, Hook, IcuDate, IcuNumber, IcuPlural, IcuSelect,
-    IcuTime, IcuVariable, Link, Paragraph, Strikethrough, Strong, TextOrPlaceholder,
+    IcuTime, IcuVariable, Link, LinkDestination, Paragraph, Strikethrough, Strong,
     DEFAULT_TAG_NAMES,
 };
 use intl_markdown_visitor::{Visit, VisitWith};
@@ -137,10 +137,10 @@ impl Visit for MessageVariablesVisitor {
         link.visit_children_with(self);
     }
 
-    fn visit_link_destination(&mut self, node: &TextOrPlaceholder) {
+    fn visit_link_destination(&mut self, node: &LinkDestination) {
         match node {
-            TextOrPlaceholder::Text(_) => {}
-            TextOrPlaceholder::Handler(handler_name) => {
+            LinkDestination::Text(_) => {}
+            LinkDestination::Handler(handler_name) => {
                 self.variables.add_instance(
                     key_symbol(&handler_name),
                     MessageVariableType::HandlerFunction,
@@ -148,7 +148,7 @@ impl Visit for MessageVariablesVisitor {
                     None,
                 );
             }
-            TextOrPlaceholder::Placeholder(_) => node.visit_children_with(self),
+            LinkDestination::Placeholder(_) => node.visit_children_with(self),
         }
     }
 

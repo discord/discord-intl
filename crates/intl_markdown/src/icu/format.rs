@@ -1,12 +1,12 @@
 use std::fmt::Write;
 
+use crate::ast::util::{escape_body_text, escape_href};
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
     IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect,
-    IcuTime, IcuVariable, InlineContent, Link, LinkKind, Paragraph, Strikethrough, Strong,
-    TextOrPlaceholder,
+    IcuTime, IcuVariable, InlineContent, Link, LinkDestination, LinkKind, Paragraph, Strikethrough,
+    Strong,
 };
-use crate::ast::util::{escape_body_text, escape_href};
 
 macro_rules! write {
     ($dst:expr, [$($arg:expr),+ $(,)?]) => {{
@@ -153,29 +153,29 @@ impl FormatIcuString for Strong {
     }
 }
 
-fn format_text_or_placeholder<F: Fn(&str) -> String>(
-    node: &TextOrPlaceholder,
+fn format_link_destination<F: Fn(&str) -> String>(
+    node: &LinkDestination,
     text_mutator: F,
 ) -> FormatTextOrPlaceholder<F> {
     FormatTextOrPlaceholder { node, text_mutator }
 }
 struct FormatTextOrPlaceholder<'a, F: Fn(&str) -> String> {
-    node: &'a TextOrPlaceholder,
+    node: &'a LinkDestination,
     text_mutator: F,
 }
 impl<F: Fn(&str) -> String> FormatIcuString for FormatTextOrPlaceholder<'_, F> {
     fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         match self.node {
-            TextOrPlaceholder::Text(text) => f.write_str(&(self.text_mutator)(&text)),
-            TextOrPlaceholder::Placeholder(icu) => write!(f, [icu]),
-            TextOrPlaceholder::Handler(handler) => write!(f, [handler]),
+            LinkDestination::Text(text) => f.write_str(&(self.text_mutator)(&text)),
+            LinkDestination::Placeholder(icu) => write!(f, [icu]),
+            LinkDestination::Handler(handler) => write!(f, [handler]),
         }
     }
 }
 
 impl FormatIcuString for Link {
     fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
-        let destination = format_text_or_placeholder(self.destination(), escape_href);
+        let destination = format_link_destination(self.destination(), escape_href);
         match self.kind() {
             LinkKind::Image => {
                 write!(f, ["<img>", destination, "</img>"])

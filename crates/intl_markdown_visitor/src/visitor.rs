@@ -1,7 +1,7 @@
 use intl_markdown::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
     IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuSelect, IcuTime,
-    IcuVariable, InlineContent, Link, Paragraph, Strikethrough, Strong, TextOrPlaceholder,
+    IcuVariable, InlineContent, Link, LinkDestination, Paragraph, Strikethrough, Strong,
 };
 
 use crate::visit_with::VisitWith;
@@ -64,7 +64,7 @@ pub trait Visit {
     fn visit_link(&mut self, node: &Link) {
         node.visit_children_with(self);
     }
-    fn visit_link_destination(&mut self, node: &TextOrPlaceholder) {
+    fn visit_link_destination(&mut self, node: &LinkDestination) {
         node.visit_children_with(self);
     }
     fn visit_paragraph(&mut self, node: &Paragraph) {
@@ -74,9 +74,6 @@ pub trait Visit {
         node.visit_children_with(self);
     }
     fn visit_strong(&mut self, node: &Strong) {
-        node.visit_children_with(self);
-    }
-    fn visit_text_or_placeholder(&mut self, node: &TextOrPlaceholder) {
         node.visit_children_with(self);
     }
     fn visit_text(&mut self, _node: &String) {

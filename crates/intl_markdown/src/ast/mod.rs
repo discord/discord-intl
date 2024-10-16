@@ -161,7 +161,7 @@ pub enum LinkKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TextOrPlaceholder {
+pub enum LinkDestination {
     /// Plain text, often included in the parent directly
     Text(String),
     /// An ICU placeholder of any kind, like `{name}`, often used in the
@@ -173,15 +173,15 @@ pub enum TextOrPlaceholder {
     Handler(String),
 }
 
-impl TextOrPlaceholder {
+impl LinkDestination {
     pub fn is_text(&self) -> bool {
-        matches!(self, TextOrPlaceholder::Text(_))
+        matches!(self, LinkDestination::Text(_))
     }
     pub fn is_placeholder(&self) -> bool {
-        matches!(self, TextOrPlaceholder::Placeholder(_))
+        matches!(self, LinkDestination::Placeholder(_))
     }
     pub fn is_handler(&self) -> bool {
-        matches!(self, TextOrPlaceholder::Handler(_))
+        matches!(self, LinkDestination::Handler(_))
     }
 }
 
@@ -189,7 +189,7 @@ impl TextOrPlaceholder {
 pub struct Link {
     kind: LinkKind,
     label: Vec<InlineContent>,
-    destination: TextOrPlaceholder,
+    destination: LinkDestination,
     title: Option<String>,
 }
 
@@ -200,7 +200,7 @@ impl Link {
     pub fn label(&self) -> &Vec<InlineContent> {
         &self.label
     }
-    pub fn destination(&self) -> &TextOrPlaceholder {
+    pub fn destination(&self) -> &LinkDestination {
         &self.destination
     }
     pub fn title(&self) -> &Option<String> {

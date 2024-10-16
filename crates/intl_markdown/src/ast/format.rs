@@ -4,7 +4,7 @@ use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
     IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect,
     IcuTime, IcuVariable, InlineContent, Link, LinkKind, Paragraph, Strikethrough, Strong,
-    TextOrPlaceholder,
+    LinkDestination,
 };
 
 use super::util::{escape_body_text, escape_href, format_plain_text};
@@ -166,9 +166,9 @@ impl FormatHtml for Link {
                 write!(f, ["<img src=\""])?;
 
                 match self.destination() {
-                    TextOrPlaceholder::Text(text) => write!(f, [escape_href(&text)])?,
-                    TextOrPlaceholder::Placeholder(icu) => write!(f, [icu])?,
-                    TextOrPlaceholder::Handler(handler) => write!(f, [handler])?,
+                    LinkDestination::Text(text) => write!(f, [escape_href(&text)])?,
+                    LinkDestination::Placeholder(icu) => write!(f, [icu])?,
+                    LinkDestination::Handler(handler) => write!(f, [handler])?,
                 }
 
                 write!(
@@ -191,9 +191,9 @@ impl FormatHtml for Link {
 
                 write!(f, ["<a href=\""])?;
                 match self.destination() {
-                    TextOrPlaceholder::Text(text) => write!(f, [escape_href(&text)])?,
-                    TextOrPlaceholder::Placeholder(icu) => write!(f, [icu])?,
-                    TextOrPlaceholder::Handler(handler) => write!(f, [handler])?,
+                    LinkDestination::Text(text) => write!(f, [escape_href(&text)])?,
+                    LinkDestination::Placeholder(icu) => write!(f, [icu])?,
+                    LinkDestination::Handler(handler) => write!(f, [handler])?,
                 }
                 write!(f, ['"', title, ">", self.label, "</a>"])
             }

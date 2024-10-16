@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-use crate::{ast, SyntaxKind};
-use crate::ast::{CodeBlockKind, HeadingKind, IcuPluralKind, LinkKind, TextOrPlaceholder};
+use crate::ast::{CodeBlockKind, HeadingKind, IcuPluralKind, LinkDestination, LinkKind};
 use crate::html_entities::get_html_entity;
 use crate::token::{SourceText, Token};
 use crate::tree_builder::{cst, TokenSpan};
 use crate::util::unescape_cow;
+use crate::{ast, SyntaxKind};
 
 use super::util::unescape;
 
@@ -455,7 +455,7 @@ pub fn process_autolink(_: &mut AstProcessingContext, image: &cst::Autolink) -> 
     ast::Link {
         kind: link_kind,
         label,
-        destination: TextOrPlaceholder::Text(destination),
+        destination: LinkDestination::Text(destination),
         title: None,
     }
 }
@@ -463,22 +463,22 @@ pub fn process_autolink(_: &mut AstProcessingContext, image: &cst::Autolink) -> 
 fn process_link_destination(
     context: &mut AstProcessingContext,
     destination: &Option<cst::LinkDestination>,
-) -> TextOrPlaceholder {
+) -> LinkDestination {
     match destination {
         Some(cst::LinkDestination::StaticLinkDestination(destination)) => {
-            TextOrPlaceholder::Text(unescape(&take_tokens_verbatim_with_entities_replaced(
+            LinkDestination::Text(unescape(&take_tokens_verbatim_with_entities_replaced(
                 context,
                 &destination.url,
                 false,
             )))
         }
         Some(cst::LinkDestination::DynamicLinkDestination(destination)) => {
-            TextOrPlaceholder::Placeholder(process_icu(context, &destination.url))
+            LinkDestination::Placeholder(process_icu(context, &destination.url))
         }
         Some(cst::LinkDestination::ClickHandlerLinkDestination(destination)) => {
-            TextOrPlaceholder::Handler(destination.name.text().to_owned())
+            LinkDestination::Handler(destination.name.text().to_owned())
         }
-        None => TextOrPlaceholder::Text("".into()),
+        None => LinkDestination::Text("".into()),
     }
 }
 

@@ -4,7 +4,7 @@ use serde::{Serialize, Serializer};
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
     IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
-    Paragraph, Strikethrough, Strong, TextOrPlaceholder,
+    LinkDestination, Paragraph, Strikethrough, Strong,
 };
 use crate::icu::tags::DEFAULT_TAG_NAMES;
 
@@ -163,7 +163,7 @@ impl Serialize for Heading {
     }
 }
 
-impl Serialize for TextOrPlaceholder {
+impl Serialize for LinkDestination {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -172,11 +172,9 @@ impl Serialize for TextOrPlaceholder {
         // destinations get serialized as a custom tag `_`, which is used as a simple separator to
         // prevent FormatJS from joining adjacent text pieces together.
         match self {
-            TextOrPlaceholder::Text(text) => {
-                InlineContent::Text(text.clone()).serialize(serializer)
-            }
-            TextOrPlaceholder::Placeholder(icu) => icu.serialize(serializer),
-            TextOrPlaceholder::Handler(handler_name) => {
+            LinkDestination::Text(text) => InlineContent::Text(text.clone()).serialize(serializer),
+            LinkDestination::Placeholder(icu) => icu.serialize(serializer),
+            LinkDestination::Handler(handler_name) => {
                 SerializeHandler(&handler_name).serialize(serializer)
             }
         }

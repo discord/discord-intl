@@ -1,7 +1,7 @@
 use intl_markdown::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
     IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuSelect, IcuTime,
-    IcuVariable, InlineContent, Link, Paragraph, Strikethrough, Strong, TextOrPlaceholder,
+    IcuVariable, InlineContent, Link, LinkDestination, Paragraph, Strikethrough, Strong,
 };
 
 use crate::visitor::Visit;
@@ -253,16 +253,16 @@ impl<V: ?Sized + Visit> VisitWith<V> for Strong {
         visit_list(self.content(), visitor);
     }
 }
-impl<V: ?Sized + Visit> VisitWith<V> for TextOrPlaceholder {
+impl<V: ?Sized + Visit> VisitWith<V> for LinkDestination {
     fn visit_with(&self, visitor: &mut V) {
-        visitor.visit_text_or_placeholder(self);
+        visitor.visit_link_destination(self);
     }
 
     fn visit_children_with(&self, visitor: &mut V) {
         match self {
             // Only placeholders need to be visited, since Text and Handler are both just static
             // strings.
-            TextOrPlaceholder::Placeholder(placeholder) => placeholder.visit_with(visitor),
+            LinkDestination::Placeholder(placeholder) => placeholder.visit_with(visitor),
             _ => {}
         }
     }

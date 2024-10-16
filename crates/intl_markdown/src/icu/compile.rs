@@ -10,7 +10,7 @@ use serde::{self, Serialize, Serializer};
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
     IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
-    Paragraph, Strikethrough, Strong, TextOrPlaceholder,
+    LinkDestination, Paragraph, Strikethrough, Strong,
 };
 use crate::icu::tags::DEFAULT_TAG_NAMES;
 
@@ -272,13 +272,11 @@ fn compile_link_children(label: &Vec<InlineContent>) -> FormatJsNode {
     FormatJsNode::list(children)
 }
 
-fn compile_link_destination(destination: &TextOrPlaceholder) -> FormatJsNode {
+fn compile_link_destination(destination: &LinkDestination) -> FormatJsNode {
     let node = match destination {
-        TextOrPlaceholder::Text(text) => FormatJsNode::literal(text),
-        TextOrPlaceholder::Placeholder(icu) => FormatJsNode::from(icu),
-        TextOrPlaceholder::Handler(handler_name) => {
-            FormatJsSingleNode::variable(handler_name).into()
-        }
+        LinkDestination::Text(text) => FormatJsNode::literal(text),
+        LinkDestination::Placeholder(icu) => FormatJsNode::from(icu),
+        LinkDestination::Handler(handler_name) => FormatJsSingleNode::variable(handler_name).into(),
     };
     FormatJsNode::list(vec![node])
 }
