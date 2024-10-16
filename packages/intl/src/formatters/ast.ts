@@ -82,7 +82,7 @@ const AST_RICH_TEXT_ELEMENTS: RichTextFormattingMap<AstFunctionTypes['hook']> = 
   $i: (content) => ({ type: RichTextNodeType.Emphasis, content }),
   $del: (content) => ({ type: RichTextNodeType.Strikethrough, content }),
   $code: (content) => ({ type: RichTextNodeType.Code, content }),
-  $link: (content, [target]) => ({
+  $link: (content, _, [target]) => ({
     type: RichTextNodeType.Link,
     target: target.content as string,
     content,
@@ -97,7 +97,7 @@ class AstBuilder extends FormatBuilder<RichTextNode> {
     if (!(tag in AST_RICH_TEXT_ELEMENTS)) {
       throw `${tag} is not a known rich text formatting tag`;
     }
-    const result = AST_RICH_TEXT_ELEMENTS[tag](children, control, '');
+    const result = AST_RICH_TEXT_ELEMENTS[tag](children, '', control);
     if (Array.isArray(result)) {
       this.result.push(...result);
     } else {

@@ -23,7 +23,7 @@ const MARKDOWN_RICH_TEXT_ELEMENTS: RichTextFormattingMap<MarkdownFunctionTypes['
   $i: (content) => '*' + content.join('') + '*',
   $del: (content) => '~~' + content.join('') + '~~',
   $code: (content) => '`' + content.join('') + '`',
-  $link: (content, [target]) => '[' + content.join('') + '](' + target + ')',
+  $link: (content, _, [target]) => '[' + content.join('') + '](' + target + ')',
   $p: (content) => content.join('') + '\n\n',
 };
 
@@ -31,7 +31,7 @@ class MarkdownBuilder extends StringBuilder {
   result: string = '';
 
   pushRichTextTag(tag: RichTextTagNames, children: string[], control: string[]) {
-    this.result += MARKDOWN_RICH_TEXT_ELEMENTS[tag](children, control, '');
+    this.result += MARKDOWN_RICH_TEXT_ELEMENTS[tag](children, '', control);
   }
 }
 

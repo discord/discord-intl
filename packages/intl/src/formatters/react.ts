@@ -27,12 +27,12 @@ export type ReactFunctionTypes = FunctionTypes<
 
 const h = React.createElement;
 export const DEFAULT_REACT_RICH_TEXT_ELEMENTS: RichTextFormattingMap<ReactFunctionTypes['hook']> = {
-  $b: (content, _, key) => h('strong', { key }, content),
-  $i: (content, _, key) => h('em', { key }, content),
-  $del: (content, _, key) => h('del', { key }, content),
-  $code: (content, _, key) => h('code', { key }, content),
-  $link: (content, [href], key) => h('a', { href, key }, content),
-  $p: (content, _, key) => h('p', { key }, content),
+  $b: (content, key) => h('strong', { key }, content),
+  $i: (content, key) => h('em', { key }, content),
+  $del: (content, key) => h('del', { key }, content),
+  $code: (content, key) => h('code', { key }, content),
+  $link: (content, key, [href]) => h('a', { href, key }, content),
+  $p: (content, key) => h('p', { key }, content),
 };
 
 /**
@@ -54,7 +54,7 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
       children: React.ReactNode[],
       control: React.ReactNode[],
     ) {
-      this.result.push(richTextElements[tag](children, control, `${this._nodeKey++}`));
+      this.result.push(richTextElements[tag](children, `${this._nodeKey++}`, control));
     }
 
     pushLiteralText(text: string) {
