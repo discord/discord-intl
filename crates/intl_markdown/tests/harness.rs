@@ -1,5 +1,6 @@
 use intl_markdown::{
-    CstDocument, Document, format_ast, format_icu_string, ICUMarkdownParser, process_cst_to_ast,
+    compile_to_format_js, format_ast, format_icu_string, process_cst_to_ast, CstDocument, Document,
+    ICUMarkdownParser,
 };
 
 pub fn parse(content: &str, include_blocks: bool) -> CstDocument {
@@ -40,7 +41,36 @@ pub fn run_icu_string_test(input: &str, expected: &str, include_blocks: bool) {
 pub fn run_icu_ast_test(input: &str, expected: &str, include_blocks: bool) {
     // AST-based formatting
     let ast = parse_to_ast(input, include_blocks);
-    let output = serde_json::to_string(&ast).unwrap();
+    let output = keyless_json::to_string(&compile_to_format_js(&ast)).unwrap();
 
     assert_eq!(expected, output);
 }
+
+macro_rules! ast_test {
+    ($name:ident, $input:literal, $output:literal) => {
+        #[test]
+        fn $name() {
+            crate::harness::run_icu_ast_test($input, $output, false);
+        }
+    };
+}
+macro_rules! icu_string_test {
+    ($name:ident, $input:literal, $output:literal) => {
+        #[test]
+        fn $name() {
+            crate::harness::run_icu_string_test($input, $output, false);
+        }
+    };
+}
+macro_rules! icu_block_string_test {
+    ($name:ident, $input:literal, $output:literal) => {
+        #[test]
+        fn $name() {
+            crate::harness::run_icu_string_test($input, $output, true);
+        }
+    };
+}
+
+pub(crate) use ast_test;
+pub(crate) use icu_block_string_test;
+pub(crate) use icu_string_test;

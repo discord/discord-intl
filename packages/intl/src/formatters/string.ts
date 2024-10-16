@@ -15,16 +15,14 @@ export type StringFunctionTypes = FunctionTypes<string>;
 export class StringBuilder extends FormatBuilder<string> {
   result: string = '';
 
-  pushRichTextTag(tag: RichTextTagNames, children: string[]) {
+  pushRichTextTag(_tag: RichTextTagNames, children: string[], _control: string[]) {
     // Plain string formatting ignores rich text tags and just takes the
-    // visible content from the children. This means the `target` element
-    // of a link is ignored, otherwise all the children are just joined
-    // together directly.
-    if (tag === '$link') {
-      this.result += children.slice(1).join('');
-      return;
+    // visible content from the children. This means the control element is not
+    // important for string rendering, so the result is always just the
+    // children joined together.
+    for (const child of children) {
+      this.result += child;
     }
-    this.result += children.join('');
   }
 
   pushLiteralText(text: string) {

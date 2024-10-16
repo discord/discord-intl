@@ -31,7 +31,7 @@ export type PluralNode = [
   FormatJsPluralType,
 ];
 export type PoundNode = [FormatJsNodeType.Pound];
-export type TagNode = [FormatJsNodeType.Tag, string, AstNode[]];
+export type TagNode = [FormatJsNodeType.Tag, string, AstNode[], AstNode[]];
 
 export type AstNode =
   | LiteralNode
@@ -44,7 +44,7 @@ export type AstNode =
   | PoundNode
   | TagNode;
 
-export enum AstNodeIndices {
+export const enum AstNodeIndices {
   Type = 0,
   Value = 1,
   Style = 2,
@@ -52,6 +52,7 @@ export enum AstNodeIndices {
   Offset = 3,
   PluralType = 4,
   Children = 2,
+  Control = 3,
 }
 
 //#region Full FormatJS Node types
@@ -110,6 +111,7 @@ export interface FullFormatJsTag {
   type: FormatJsNodeType.Tag;
   value: string;
   children: FullFormatJsNode[];
+  control?: FullFormatJsNode[];
 }
 
 export type FullFormatJsNode =
@@ -181,9 +183,10 @@ function hydrateSingle(keyless: string | Array<any>): FullFormatJsNode {
     case FormatJsNodeType.Pound:
       return FORMAT_JS_POUND;
     case FormatJsNodeType.Tag: {
-      const [type, value, children] = keyless;
+      const [type, value, children, control] = keyless;
       hydrateArray(children);
-      return { type, value, children: children };
+      hydrateArray(control);
+      return { type, value, children, control };
     }
     default:
       throw new Error(`FormatJS keyless JSON encountered an unknown type: ${type}`);
@@ -266,7 +269,12 @@ export function compressFormatJsToAst(
     case FormatJsNodeType.Pound:
       return [node.type];
     case FormatJsNodeType.Tag:
-      return [node.type, node.value, compressFormatJsToAst(node.children)];
+      return [
+        node.type,
+        node.value,
+        compressFormatJsToAst(node.children),
+        compressFormatJsToAst(node.control),
+      ];
   }
 }
 

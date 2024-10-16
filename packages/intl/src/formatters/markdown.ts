@@ -19,20 +19,19 @@ import { StringBuilder } from './string';
 export type MarkdownFunctionTypes = FunctionTypes<string>;
 
 const MARKDOWN_RICH_TEXT_ELEMENTS: RichTextFormattingMap<MarkdownFunctionTypes['hook']> = {
-  $_: () => '',
   $b: (content) => '**' + content.join('') + '**',
   $i: (content) => '*' + content.join('') + '*',
   $del: (content) => '~~' + content.join('') + '~~',
   $code: (content) => '`' + content.join('') + '`',
-  $link: ([target, ...content]) => '[' + content.join('') + '](' + target + ')',
+  $link: (content, [target]) => '[' + content.join('') + '](' + target + ')',
   $p: (content) => content.join('') + '\n\n',
 };
 
 class MarkdownBuilder extends StringBuilder {
   result: string = '';
 
-  pushRichTextTag(tag: RichTextTagNames, children: string[]) {
-    this.result += MARKDOWN_RICH_TEXT_ELEMENTS[tag](children, '');
+  pushRichTextTag(tag: RichTextTagNames, children: string[], control: string[]) {
+    this.result += MARKDOWN_RICH_TEXT_ELEMENTS[tag](children, control, '');
   }
 }
 

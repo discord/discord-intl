@@ -78,12 +78,11 @@ export type RichTextNode =
   | RichTextObjectNode;
 
 const AST_RICH_TEXT_ELEMENTS: RichTextFormattingMap<AstFunctionTypes['hook']> = {
-  $_: () => ({ type: RichTextNodeType.Text, content: '' }),
   $b: (content) => ({ type: RichTextNodeType.Strong, content }),
   $i: (content) => ({ type: RichTextNodeType.Emphasis, content }),
   $del: (content) => ({ type: RichTextNodeType.Strikethrough, content }),
   $code: (content) => ({ type: RichTextNodeType.Code, content }),
-  $link: ([target, ...content]) => ({
+  $link: (content, [target]) => ({
     type: RichTextNodeType.Link,
     target: target.content as string,
     content,
@@ -94,11 +93,11 @@ const AST_RICH_TEXT_ELEMENTS: RichTextFormattingMap<AstFunctionTypes['hook']> = 
 class AstBuilder extends FormatBuilder<RichTextNode> {
   result: RichTextNode[] = [];
 
-  pushRichTextTag(tag: RichTextTagNames, children: RichTextNode[]) {
+  pushRichTextTag(tag: RichTextTagNames, children: RichTextNode[], control: RichTextNode[]) {
     if (!(tag in AST_RICH_TEXT_ELEMENTS)) {
       throw `${tag} is not a known rich text formatting tag`;
     }
-    const result = AST_RICH_TEXT_ELEMENTS[tag](children, '');
+    const result = AST_RICH_TEXT_ELEMENTS[tag](children, control, '');
     if (Array.isArray(result)) {
       this.result.push(...result);
     } else {

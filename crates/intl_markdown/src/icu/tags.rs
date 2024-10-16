@@ -4,7 +4,6 @@ pub struct TagNames<'a> {
     strike_through: &'a str,
     paragraph: &'a str,
     link: &'a str,
-    empty: &'a str,
     code: &'a str,
     code_block: &'a str,
     br: &'a str,
@@ -32,9 +31,6 @@ impl<'a> TagNames<'a> {
     }
     pub const fn link(&self) -> &'a str {
         &self.link
-    }
-    pub const fn empty(&self) -> &'a str {
-        &self.empty
     }
     pub const fn code(&self) -> &'a str {
         &self.code
@@ -78,5 +74,4 @@ pub static DEFAULT_TAG_NAMES: TagNames<'static> = TagNames {
     h4: "$h4",
     h5: "$h5",
     h6: "$h6",
-    empty: "$_",
 };

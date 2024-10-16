@@ -25,6 +25,7 @@ unicode-xid = { workspace = true }
 [dev-dependencies]
 test-case = "3"
 criterion = "0.5"
+keyless_json = { workspace = true }
 
 # Test generation script
 [[example]]

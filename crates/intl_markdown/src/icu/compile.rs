@@ -1,8 +1,9 @@
 //! Compiling for ICU messages is like serialization, but with a mono-morphed structure that
-//! succinctly represents the AST in a way that is explicitly compatible with FormatJS. The output
-//! of this compilation should match _exactly_ with FormatJS's `@formatjs/cli compile --ast` when
+//! succinctly represents the AST in a way that is _generally_ compatible with FormatJS. The output
+//! of this compilation should match _roughly_ with FormatJS's `@formatjs/cli compile --ast` when
 //! serialized to JSON. However, this format also allows more compact representations like keyless
-//! JSON or even binary formats.
+//! JSON or even binary formats, and includes extensions to support additional features like link
+//! attributes.
 use serde::ser::SerializeMap;
 use serde::{self, Serialize, Serializer};
 
@@ -11,8 +12,22 @@ use crate::ast::{
     IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
     Paragraph, Strikethrough, Strong, TextOrPlaceholder,
 };
-use crate::icu::serialize::FormatJsElementType;
 use crate::icu::tags::DEFAULT_TAG_NAMES;
+
+/// Enum matching a type of element to it's FormatJS type number. The order defines the numbering.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[repr(u8)]
+pub enum FormatJsElementType {
+    Literal = 0,
+    Argument,
+    Number,
+    Date,
+    Time,
+    Select,
+    Plural,
+    Pound,
+    Tag,
+}
 
 /// Compile a parsed ICU-Markdown document into a FormatJS Node tree, that can then be directly
 /// serialized to any format and back with any other FormatJS-compatible tools.
@@ -51,6 +66,17 @@ pub struct FormatJsSingleNode<'a> {
     pub children: Option<Box<FormatJsNode<'a>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<FormatJsNodeOptions<'a>>,
+    /// FormatJS Extension: `control` is not part of FormatJS and may break expected behavior. It is
+    /// added as a way of discriminating between two kinds of children: visible and "controlling". For
+    /// example, links have a visible component (the label) and a control component (the
+    /// destination). Compiling these into a single `children` list becomes extremely difficult to
+    /// process effectively when rendering because it can only rely on convention to establish what
+    /// "visible" and what is "hidden". By adding this `control` type, the distinction is always
+    /// trivial to process.
+    ///
+    /// This value may have other uses in the future but for now is simply reserved for links.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub control: Option<Box<FormatJsNode<'a>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,13 +98,6 @@ impl<'a> FormatJsSingleNode<'a> {
             .with_value(name)
     }
 
-    /// Create an "empty" node, an ICU variable what will should always resolve to an empty string
-    /// at runtime and can be used as a marker to separate adjacent text nodes, such as in links
-    /// with static destinations.
-    fn empty() -> Self {
-        Self::variable("$_")
-    }
-
     fn with_type(mut self, ty: FormatJsElementType) -> Self {
         self.ty = Some(ty);
         self
@@ -90,7 +109,20 @@ impl<'a> FormatJsSingleNode<'a> {
     }
 
     fn with_children(mut self, children: FormatJsNode<'a>) -> Self {
+        debug_assert!(
+            matches!(children, FormatJsNode::ListNode(_)),
+            "`children` should always be a list of elements"
+        );
         self.children = Some(Box::new(children));
+        self
+    }
+
+    fn with_control(mut self, control: FormatJsNode<'a>) -> Self {
+        debug_assert!(
+            matches!(control, FormatJsNode::ListNode(_)),
+            "`control` should always be a list of elements"
+        );
+        self.control = Some(Box::new(control));
         self
     }
 
@@ -234,33 +266,28 @@ impl<'a> From<&'a Heading> for FormatJsNode<'a> {
     }
 }
 
-fn compile_link_children<'a>(
-    destination: &'a TextOrPlaceholder,
-    label: &'a Vec<InlineContent>,
-) -> FormatJsNode<'a> {
-    let destination = match destination {
-        TextOrPlaceholder::Text(text) => {
-            vec![
-                FormatJsNode::literal(text),
-                FormatJsSingleNode::empty().into(),
-            ]
-        }
-        TextOrPlaceholder::Placeholder(icu) => vec![FormatJsNode::from(icu)],
-        TextOrPlaceholder::Handler(handler_name) => {
-            vec![FormatJsSingleNode::variable(handler_name).into()]
-        }
-    };
-
-    let mut children = Vec::with_capacity(destination.len() + label.len());
-    children.extend(destination);
+fn compile_link_children(label: &Vec<InlineContent>) -> FormatJsNode {
+    let mut children = Vec::with_capacity(label.len());
     children.extend(label.iter().map(FormatJsNode::from));
     FormatJsNode::list(children)
+}
+
+fn compile_link_destination(destination: &TextOrPlaceholder) -> FormatJsNode {
+    let node = match destination {
+        TextOrPlaceholder::Text(text) => FormatJsNode::literal(text),
+        TextOrPlaceholder::Placeholder(icu) => FormatJsNode::from(icu),
+        TextOrPlaceholder::Handler(handler_name) => {
+            FormatJsSingleNode::variable(handler_name).into()
+        }
+    };
+    FormatJsNode::list(vec![node])
 }
 
 impl<'a> From<&'a Link> for FormatJsNode<'a> {
     fn from(value: &'a Link) -> Self {
         FormatJsSingleNode::tag(DEFAULT_TAG_NAMES.link())
-            .with_children(compile_link_children(value.destination(), value.label()))
+            .with_children(compile_link_children(value.label()))
+            .with_control(compile_link_destination(value.destination()))
             .into()
     }
 }
@@ -382,12 +409,6 @@ mod tests {
 
     }
 
-    macro_rules! empty {
-        () => {
-            FormatJsSingleNode::empty()
-        };
-    }
-
     macro_rules! lit {
         ($name:literal) => {
             FormatJsNode::Literal($name)
@@ -437,13 +458,9 @@ mod tests {
             compiled,
             list!(tag!(
                 DEFAULT_TAG_NAMES.link(),
-                [
-                    lit!("./somewhere.png"),
-                    empty!(),
-                    lit!("a "),
-                    tag!(DEFAULT_TAG_NAMES.emphasis(), ["link"])
-                ]
-            ))
+                [lit!("a "), tag!(DEFAULT_TAG_NAMES.emphasis(), ["link"])]
+            )
+            .with_control(list!(lit!("./somewhere.png"))))
         )
     }
 

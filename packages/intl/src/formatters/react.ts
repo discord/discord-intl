@@ -27,14 +27,12 @@ export type ReactFunctionTypes = FunctionTypes<
 
 const h = React.createElement;
 export const DEFAULT_REACT_RICH_TEXT_ELEMENTS: RichTextFormattingMap<ReactFunctionTypes['hook']> = {
-  $_: () => '',
-  $b: (content, key) => h('strong', { key }, content),
-  $i: (content, key) => h('em', { key }, content),
-  $del: (content, key) => h('del', { key }, content),
-  $code: (content, key) => h('code', { key }, content),
-  // $link will always be [href, <empty>, ...content]
-  $link: ([href, ...content], key) => h('a', { href, key }, content),
-  $p: (content, key) => h('p', { key }, content),
+  $b: (content, _, key) => h('strong', { key }, content),
+  $i: (content, _, key) => h('em', { key }, content),
+  $del: (content, _, key) => h('del', { key }, content),
+  $code: (content, _, key) => h('code', { key }, content),
+  $link: (content, [href], key) => h('a', { href, key }, content),
+  $p: (content, _, key) => h('p', { key }, content),
 };
 
 /**
@@ -51,8 +49,12 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
     _nodeKey: number = 0;
     result: React.ReactNode[] = [];
 
-    pushRichTextTag(tag: RichTextTagNames, children: React.ReactNode[]) {
-      this.result.push(richTextElements[tag](children, `${this._nodeKey++}`));
+    pushRichTextTag(
+      tag: RichTextTagNames,
+      children: React.ReactNode[],
+      control: React.ReactNode[],
+    ) {
+      this.result.push(richTextElements[tag](children, control, `${this._nodeKey++}`));
     }
 
     pushLiteralText(text: string) {
@@ -65,8 +67,8 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
     }
 
     pushObject(value: object) {
-      // @ts-expect-error this is technically invalid, but we'll just assume that if a format returns
-      // an object, it'll be acting as some form of ReactNode.
+      // @ts-expect-error this is technically invalid, but we'll just assume that if a format
+      // returns an object, it'll be acting as some form of ReactNode.
       this.result.push(value);
     }
 

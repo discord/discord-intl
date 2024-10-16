@@ -1,4 +1,3 @@
-import { LiteralNode } from '@discord/intl-ast';
 import { createIntl, IntlShape } from '@formatjs/intl';
 import { Formatters } from 'intl-messageformat';
 

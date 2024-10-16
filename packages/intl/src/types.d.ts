@@ -193,8 +193,8 @@ export interface FunctionTypeMap {
 }
 
 export interface FunctionTypes<Result, HandlerType = () => void> {
-  link: undefined | ((content: Result[], key: string) => Result | Result[]);
-  hook: undefined | ((content: Result[], key: string) => Result | Result[]);
+  link: undefined | ((content: Result[], control: Result[], key: string) => Result | Result[]);
+  hook: undefined | ((content: Result[], control: Result[], key: string) => Result | Result[]);
   handler: undefined | HandlerType;
 }
 
@@ -265,7 +265,6 @@ export type RequiredFormatValues<
       >;
 
 export interface RichTextFormattingMap<T = any> {
-  $_: T;
   $b: T;
   $i: T;
   $p: T;

@@ -739,6 +739,7 @@ dependencies = [
  "bitflags",
  "criterion",
  "intl_markdown_macros",
+ "keyless_json",
  "memchr",
  "pulldown-cmark",
  "serde",

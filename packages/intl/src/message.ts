@@ -39,8 +39,6 @@ function serializeAst(ast: AstNode[], result: { value: string }) {
 
     switch (node[AstNodeIndices.Type]) {
       case FormatJsNodeType.Argument:
-        // Empties are an artifact of our parsing strategy, not necessary here.
-        if (result.value === '$_') return;
         result.value += '{' + node[AstNodeIndices.Value] + '}';
         return;
       case FormatJsNodeType.Date:

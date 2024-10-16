@@ -37,7 +37,7 @@ function isRichTextTag(name: string) {
 }
 
 export abstract class FormatBuilder<Result> {
-  abstract pushRichTextTag(tag: RichTextTagNames, children: Result[]): void;
+  abstract pushRichTextTag(tag: RichTextTagNames, children: Result[], control: Result[]): void;
   abstract pushLiteralText(text: string): void;
   abstract pushObject(value: object): void;
   abstract finish(): Result[];
@@ -89,10 +89,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
     const value = values[variableName];
     switch (nodeType) {
       case FormatJsNodeType.Argument:
-        // Empty values don't need to be added at all, they are purely for AST representation.
-        if (variableName == '$_') break;
-
-        if (typeof value === 'object') {
+        if (typeof value === 'object' || typeof value === 'function') {
           builder.pushObject(value);
         } else {
           // Taken from FormatJS: non-objects (strings, numbers, and falsy
@@ -149,6 +146,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
 
       case FormatJsNodeType.Tag: {
         const children = node[AstNodeIndices.Children];
+        const control = node[AstNodeIndices.Control];
         const appliedChildren = bindFormatValues(
           builder.constructor as FormatBuilderConstructor<T>,
           children,
@@ -158,8 +156,24 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
           values,
           currentPluralValue,
         );
+        const appliedControl =
+          control != null
+            ? bindFormatValues(
+                builder.constructor as FormatBuilderConstructor<T>,
+                control,
+                locales,
+                formatters,
+                formatConfig,
+                values,
+                currentPluralValue,
+              )
+            : [];
         if (isRichTextTag(variableName)) {
-          builder.pushRichTextTag(variableName as RichTextTagNames, appliedChildren);
+          builder.pushRichTextTag(
+            variableName as RichTextTagNames,
+            appliedChildren,
+            appliedControl,
+          );
         } else {
           if (typeof value !== 'function') {
             throw `expected a function type for a Tag formatting value, ${variableName}. got ${typeof value}: ${value}`;

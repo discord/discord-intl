@@ -1,5 +1,5 @@
-use serde::{Serialize, Serializer};
 use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
+use serde::{Serialize, Serializer};
 
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
@@ -15,6 +15,9 @@ pub(super) mod fjs_types {
     pub(crate) static TYPE: &str = "type";
     pub(crate) static VALUE: &str = "value";
     pub(crate) static CHILDREN: &str = "children";
+    /// Custom extension to FormatJS' AST allowing for meta information on nodes, like destinations
+    /// for links.
+    pub(crate) static CONTROL: &str = "control";
     pub(crate) static OPTIONS: &str = "options";
     pub(crate) static STYLE: &str = "style";
     pub(crate) static OFFSET: &str = "offset";
@@ -91,19 +94,6 @@ impl Serialize for SerializeHandler<'_> {
     }
 }
 
-struct SerializeEmpty;
-impl Serialize for SerializeEmpty {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut variable = serializer.serialize_struct("IcuVariable", 2)?;
-        variable.serialize_field(fjs_types::TYPE, &FormatJsElementType::Argument)?;
-        variable.serialize_field(fjs_types::VALUE, DEFAULT_TAG_NAMES.empty())?;
-        variable.end()
-    }
-}
-
 impl Serialize for Document {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -173,36 +163,23 @@ impl Serialize for Heading {
     }
 }
 
-struct SerializeLinkChildren<'a>(&'a TextOrPlaceholder, &'a Vec<InlineContent>);
-impl Serialize for SerializeLinkChildren<'_> {
+impl Serialize for TextOrPlaceholder {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let destination_len = match self.0 {
-            TextOrPlaceholder::Text(_) => 2,
-            _ => 1,
-        };
-
-        let mut children = serializer.serialize_seq(Some(self.1.len() + destination_len))?;
         // Insert the link destination as the first child of the link element. Static (plain text)
         // destinations get serialized as a custom tag `_`, which is used as a simple separator to
         // prevent FormatJS from joining adjacent text pieces together.
-        match self.0 {
+        match self {
             TextOrPlaceholder::Text(text) => {
-                children.serialize_element(&InlineContent::Text(text.clone()))?;
-                children.serialize_element(&SerializeEmpty)?
+                InlineContent::Text(text.clone()).serialize(serializer)
             }
-            TextOrPlaceholder::Placeholder(icu) => children.serialize_element(&icu)?,
+            TextOrPlaceholder::Placeholder(icu) => icu.serialize(serializer),
             TextOrPlaceholder::Handler(handler_name) => {
-                children.serialize_element(&SerializeHandler(handler_name))?
+                SerializeHandler(&handler_name).serialize(serializer)
             }
         }
-        // Then add the rest of the children directly.
-        for element in self.1 {
-            children.serialize_element(element)?;
-        }
-        children.end()
     }
 }
 
@@ -214,10 +191,8 @@ impl Serialize for Link {
         let mut link = serializer.serialize_struct("Link", 3)?;
         link.serialize_field(fjs_types::TYPE, &FormatJsElementType::Tag)?;
         link.serialize_field(fjs_types::VALUE, DEFAULT_TAG_NAMES.link())?;
-        link.serialize_field(
-            fjs_types::CHILDREN,
-            &SerializeLinkChildren(self.destination(), self.label()),
-        )?;
+        link.serialize_field(fjs_types::CHILDREN, &self.label())?;
+        link.serialize_field(fjs_types::CONTROL, self.destination())?;
         link.end()
     }
 }

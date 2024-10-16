@@ -1,14 +1,14 @@
 use intl_markdown::{
-    CodeBlock, CodeSpan, DEFAULT_TAG_NAMES, Emphasis, Heading, Hook, IcuDate, IcuNumber, IcuPlural,
-    IcuSelect, IcuTime, IcuVariable, Link, Paragraph, Strikethrough, Strong,
-    TextOrPlaceholder,
+    CodeBlock, CodeSpan, Emphasis, Heading, Hook, IcuDate, IcuNumber, IcuPlural, IcuSelect,
+    IcuTime, IcuVariable, Link, Paragraph, Strikethrough, Strong, TextOrPlaceholder,
+    DEFAULT_TAG_NAMES,
 };
 use intl_markdown_visitor::{Visit, VisitWith};
 
 use crate::database::symbol::key_symbol;
 use crate::KeySymbol;
 
-use super::{MessageVariables, MessageVariableType};
+use super::{MessageVariableType, MessageVariables};
 
 pub struct MessageVariablesVisitor {
     variables: MessageVariables,
@@ -139,18 +139,7 @@ impl Visit for MessageVariablesVisitor {
 
     fn visit_link_destination(&mut self, node: &TextOrPlaceholder) {
         match node {
-            TextOrPlaceholder::Text(_) => {
-                // When the link has a static text destination, an empty sentinel value is
-                // used to separate the destination from the content text. This is a special
-                // `$_` variable that must be provided at render time, so it counts as a
-                // variable for the message.
-                self.variables.add_instance(
-                    key_symbol(DEFAULT_TAG_NAMES.empty()),
-                    MessageVariableType::Any,
-                    true,
-                    None,
-                );
-            }
+            TextOrPlaceholder::Text(_) => {}
             TextOrPlaceholder::Handler(handler_name) => {
                 self.variables.add_instance(
                     key_symbol(&handler_name),
