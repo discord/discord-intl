@@ -35,14 +35,18 @@ function makePosixRelativePath(source, file) {
  * @param {string} source
  * @this {import('webpack').LoaderContext<{
  *   format: IntlCompiledMessageFormat,
- *   bundleSecrets: boolean
+ *   bundleSecrets: boolean,
+ *   jsonExportMode?: 'rspack' | 'webpack',
  * }>}
  */
 const intlLoader = function intlLoader(source) {
   const sourcePath = this.resourcePath;
   const forceTranslation = this.resourceQuery === '?forceTranslation';
-  const { bundleSecrets = false, format = IntlCompiledMessageFormat.KeylessJson } =
-    this.getOptions();
+  const {
+    bundleSecrets = false,
+    format = IntlCompiledMessageFormat.KeylessJson,
+    jsonExportMode = 'rspack',
+  } = this.getOptions();
 
   debug(`[${sourcePath}] Processing intl messages file (forceTranslation=${forceTranslation})`);
 
@@ -103,13 +107,23 @@ const intlLoader = function intlLoader(source) {
     });
 
     // Translations are still treated as JS files that need to be pre-parsed.
-    // Rspack will handle parsing for the actual JSON file requests.
-    if (forceTranslation) {
-      debug(`[${sourcePath}] Emitting JS module because forceTranslation was true`);
-      return 'export default JSON.parse(' + JSON.stringify(compiledResult?.toString()) + ')';
-    } else {
-      debug(`[${sourcePath}] Emitting plain JSON because forceTranslation was false`);
-      return compiledResult;
+    // Rspack will handle parsing for the actual JSON file requests, but
+    // Webpack won't, so there's also the configurable override to force a
+    // certain compilation method as needed.
+    switch (jsonExportMode) {
+      case 'rspack':
+        if (forceTranslation) {
+          debug(`[${sourcePath}] Emitting ESM JS compiled module`);
+          return 'export default JSON.parse(' + JSON.stringify(compiledResult?.toString()) + ')';
+        } else {
+          debug(`[${sourcePath}] Emitting plain JSON because forceTranslation was false`);
+          return compiledResult;
+        }
+      case 'webpack':
+        debug(`[${sourcePath}] Emitting CommonJS compiled module`);
+        return (
+          'exports["default"] = JSON.parse(' + JSON.stringify(compiledResult?.toString()) + ')'
+        );
     }
   }
 };

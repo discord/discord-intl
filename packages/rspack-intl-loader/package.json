@@ -3,7 +3,7 @@
   "version": "0.10.0-rc.1",
   "license": "MIT",
   "type": "commonjs",
-  "description": "Webpack/Rspack loader for i18n message definition files using intl-message-database",
+  "description": "Webpack/Rspack loader for i18n message definition files using @discord/intl",
   "exports": {
     ".": "./rspack-loader.js",
     "./types-plugin": "./types-plugin.js"
