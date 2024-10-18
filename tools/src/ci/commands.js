@@ -76,17 +76,15 @@ export default async function () {
     .action(async ({ dryRun, tag, failFast }) => {
       await git.rejectIfHasChanges(true);
 
-      console.log({
+      const options = {
         commit: git.currentHead(),
         publish: dryRun ? 'false' : 'true',
         'fail-fast': failFast ? 'true' : 'false',
         tag,
-      });
+      };
 
-      const run = await gh.runWorkflow('release.yaml', {
-        commit: git.currentHead(),
-        publish: dryRun ? 'false' : 'true',
-      });
+      console.log(options);
+      const run = await gh.runWorkflow('release.yaml', options);
 
       logWorkflowRunResponseOrExit(run);
     });
