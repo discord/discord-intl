@@ -293,5 +293,5 @@ export function isCompressedAst(
   if (!Array.isArray(node)) return false;
   // Otherwise just check the first element. If it's an array or a direct string, then the ast is
   // compressed as keyless.
-  return Array.isArray(node[0]) || typeof node[0] === 'string';
+  return Array.isArray(node[0]) || typeof node[0] === 'string' || typeof node === 'string';
 }

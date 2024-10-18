@@ -238,7 +238,7 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
 
 export function bindFormatValues<Result>(
   Builder: FormatBuilderConstructor<Result>,
-  nodes: AstNode[],
+  nodes: string | AstNode[],
   locales: string | string[],
   formatters: Formatters,
   formatConfig: FormatConfig,
@@ -246,14 +246,19 @@ export function bindFormatValues<Result>(
   currentPluralValue?: number,
 ): Result[] {
   const builder = new Builder();
-  bindFormatValuesWithBuilder(
-    builder,
-    nodes,
-    locales,
-    formatters,
-    formatConfig,
-    values,
-    currentPluralValue,
-  );
-  return builder.finish();
+  if (typeof nodes === 'string') {
+    builder.pushLiteralText(nodes);
+    return builder.finish();
+  } else {
+    bindFormatValuesWithBuilder(
+      builder,
+      nodes,
+      locales,
+      formatters,
+      formatConfig,
+      values,
+      currentPluralValue,
+    );
+    return builder.finish();
+  }
 }

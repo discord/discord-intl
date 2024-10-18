@@ -116,20 +116,7 @@ export class IntlManager {
    * immediately return the plain string value of the message in the current locale.
    */
   string<T extends TypedIntlMessageGetter<{}>>(message: T): string {
-    const resolved = message(this.currentLocale);
-    if (resolved == null || resolved.ast.length === 0) return '';
-
-    let result = '';
-    for (const element of resolved.ast) {
-      if (typeof element !== 'string') {
-        throw new Error(
-          'Attempted to call `string` formatting on a non-literal message: ' +
-            JSON.stringify(resolved),
-        );
-      }
-      result += element;
-    }
-    return result;
+    return message(this.currentLocale).reserialize();
   }
 
   /**
