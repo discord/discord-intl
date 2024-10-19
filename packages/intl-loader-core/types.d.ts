@@ -1,5 +1,7 @@
 import { IntlSourceFile } from '@discord/intl-message-database';
 
+export type * from '@discord/intl-message-database';
+
 export interface MessageDefinitionsTransformerOptions {
   /**
    * The map of message keys that this file manages to their original values. By default, only the

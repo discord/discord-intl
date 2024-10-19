@@ -77,6 +77,7 @@ function getBindingReferences(context, node) {
  *  property: Property & NodeParentExtension,
  *  value: SimpleLiteral | TemplateLiteral,
  *  definition: ObjectExpression | undefined,
+ *  name: string | undefined,
  * ) => void} MessageDefinitionCallback
  */
 
@@ -153,6 +154,20 @@ function traverseMessageDefinitions(context, callback) {
         // TODO: Apply a lint when a Spread is encountered? Or follow it to the definition.
         if (property.type === 'SpreadElement') continue;
 
+        const name = /** @type {string | undefined } */ (
+          (() => {
+            const key = property.key;
+            switch (key.type) {
+              case 'Literal':
+                return key.value;
+              case 'Identifier':
+                return key.name;
+              default:
+                return undefined;
+            }
+          })()
+        );
+
         switch (property.value.type) {
           case 'Literal':
           case 'TemplateLiteral':
@@ -160,6 +175,7 @@ function traverseMessageDefinitions(context, callback) {
               /** @type {Property & NodeParentExtension} */ (property),
               /** @type {SimpleLiteral | TemplateLiteral} */ (property.value),
               undefined,
+              name,
             );
             break;
           case 'ObjectExpression': {
@@ -178,6 +194,7 @@ function traverseMessageDefinitions(context, callback) {
               /** @type {Property & NodeParentExtension} */ (property),
               /** @type {SimpleLiteral} */ (messageProperty.value),
               property.value,
+              name,
             );
           }
         }
