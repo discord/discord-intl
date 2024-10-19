@@ -9,6 +9,7 @@ pub fn validate_message_value(message: &MessageValue) -> Vec<ValueDiagnostic> {
     let mut validators: Vec<Box<dyn Validator>> = vec![
         Box::new(validators::NoUnicodeVariableNames::new()),
         Box::new(validators::NoRepeatedPluralNames::new()),
+        Box::new(validators::NoRepeatedPluralOptions::new()),
         Box::new(validators::NoTrimmableWhitespace::new()),
     ];
     for validator in validators.iter_mut() {
