@@ -140,7 +140,7 @@ class MessageDefinitionsTransformer {
     return [
       this.options.getPrelude?.() ?? '// No additional prelude was configured.',
       `const {createLoader} = require('@discord/intl');`,
-      `const _keys = ${JSON.stringify(this.options.messageKeys)};`,
+      `const _keys = ${JSON.stringify(Object.keys(this.options.messageKeys))};`,
       `const _locales = ${this.getLocaleRequireMap()};`,
       `const _defaultLocale = ${JSON.stringify(this.options.defaultLocale)};`,
       `const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,

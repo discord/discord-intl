@@ -194,15 +194,14 @@ export class MessageLoader {
    */
   getBinds(): Record<string, IntlMessageGetter> {
     const onChange = this.onChange.bind(this);
-    return Object.keys(this.messageKeys).reduce(
-      (acc, key) => {
-        const bound = this.get.bind(this, key) as IntlMessageGetter;
-        bound.onChange = onChange;
-        acc[key] = bound;
-        return acc;
-      },
-      {} as Record<string, IntlMessageGetter>,
-    );
+    const result: Record<string, IntlMessageGetter> = {};
+    for (const key in this.messageKeys) {
+      const bound = (locale: LocaleId) => this.get(key, locale);
+      bound.onChange = onChange;
+      result[key] = bound;
+    }
+
+    return result;
   }
 
   async _loadLocale(locale: LocaleId) {
