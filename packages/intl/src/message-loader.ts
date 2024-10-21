@@ -195,7 +195,7 @@ export class MessageLoader {
   getBinds(): Record<string, IntlMessageGetter> {
     const onChange = this.onChange.bind(this);
     const result: Record<string, IntlMessageGetter> = {};
-    for (const key in this.messageKeys) {
+    for (const key of this.messageKeys) {
       const bound = (locale: LocaleId) => this.get(key, locale);
       bound.onChange = onChange;
       result[key] = bound;
