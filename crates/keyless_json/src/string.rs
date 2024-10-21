@@ -1,7 +1,7 @@
 //! Adapted almost entirely from serde_json's string formatting.
 use std::io::Write;
 
-pub(crate) fn write_escaped_str_contents<W>(writer: &mut W, value: &str) -> std::io::Result<()>
+pub fn write_escaped_str_contents<W>(writer: &mut W, value: &str) -> std::io::Result<()>
 where
     W: ?Sized + Write,
 {

@@ -289,6 +289,8 @@ export function isCompressedAst(node: AstNode[] | FullFormatJsNode[]): node is A
 export function isCompressedAst(
   node: AstNode | FullFormatJsNode | AstNode[] | FullFormatJsNode[],
 ): boolean {
+  if (typeof node === 'string') return true;
+
   // Not an array at all means this is a singular fully-typed node.
   if (!Array.isArray(node)) return false;
   // Otherwise just check the first element. If it's an array or a direct string, then the ast is

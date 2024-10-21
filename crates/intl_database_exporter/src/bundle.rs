@@ -2,7 +2,9 @@ use thiserror::Error;
 
 use intl_database_core::{KeySymbol, Message, MessageValue, MessagesDatabase};
 use intl_database_service::IntlDatabaseService;
-use intl_markdown::{compile_to_format_js, raw_string_to_document, Document};
+use intl_markdown::{
+    compile_to_format_js, raw_string_to_document, BlockNode, Document, InlineContent,
+};
 
 #[derive(Debug, Error)]
 pub enum IntlMessageBundlerError {
@@ -112,7 +114,40 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
         message.meta().secret && !self.options.bundle_secrets
     }
 
+    fn maybe_serialize_static_document(&mut self, document: &Document) -> anyhow::Result<bool> {
+        if document.blocks().len() > 1 {
+            return Ok(false);
+        }
+
+        let Some(BlockNode::InlineContent(items)) = document.blocks().get(0) else {
+            return Ok(false);
+        };
+
+        let mut buffer = Vec::with_capacity(items.len() * 20);
+
+        for item in items {
+            match item {
+                InlineContent::Text(text) => {
+                    keyless_json::write_escaped_str_contents(&mut buffer, &text)?
+                }
+                _ => return Ok(false),
+            }
+        }
+
+        self.output.write(&[b'"'])?;
+        self.output.write(&buffer)?;
+        self.output.write(&[b'"'])?;
+        Ok(true)
+    }
+
     fn serialize_document(&mut self, document: &Document) -> anyhow::Result<()> {
+        // Serialize static documents as single strings, both for space savings and faster runtime
+        // evaluation.
+        if let Ok(true) = self.maybe_serialize_static_document(document) {
+            return Ok(());
+        }
+
+        // For any other document, just serialize it as-is.
         match self.options.format {
             CompiledMessageFormat::Json => Ok(serde_json::to_writer(&mut self.output, &document)?),
             CompiledMessageFormat::KeylessJson => Ok(keyless_json::to_writer(

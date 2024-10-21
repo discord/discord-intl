@@ -10,7 +10,7 @@ import {
 
 export class InternalIntlMessage {
   locale: string;
-  ast: AstNode[];
+  ast: string | AstNode[];
 
   constructor(messageOrAst: AstNode[] | FullFormatJsNode[], locale: string) {
     this.locale = locale;
@@ -22,6 +22,8 @@ export class InternalIntlMessage {
    * formatting or values applied.
    */
   reserialize(): string {
+    if (typeof this.ast === 'string') return this.ast;
+
     const result = { value: '' };
     serializeAst(this.ast, result);
     return result.value;

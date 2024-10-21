@@ -54,7 +54,7 @@ export class MessageLoader {
   /**
    * Map of pre-parsed messages, keyed by the message key and locale
    */
-  _parseCache: Map<string, InternalIntlMessage>;
+  _parseCache: Record<LocaleId, { [name: string]: InternalIntlMessage }>;
 
   /**
    * List of subscribers listening for changes to the current locale and
@@ -98,7 +98,7 @@ export class MessageLoader {
     this.defaultLocale = defaultLocale;
 
     this._localeLoadingPromises = {};
-    this._parseCache = new Map();
+    this._parseCache = {};
     this._subscribers = new Set();
 
     this._loadLocale(this.defaultLocale);
@@ -112,7 +112,7 @@ export class MessageLoader {
         // @ts-expect-error `hot` not defined in types.
         module.hot.accept(file, async () => {
           await this._loadLocale(locale);
-          this._parseCache.clear();
+          this._parseCache = {};
         });
       }
     }
@@ -160,9 +160,8 @@ export class MessageLoader {
    * returning.
    */
   getMessageValue(key: string, locale: LocaleId): InternalIntlMessage | undefined {
-    const cacheKey = key + '@' + locale;
-    const cachedValue = this._parseCache.get(cacheKey);
-    if (cachedValue != null) return cachedValue;
+    const parsed = this._parseCache[locale]?.[key];
+    if (parsed) return parsed;
 
     // Check whether the locale exists in memory. If not, start a request to
     // load the locale if one has not already started. It's impossible for
@@ -179,7 +178,7 @@ export class MessageLoader {
     if (key in this.messages[locale]) {
       const content = this.messages[locale][key];
       const message = new InternalIntlMessage(content, locale);
-      this._parseCache.set(cacheKey, message);
+      (this._parseCache[locale] ??= {})[key] = message;
       return message;
     }
 
