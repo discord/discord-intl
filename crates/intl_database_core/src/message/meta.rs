@@ -29,6 +29,9 @@ pub struct SourceFileMeta {
     /// for all messages contained in the set.
     #[serde(rename = "sourceFilePath")]
     pub source_file_path: PathBuf,
+    /// Optional additional context for the source file, giving more information  about where its
+    /// messages may be used or how the messages are intended to be grouped.
+    pub description: Option<String>,
 }
 
 impl SourceFileMeta {
@@ -38,6 +41,7 @@ impl SourceFileMeta {
             translate: true,
             translations_path: "./messages".into(),
             source_file_path: source_file_path.into(),
+            description: None,
         }
     }
 
@@ -55,6 +59,10 @@ impl SourceFileMeta {
     }
     pub fn with_source_file_path(mut self, source_file_path: &str) -> Self {
         self.source_file_path = PathBuf::from(source_file_path);
+        self
+    }
+    pub fn with_description(mut self, description: &str) -> Self {
+        self.description = Some(String::from(description));
         self
     }
 
@@ -78,20 +86,22 @@ impl SourceFileMeta {
 }
 
 /// Meta information about how a message should be handled and processed. MessageMeta
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MessageMeta {
-    /// Whether the message should be considered private and not suitable for
-    /// inclusion in production builds. Message consumers can use this
-    /// information to control how messages are bundled. `secret` messages also
-    /// have  additional rules and guardrails applied to them to help ensure
-    /// secrecy while letting them be used freely in development and getting
-    /// translations prepared for synchronized launches.
+    /// Whether the message should be considered private and not suitable for  inclusion in
+    /// production builds. Message consumers can use this  information to control how messages are
+    /// bundled. `secret` messages also have additional rules and guardrails applied to them to help
+    /// ensure secrecy while letting them be used freely in development and getting translations
+    /// prepared for synchronized launches.
     pub secret: bool,
-    /// Whether the message is suitable to be sent for translation, and whether
-    /// existing translations should be included when building projects that
-    /// include this message. When `false`, the default message value will be
-    /// used in all locales, no matter if there is a translation present.
+    /// Whether the message is suitable to be sent for translation, and whether existing
+    /// translations should be included when building projects that include this message. When
+    /// `false`, the default message value will be used in all locales, no matter if there is a
+    /// translation present.
     pub translate: bool,
+    /// Optional additional context for the source file, giving more information about where its
+    /// messages may be used or how the messages are intended to be grouped.
+    pub description: Option<String>,
 }
 
 impl Default for MessageMeta {
@@ -99,6 +109,7 @@ impl Default for MessageMeta {
         Self {
             secret: false,
             translate: true,
+            description: None,
         }
     }
 }
@@ -112,6 +123,10 @@ impl MessageMeta {
         self.translate = translate;
         self
     }
+    pub fn with_description(mut self, description: &str) -> Self {
+        self.description = Some(String::from(description));
+        self
+    }
 }
 
 impl From<&SourceFileMeta> for MessageMeta {
@@ -119,6 +134,7 @@ impl From<&SourceFileMeta> for MessageMeta {
         MessageMeta {
             secret: value.secret,
             translate: value.translate,
+            description: None,
         }
     }
 }

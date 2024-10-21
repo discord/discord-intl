@@ -216,6 +216,9 @@ impl MessageDefinitionsExtractor {
             "translationsPath" => self
                 .parse_string_value(value)
                 .map(|value| self.root_meta.translations_path = value.into()),
+            "description" => self
+                .parse_string_value(value)
+                .map(|value| self.root_meta.description = Some(value)),
             _ => None,
         };
     }
@@ -234,6 +237,9 @@ impl MessageDefinitionsExtractor {
             "translate" => self
                 .parse_boolean_value(value)
                 .map(|value| target.translate = value),
+            "description" => self
+                .parse_string_value(value)
+                .map(|value| target.description = Some(value)),
             _ => None,
         };
     }
