@@ -28,6 +28,7 @@ impl Into<intl_database_exporter::IntlMessageBundlerOptions> for IntlMessageBund
 
 #[napi(object)]
 pub struct IntlDiagnostic {
+    pub name: String,
     pub key: String,
     pub file: String,
     pub line: u32,
@@ -41,6 +42,7 @@ pub struct IntlDiagnostic {
 impl From<MessageDiagnostic> for IntlDiagnostic {
     fn from(value: MessageDiagnostic) -> Self {
         Self {
+            name: value.name.to_string(),
             key: value.key.to_string(),
             file: value.file_position.file.to_string(),
             line: value.file_position.line,

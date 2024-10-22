@@ -32,6 +32,7 @@ export declare const enum IntlCompiledMessageFormat {
 }
 
 export interface IntlDiagnostic {
+  name: string
   key: string
   file: string
   line: number

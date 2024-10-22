@@ -1,6 +1,6 @@
 // enforce-foo-bar.test.js
 const { RuleTester } = require('eslint');
-const trimmedWhitespace = require('./trimmed-whitespace');
+const noTrimmableWhitespace = require('./no-trimmable-whitespace');
 
 const ruleTester = new RuleTester({
   // Must use at least ecmaVersion 2015 because
@@ -19,7 +19,7 @@ function defineMessages(messages) {
   `;
 }
 
-ruleTester.run('trimmed-whitespace', trimmedWhitespace, {
+ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
   valid: [
     {
       name: 'normal strings',
@@ -52,12 +52,7 @@ ruleTester.run('trimmed-whitespace', trimmedWhitespace, {
         B: 'trailing whitespace  ',
         C: '  surrounding whitespace  ',
       }`),
-      output: defineMessages(`{
-        A: 'leading whitespace',
-        B: 'trailing whitespace',
-        C: 'surrounding whitespace',
-      }`),
-      errors: 3,
+      errors: 4,
     },
     {
       code: defineMessages(`{
@@ -65,12 +60,7 @@ ruleTester.run('trimmed-whitespace', trimmedWhitespace, {
         B: 'trailing whitespace\t',
         C: '\tsurrounding whitespace\t',
       }`),
-      output: defineMessages(`{
-        TABS: 'leading whitespace',
-        B: 'trailing whitespace',
-        C: 'surrounding whitespace',
-      }`),
-      errors: 3,
+      errors: 4,
     },
     {
       code: defineMessages(`{
@@ -78,52 +68,25 @@ ruleTester.run('trimmed-whitespace', trimmedWhitespace, {
         B: 'trailing whitespace\\n',
         C: '\\nsurrounding whitespace\\n',
       }`),
-      output: defineMessages(`{
-        NEWLINES: 'leading whitespace',
-        B: 'trailing whitespace',
-        C: 'surrounding whitespace',
-      }`),
-      errors: 3,
+      errors: 4,
     },
     {
       code: defineMessages(`{
         MIXED: '\\n  \\t leading\\n  \\twhitespace  \\t\\n',
       }`),
-      output: defineMessages(`{
-        MIXED: 'leading\\n  \\twhitespace',
-      }`),
-      errors: 1,
+      errors: 2,
     },
     {
       code: defineMessages(`{
         ONLY_BROKEN: '\\n \\t leading\\n  \\twhitespace  \\t\\n',
         VALID: 'valid string',
       }`),
-      output: defineMessages(`{
-        ONLY_BROKEN: 'leading\\n  \\twhitespace',
-        VALID: 'valid string',
-      }`),
-      errors: 1,
-    },
-    {
-      name: 'template quasis',
-      code: defineMessages('{ A: `no trimmed whitespace`, QUASI: ` ${  space  } ` }'),
-      output: defineMessages('{ A: `no trimmed whitespace`, QUASI: `${  space  }` }'),
-      errors: 1,
-    },
-    {
-      name: 'multiline templates',
-      code: defineMessages('{ A: `no trimmed whitespace`, QUASI: `\n\t${  space  }\n  ` }'),
-      output: defineMessages('{ A: `no trimmed whitespace`, QUASI: `${  space  }` }'),
-      errors: 1,
+      errors: 2,
     },
     {
       name: 'object',
       code: defineMessages(
         '{ A: { message: " no whitespace", description: "  does not matter here  " }}',
-      ),
-      output: defineMessages(
-        '{ A: { message: "no whitespace", description: "  does not matter here  " }}',
       ),
       errors: 1,
     },

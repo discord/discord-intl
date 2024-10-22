@@ -120,6 +120,20 @@ function traverseMessageAccesses(context, callback) {
 }
 
 /**
+ * Returns true if the given file should be treated as a message definitions file, either by the
+ * name of the file or by the content it includes.
+ *
+ * @param {string} fileName
+ * @param {string} content
+ */
+function isDefinitionsFile(fileName, content) {
+  if (isMessageDefinitionsFile(fileName)) return true;
+  // Any file importing `defineMessages` _should_ be a message definitions file with
+  // the expected structure.
+  return content.match('import { ?defineMessages ?} from [\'"]@discord/intl[\'"]') != null;
+}
+
+/**
  * Visit all Message definitions in the file, invoking `callback` for each one with the string
  * value node as the first argument and, if present, the full definition object as the second
  * argument.
@@ -233,6 +247,7 @@ function traverseMessageObjectReferences(context, callback) {
 }
 
 module.exports = {
+  isDefinitionsFile,
   traverseMessageAccesses,
   traverseMessageDefinitions,
   traverseMessageObjectReferences,

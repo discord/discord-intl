@@ -1,8 +1,8 @@
 use intl_database_core::MessageValue;
 
-use crate::diagnostic::ValueDiagnostic;
-use crate::DiagnosticSeverity;
+use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
+use crate::DiagnosticSeverity;
 
 pub struct NoTrimmableWhitespace;
 impl NoTrimmableWhitespace {
@@ -17,6 +17,7 @@ impl Validator for NoTrimmableWhitespace {
         let content = &message.raw;
         if content.trim_start() != content {
             diagnostics.push(ValueDiagnostic {
+                name: DiagnosticName::NoTrimmableWhitespace,
                 span: None,
                 severity: DiagnosticSeverity::Warning,
                 description: "Avoid leading whitespace on messages".into(),
@@ -25,6 +26,7 @@ impl Validator for NoTrimmableWhitespace {
         }
         if content.trim_end() != content {
             diagnostics.push(ValueDiagnostic {
+                name: DiagnosticName::NoTrimmableWhitespace,
                 span: None,
                 severity: DiagnosticSeverity::Warning,
                 description: "Avoid trailing whitespace on messages".into(),

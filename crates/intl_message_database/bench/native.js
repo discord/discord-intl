@@ -56,12 +56,12 @@ bench('export translations', () => {
 
 bench('validate', () => {
   const validations = database.validateMessages();
-  // console.log(
-  //   util.inspect(
-  //     validations.filter((d) => d.severity === 'warning' && !d.description.startsWith('Plural')),
-  //     { depth: null },
-  //   ),
-  // );
+  console.log(
+    util.inspect(
+      validations.filter((d) => d.severity === 'error'),
+      { depth: null },
+    ),
+  );
 });
 
 bench('generate types', () => {

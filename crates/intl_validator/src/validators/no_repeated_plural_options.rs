@@ -3,7 +3,7 @@ use intl_markdown::IcuPlural;
 use intl_markdown_visitor::{visit_with_mut, Visit};
 use std::collections::HashSet;
 
-use crate::diagnostic::ValueDiagnostic;
+use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
 use crate::DiagnosticSeverity;
 
@@ -46,6 +46,7 @@ impl Visit for NoRepeatedPluralOptions {
 
         for name in repeated_names {
             let diagnostic = ValueDiagnostic {
+                name: DiagnosticName::NoRepeatedPluralOptions,
                 span: None,
                 severity: DiagnosticSeverity::Error,
                 description: String::from(
