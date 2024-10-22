@@ -201,7 +201,14 @@ function hydrateSingle(keyless: string | Array<any>): FullFormatJsNode {
  * used again after hydrating.
  */
 export function hydrateFormatJsAst(keyless: Array<Array<any>>): FullFormatJsNode[];
-export function hydrateFormatJsAst(keyless: Array<any>): FullFormatJsNode | FullFormatJsNode[] {
+export function hydrateFormatJsAst(
+  keyless: string | Array<any>,
+): FullFormatJsNode | FullFormatJsNode[] {
+  // If the entire ast is just a string, then it's a single-element static string.
+  if (typeof keyless === 'string') {
+    return hydrateSingle(keyless);
+  }
+
   // If the first element of the array is a string, then we _do_ have an array of elements, but the
   // first one is a literal node.
   if (typeof keyless[0] === 'string') {
