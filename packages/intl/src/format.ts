@@ -192,18 +192,17 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
       }
 
       case FormatJsNodeType.Select: {
-        const value = node[AstNodeIndices.Value];
+        const requestedOption = value as string;
         const options = node[AstNodeIndices.Options];
-        const option = value in options ? options[value] : options.other;
+        const option = requestedOption in options ? options[requestedOption] : options.other;
         if (option == null) {
-          throw `${value} is not a known option for select value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
+          throw `${requestedOption} is not a known option for select value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
         }
         bindFormatValuesWithBuilder(builder, option, locales, formatters, formatConfig, values);
         break;
       }
 
       case FormatJsNodeType.Plural: {
-        const value = node[AstNodeIndices.Value];
         const options = node[AstNodeIndices.Options];
         const offset = node[AstNodeIndices.Offset];
         const pluralType = node[AstNodeIndices.PluralType];
@@ -227,8 +226,8 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
           formatters,
           formatConfig,
           values,
-          // @ts-expect-error assert this `as number` properly.
-          (value as number) - (node.offset ?? 0),
+          // @ts-expect-error assert this `as number` properly
+          (value as number) - (offset ?? 0),
         );
         break;
       }
