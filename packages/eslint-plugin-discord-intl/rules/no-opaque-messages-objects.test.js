@@ -62,14 +62,6 @@ ruleTester.run('no-opaque-messages-objects', noOpaqueMessagesObjects, {
       errors: 1,
     },
     {
-      name: 'passing whole object',
-      code: `
-      import messages from 'Feature.messages';
-      otherFunction(messages);
-      `,
-      errors: 1,
-    },
-    {
       name: 'typeof messages value',
       code: `
       import messages from 'Feature.messages';
@@ -85,6 +77,72 @@ ruleTester.run('no-opaque-messages-objects', noOpaqueMessagesObjects, {
       function foo(strings: typeof messages) {}
       `,
       errors: 1,
+    },
+    {
+      name: 'spread object property',
+      parser: typescriptParser,
+      code: `
+      import messages from 'Feature.messages';
+      const allMessages = {...messages};
+      `,
+      errors: 1,
+    },
+    {
+      name: 'direct object property',
+      parser: typescriptParser,
+      code: `
+      import messages from 'Feature.messages';
+      const container = {messages};
+      `,
+      errors: 1,
+    },
+    {
+      name: 'direct object property',
+      parser: typescriptParser,
+      code: `
+      import messages from 'Feature.messages';
+      const container = {messages};
+      `,
+      errors: 1,
+    },
+    {
+      name: 'variable assignment',
+      parser: typescriptParser,
+      code: `
+      import messages from 'Feature.messages';
+      const other = messages;
+      `,
+      errors: 1,
+    },
+    {
+      name: 'variable assignment',
+      parser: typescriptParser,
+      code: `
+      import messages from 'Feature.messages';
+      const other = messages;
+      `,
+      errors: 1,
+    },
+    {
+      name: 'conditional messages',
+      parser: typescriptParser,
+      code: `
+      import messages1 from 'Feature1.messages';
+      import messages2 from 'Feature2.messages';
+      const messages = someCondition ? messages1 : messages2;
+      `,
+      errors: 2,
+    },
+    {
+      name: 're-exporting',
+      parser: typescriptParser,
+      code: `
+      import messages from 'Feature.messages';
+      export {messages};
+      export default {...messages};
+      export const foo = messages;
+      `,
+      errors: 3,
     },
   ],
 });
