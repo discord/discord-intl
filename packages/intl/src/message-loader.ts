@@ -3,18 +3,13 @@ import { InternalIntlMessage } from './message';
 
 /**
  * Type representing the serialized content of a translations file, which is a record of hashed
- * message keys to their AST structure. This type represents both compressed, keyless AstNodes as
- * well as fully-typed, object FullFormatJsNodes as the message content, since either can be given
- * depending on the configuration of the bundler/compiler.
+ * message keys to their AST structure. This type represents both compressed, keyless AstNodes and
+ * fully-typed, object FullFormatJsNodes as the message content, since either can be given depending
+ * on the configuration of the bundler/compiler.
  */
 type MessagesData = Record<string, AstNode[] | FullFormatJsNode[]>;
-export interface IntlMessageGetterAdditions {
-  onChange(callback: () => void): () => void;
-}
 
-export interface IntlMessageGetter extends IntlMessageGetterAdditions {
-  (locale: LocaleId): InternalIntlMessage;
-}
+export type IntlMessageGetter = (this: MessageLoader, locale: LocaleId) => InternalIntlMessage;
 
 export type LocaleId = string;
 
@@ -193,12 +188,9 @@ export class MessageLoader {
    * for that key.
    */
   getBinds(): Record<string, IntlMessageGetter> {
-    const onChange = this.onChange.bind(this);
     const result: Record<string, IntlMessageGetter> = {};
     for (const key of this.messageKeys) {
-      const bound = (locale: LocaleId) => this.get(key, locale);
-      bound.onChange = onChange;
-      result[key] = bound;
+      result[key] = this.get.bind(this, key);
     }
 
     return result;
