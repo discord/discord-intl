@@ -1,5 +1,4 @@
 import type { InternalIntlMessage } from './message';
-import type { IntlMessageGetterAdditions } from './message-loader';
 import { FormatBuilderConstructor } from './format';
 
 /**
@@ -42,7 +41,7 @@ export type IntlTime = string | number | Date | null | undefined;
 export type PlainIntlMessage = string;
 export type AnyIntlMessage = PlainIntlMessage | InternalIntlMessage;
 
-export interface IntlMessageGetter extends IntlMessageGetterAdditions {
+export interface IntlMessageGetter {
   (locale: string): InternalIntlMessage | PlainIntlMessage;
 }
 
@@ -52,8 +51,7 @@ export interface IntlMessageGetter extends IntlMessageGetterAdditions {
  * value types that are required to format the message, or `{}` to represent
  * that there are no values required and the message is a plain string.
  */
-export interface TypedIntlMessageGetter<FormatValues extends object>
-  extends IntlMessageGetterAdditions {
+export interface TypedIntlMessageGetter<FormatValues extends object> {
   // TODO: This is lossy and unfortunate that typing can't be propagated
   // to the returned message type, but doing so causes problems with
   // contravariance of the type. When returning a message getter from a
