@@ -16,8 +16,9 @@ const debug = require('debug')('intl:metro-intl-transformer');
  *  getPrelude: () => string
  *  getTranslationAssetExtension: () => string,
  *  getTranslationImport: (importPath: string) => string,
- *  format: IntlCompiledMessageFormat,
+ *  format?: IntlCompiledMessageFormat,
  *  bundleSecrets?: boolean,
+ *  preGenerateBinds?: boolean,
  * }} options
  * @returns {string | Buffer}
  */
@@ -29,6 +30,7 @@ function transformToString({
   getTranslationImport,
   format = IntlCompiledMessageFormat.KeylessJson,
   bundleSecrets = false,
+  preGenerateBinds = true,
 }) {
   if (isMessageDefinitionsFile(filename)) {
     debug(`[${filename}] Processing as a definitions file`);
@@ -54,6 +56,7 @@ function transformToString({
       getTranslationImport,
       getPrelude,
       debug: process.env.NODE_ENV === 'development',
+      preGenerateBinds,
     }).getOutput();
   } else if (isMessageTranslationsFile(filename)) {
     debug(`[${filename}] Processing as a translations file`);

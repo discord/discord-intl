@@ -186,6 +186,13 @@ export class MessageLoader {
    * for `get` with the that key as the first argument, allowing consumers to
    * just call the function with a locale to retrieve the translated message
    * for that key.
+   *
+   * This method is provided as a way to generate binds _at runtime_, but for
+   * very-large messages files (e.g., thousands of messages), this can be a
+   * non-negligible cost. Where feasible, consider generating these binds
+   * at build/bundle time, especially in cases where they can be substantially
+   * minified (i.e., Hermes bytecode). This is provided automatically as an
+   * option when using one of `@discord/intl`'s transformers.
    */
   getBinds(): Record<string, IntlMessageGetter> {
     const result: Record<string, IntlMessageGetter> = {};

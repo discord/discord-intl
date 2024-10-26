@@ -111,15 +111,21 @@ class MessageDefinitionsTransformer {
   }
 
   /**
-   * Return a map of key names to bound message getter functions.
+   * Return a map of key names to bound message getter functions. If `preGenerateBinds` is
+   * configured to be `true`, the binds will be created as a constant object in the output.
+   * Otherwise, the generation will be done at runtime through the `getBinds` method on the loader.
    */
   createBindsObject() {
-    /** @type {string[]} */
-    const bindLines = [];
-    for (const bind of Object.keys(this.options.messageKeys)) {
-      bindLines.push(`"${bind}"(locale) { return ${this.loaderName}.get("${bind}", locale) }`);
+    if (this.options.preGenerateBinds) {
+      /** @type {string[]} */
+      const bindLines = [];
+      for (const bind of Object.keys(this.options.messageKeys)) {
+        bindLines.push(`"${bind}"(locale) { return ${this.loaderName}.get("${bind}", locale) }`);
+      }
+      return `{${bindLines.join(',')}}`;
+    } else {
+      return `${this.loaderName}.getBinds()`;
     }
-    return `{${bindLines.join(',')}}`;
   }
 
   /**

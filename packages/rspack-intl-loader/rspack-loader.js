@@ -37,6 +37,7 @@ function makePosixRelativePath(source, file) {
  *   format: IntlCompiledMessageFormat,
  *   bundleSecrets: boolean,
  *   jsonExportMode?: 'rspack' | 'webpack',
+ *   preGenerateBinds?: boolean,
  * }>}
  */
 const intlLoader = function intlLoader(source) {
@@ -46,6 +47,7 @@ const intlLoader = function intlLoader(source) {
     bundleSecrets = false,
     format = IntlCompiledMessageFormat.KeylessJson,
     jsonExportMode = 'rspack',
+    preGenerateBinds,
   } = this.getOptions();
 
   debug(`[${sourcePath}] Processing intl messages file (forceTranslation=${forceTranslation})`);
@@ -87,6 +89,7 @@ const intlLoader = function intlLoader(source) {
       defaultLocale: result.locale,
       getTranslationImport: (importPath) => `import("${importPath}")`,
       debug: process.env.NODE_ENV === 'development',
+      preGenerateBinds,
     }).getOutput();
   } else {
     const locale = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
