@@ -7,6 +7,10 @@
     ".": "./index.js",
     "./asset-plugin": "./asset-plugin.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  },
   "dependencies": {
     "@discord/babel-plugin-transform-discord-intl": "workspace:*",
     "@discord/intl-loader-core": "workspace:*",

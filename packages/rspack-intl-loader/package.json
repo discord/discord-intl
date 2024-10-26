@@ -8,6 +8,10 @@
     ".": "./rspack-loader.js",
     "./types-plugin": "./types-plugin.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  },
   "peerDependencies": {
     "@rspack/core": "0.x || 1.x",
     "webpack": "^5.0.0"

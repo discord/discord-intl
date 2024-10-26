@@ -6,6 +6,10 @@
   "exports": {
     ".": "./index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  },
   "dependencies": {
     "@discord/intl-loader-core": "workspace:*"
   }

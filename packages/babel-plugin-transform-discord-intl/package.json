@@ -9,6 +9,10 @@
     ".": "./index.js",
     "./traverse": "./traverse.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  },
   "dependencies": {
     "@discord/intl-loader-core": "workspace:*",
     "@typescript-eslint/scope-manager": "^8.8.1"
