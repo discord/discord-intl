@@ -38,16 +38,6 @@
     "typescript": "*"
   },
   "peerDependencies": {
-    "@rspack/core": "0.x || 1.x",
-    "react": "> 16",
-    "webpack": "^5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@rspack/core": {
-      "optional": true
-    },
-    "webpack": {
-      "optional": true
-    }
+    "react": "> 16"
   }
 }
