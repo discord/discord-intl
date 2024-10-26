@@ -114,17 +114,24 @@ class MessageDefinitionsTransformer {
    * Return a map of key names to bound message getter functions. If `preGenerateBinds` is
    * configured to be `true`, the binds will be created as a constant object in the output.
    * Otherwise, the generation will be done at runtime through the `getBinds` method on the loader.
+   *
+   * @returns {string[]}
    */
-  createBindsObject() {
+  createLoaderAndBinds() {
     if (this.options.preGenerateBinds) {
-      /** @type {string[]} */
-      const bindLines = [];
-      for (const bind of Object.keys(this.options.messageKeys)) {
-        bindLines.push(`"${bind}"(locale) { return ${this.loaderName}.get("${bind}", locale) }`);
-      }
-      return `{${bindLines.join(',')}}`;
+      const bindLines = Object.keys(this.options.messageKeys).map(
+        (bind) => `"${bind}"(locale) { return ${this.loaderName}.get("${bind}", locale) }`,
+      );
+      return [
+        `const binds = {${bindLines.join(',')}};`,
+        `const ${this.loaderName} = createLoader(Object.keys(binds), _locales, _defaultLocale);`,
+      ];
     } else {
-      return `${this.loaderName}.getBinds()`;
+      return [
+        `const _keys = ${JSON.stringify(Object.keys(this.options.messageKeys))};`,
+        `const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
+        `const binds = ${this.loaderName}.getBinds();`,
+      ];
     }
   }
 
@@ -132,9 +139,9 @@ class MessageDefinitionsTransformer {
    * Return the lines to export fields from this module, as determined by the `exportMode` on this
    * transformer.
    *
-   * @param {string} bindsName Name of the identifier to be exported as the default binds object.
+   * @returns {string[]}
    */
-  exportFields(bindsName) {
+  exportFields() {
     switch (this.options.exportMode ?? 'esm') {
       case 'esm':
         return [`export {${this.loaderName}};`, `export default binds;`];
@@ -157,16 +164,14 @@ class MessageDefinitionsTransformer {
    * @returns {string}
    */
   getOutput() {
-    const bindsObject = this.createBindsObject();
     return [
       this.options.getPrelude?.() ?? '// No additional prelude was configured.',
       `const {createLoader} = require('@discord/intl');`,
-      `const binds = ${bindsObject}`,
       `const _locales = ${this.getLocaleRequireMap()};`,
       `const _defaultLocale = ${JSON.stringify(this.options.defaultLocale)};`,
-      `const ${this.loaderName} = createLoader(Object.keys(binds), _locales, _defaultLocale);`,
+      ...this.createLoaderAndBinds(),
       ...this.debugModeSetup(),
-      ...this.exportFields('binds'),
+      ...this.exportFields(),
     ].join('\n');
   }
 }
