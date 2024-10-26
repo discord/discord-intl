@@ -49,14 +49,14 @@ export function npmPublishCommand(commandName = 'publish', pack) {
  * @param {{
  *   dryRun?: boolean,
  *   access?: 'public' | 'restricted',
- *   useProvenance?: boolean,
+ *   provenance?: boolean,
  *   gitChecks?: boolean
  *   tag?: string,
  *   skipExisting?: boolean,
  * }} options
  */
 export async function npmPublish(pack, options) {
-  const { dryRun, access, useProvenance, gitChecks, tag, skipExisting = false } = options;
+  const { dryRun, access, provenance, gitChecks, tag, skipExisting = false } = options;
 
   // Only check the existing package versions if the caller is allowing it to be skipped. Otherwise,
   // NPM will error out on a version conflict, which we want to propagate directly.
@@ -84,7 +84,7 @@ export async function npmPublish(pack, options) {
       // The `--provenance` flag doesn't seem to forward properly with pnpm, so use this env var
       // instead to pass it through.
       // See: https://github.com/pnpm/pnpm/issues/6607
-      NPM_CONFIG_PROVENANCE: useProvenance ? 'true' : 'false',
+      NPM_CONFIG_PROVENANCE: provenance ? 'true' : 'false',
     },
   })`pnpm publish ${publishArgs}`;
 }
