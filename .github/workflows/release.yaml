@@ -63,9 +63,28 @@ jobs:
     with:
       ref: ${{inputs.commit}}
 
+  lint:
+    name: Lint JS package builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Build Env
+        uses: ./.github/actions/setup-build-env
+        with:
+          native: false
+          ref: ${{ inputs.ref }}
+          target: wasm
+
+      - name: Check JS packages build successfully
+        # Ignoring `swc` because it's `build` command invokes cargo build.
+        run: |
+          pnpm --filter \!"swc*" -r build
+
   release:
     name: Release and Publish
     needs:
+      - lint
       - build-db
       - build-swc
     runs-on: ubuntu-latest
