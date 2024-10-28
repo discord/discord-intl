@@ -238,7 +238,8 @@ export class MessageLoader {
     }
 
     const current = this.localeImportMap[locale]();
-    this._localeLoadingPromises[locale] = { initialized: false, current };
+    const isAlreadyInitialized = this._localeLoadingPromises[locale]?.initialized ?? false;
+    this._localeLoadingPromises[locale] = { initialized: isAlreadyInitialized, current };
     this.messages[locale] = (await current).default;
     this._localeLoadingPromises[locale] = { initialized: true, current: undefined };
     this.emitChange();
