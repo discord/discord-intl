@@ -205,8 +205,12 @@ export class MessageLoader {
   }
 
   async _loadLocale(locale: LocaleId) {
+    // If the locale is already set in `messages`, then it doesn't need to be loaded again.
+    if (this.messages[locale] != null) return;
+
     // Don't re-load a locale that's already in progress.
     if (this._localeLoadingPromises[locale]?.current != null) {
+      await this._localeLoadingPromises[locale]?.current;
       return;
     }
 
@@ -224,9 +228,6 @@ export class MessageLoader {
         return;
       }
     }
-
-    // If the locale is already set in `messages`, then it doesn't need to be loaded again.
-    if (this.messages[locale] != null) return;
 
     const current = this.localeImportMap[locale]();
     this._localeLoadingPromises[locale] = { initialized: false, current };
