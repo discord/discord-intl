@@ -37,6 +37,24 @@ type ThisWithFormatters<
   [K in keyof T]: FormatFunction<T[K]>;
 };
 
+export interface IntlManagerOptions {
+  /**
+   * The locale to initially have this manager use. Useful to set when information about the user's
+   * likely locale is available sooner than when that information is definitely known (at which
+   * point `setLocale` should be called instead).
+   *
+   * @default DEFAULT_LOCALE
+   */
+  initialLocale?: string;
+  /**
+   * The locale in which most messages are _defined_, used as an indication of where fallbacks
+   * should be loaded from when they can't be found in the requested `currentLocale`.
+   *
+   * @default DEFAULT_LOCALE
+   */
+  defaultLocale?: string;
+}
+
 export class IntlManager {
   defaultLocale: string;
   currentLocale: string;
@@ -45,7 +63,10 @@ export class IntlManager {
 
   _localeSubscriptions: Set<(locale: string) => void>;
 
-  constructor(initialLocale: string = DEFAULT_LOCALE, defaultLocale: string = DEFAULT_LOCALE) {
+  constructor({
+    initialLocale = DEFAULT_LOCALE,
+    defaultLocale = DEFAULT_LOCALE,
+  }: IntlManagerOptions) {
     this.currentLocale = initialLocale;
     this.defaultLocale = defaultLocale;
     this.formatConfig = DEFAULT_FORMAT_CONFIG;
