@@ -96,7 +96,8 @@ export class MessageLoader {
     this._parseCache = {};
     this._subscribers = new Set();
 
-    this._loadLocale(this.defaultLocale);
+    // TODO: Bring this back as an option to pre-load the locale.
+    // this._loadLocale(this.defaultLocale);
     this.fallbackMessage = new InternalIntlMessage([], this.defaultLocale);
 
     // In cases where hot module replacement is available, set up cache clearing whenever the

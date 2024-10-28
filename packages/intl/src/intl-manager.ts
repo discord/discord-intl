@@ -45,9 +45,9 @@ export class IntlManager {
 
   _localeSubscriptions: Set<(locale: string) => void>;
 
-  constructor(defaultLocale: string = DEFAULT_LOCALE) {
+  constructor(initialLocale: string = DEFAULT_LOCALE, defaultLocale: string = DEFAULT_LOCALE) {
+    this.currentLocale = initialLocale;
     this.defaultLocale = defaultLocale;
-    this.currentLocale = defaultLocale;
     this.formatConfig = DEFAULT_FORMAT_CONFIG;
     this.intl = createIntl({
       formats: DEFAULT_FORMAT_CONFIG,
