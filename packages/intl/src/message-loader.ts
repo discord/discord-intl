@@ -127,9 +127,17 @@ export class MessageLoader {
   }
 
   get(key: string, locale: LocaleId): InternalIntlMessage {
-    const value =
-      this.getMessageValue(key, locale) ?? this.getMessageValue(key, this.defaultLocale);
-    if (value != null) return value;
+    const expectedValue = this.getMessageValue(key, locale);
+    if (expectedValue != null) return expectedValue;
+    // If the expected locale is still in progress with loading and the default locale _has not_
+    // started loading already, then return the fallback message instead of starting a load of the
+    // default locale when it may not be necessary.
+    if (this.isLocaleLoading(locale) && !this.isLocaleLoaded(this.defaultLocale)) {
+      return this.fallbackMessage;
+    }
+
+    const fallbackValue = this.getMessageValue(key, this.defaultLocale);
+    if (fallbackValue != null) return fallbackValue;
 
     // If the message couldn't be found in either the requested nor the default locale, then
     // nothing can be done.
@@ -253,6 +261,10 @@ export class MessageLoader {
     this._subscribers.add(callback);
 
     return () => this._subscribers.delete(callback);
+  }
+
+  isLocaleLoading(locale: LocaleId): boolean {
+    return this._localeLoadingPromises[locale]?.current != null;
   }
 
   isLocaleLoaded(locale: LocaleId, requireCurrent: boolean = false): boolean {
