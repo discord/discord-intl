@@ -104,6 +104,7 @@ export class IntlManager {
   }: F): FormatFunction<FormatterReturnType<F>> {
     const formatter = format.bind(this);
     return (message, values) => {
+      if (message == null) return null;
       return formatter(message(this.currentLocale), values, builder);
     };
   }
@@ -137,6 +138,7 @@ export class IntlManager {
    * immediately return the plain string value of the message in the current locale.
    */
   string<T extends TypedIntlMessageGetter<{}>>(message: T): string {
+    if (message == null) return '';
     return message(this.currentLocale).reserialize();
   }
 
@@ -150,6 +152,8 @@ export class IntlManager {
    * applications that do their own message parsing.
    */
   reserialize<T extends IntlMessageGetter>(message: T): string {
+    if (message == null) return '';
+
     const resolved = message(this.currentLocale);
     if (typeof resolved === 'string') return resolved;
     return resolved.reserialize();
