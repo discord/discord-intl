@@ -77,19 +77,12 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
     /// Returns true if the message should be bundled as part of the given locale, according to its
     /// meta information and other general semantics.
     fn should_bundle(&self, message: &Message, locale: KeySymbol) -> bool {
-        // TODO: Ideally this would actually work, but it's fundamentally incompatible with Metro's
-        // multiprocessing model, where state is not shareable across multiple module/asset
-        // transformations. Because of that, we can never know for sure if a message will have a
-        // definition, since it might have been handled in a different process that this current
-        // process has no context for. It'd be nice to structure the plugin in a way that shares
-        // this state anyway, but it doesn't exist yet.
-        //
-        // // Never include messages that aren't defined for the source locale.
-        // // This catches cases where a message gets deleted from the source, but the translations
-        // // haven't yet been updated to remove them.
-        // if !message.is_defined() {
-        //     return false;
-        // }
+        // Never include messages that aren't defined for the source locale.
+        // This catches cases where a message gets deleted from the source, but the translations
+        // haven't yet been updated to remove them.
+        if !message.is_defined() {
+            return false;
+        }
 
         let is_source = message
             .source_locale()
