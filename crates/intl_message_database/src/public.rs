@@ -5,23 +5,122 @@
 //! casting to and from the caller types and then call one of these functions. Any implementation
 //! of multiple calls should become a new function here rather than in the wrapper, unless it is
 //! language-specific to the host (like constructing a host object for object-oriented languages).
-use rustc_hash::FxHashMap;
-use std::collections::HashMap;
-use std::io::Write;
-
+use crate::sources::{get_locale_from_file_name, MessagesFileDescriptor};
+use crate::threading::run_in_thread_pool;
 use intl_database_core::{
     get_key_symbol, key_symbol, DatabaseError, DatabaseResult, KeySymbol, Message, MessageValue,
-    MessagesDatabase, RawMessageTranslation, SourceFile, DEFAULT_LOCALE,
+    MessagesDatabase, RawMessageDefinition, RawMessageTranslation, SourceFile, DEFAULT_LOCALE,
 };
 use intl_database_exporter::{ExportTranslations, IntlMessageBundler, IntlMessageBundlerOptions};
 use intl_database_service::IntlDatabaseService;
 use intl_database_types_generator::IntlTypesGenerator;
 use intl_validator::{validate_message, MessageDiagnostic};
-
-use crate::threading::run_in_thread_pool;
+use rustc_hash::FxHashMap;
+use std::collections::HashMap;
+use std::io::Write;
+use std::path::PathBuf;
 
 fn get_key_symbol_or_error(value: &str) -> DatabaseResult<KeySymbol> {
     get_key_symbol(value).ok_or(DatabaseError::ValueNotInterned(value.to_string()))
+}
+
+/// Scan the file system within the given `source_directories` for all messages files contained
+/// within them. Each returned entry will have the file path and the locale it should represent,
+/// defaulting to `default_definition_locale` for definitions.
+///
+/// For large repositories, this can be quite slow, as all folders are scanned, including
+/// `node_modules` and others.
+pub fn find_all_messages_files<A: AsRef<str>>(
+    source_directories: impl Iterator<Item = A>,
+    default_definition_locale: &str,
+) -> Vec<MessagesFileDescriptor> {
+    crate::sources::find_all_messages_files(source_directories, default_definition_locale).collect()
+}
+
+/// Given a list of sources files, filter out all files except for those that can be treated as
+/// messages files, either definitions or translations. Each returned entry will have the file path
+/// and the locale it should represent, defaulting to `default_definition_locale` for definitions.
+pub fn filter_all_messages_files<A: AsRef<str>>(
+    files: impl Iterator<Item = A>,
+    default_definition_locale: &str,
+) -> Vec<MessagesFileDescriptor> {
+    let definition_locale_key = key_symbol(default_definition_locale);
+    let mut result = vec![];
+    for file in files {
+        let file = file.as_ref();
+        if !is_message_definitions_file(file) && !is_message_translations_file(file) {
+            continue;
+        }
+        let locale = get_locale_from_file_name(file, definition_locale_key);
+        result.push(MessagesFileDescriptor {
+            file_path: PathBuf::from(file),
+            locale,
+        });
+    }
+    result
+}
+
+/// Given a list of directories, scan their entire contents to find all messages files (both
+/// definitions _and_ translations), then process their content into the database.
+///
+/// Returns the list of file keys that were processed.
+pub fn process_all_messages_files(
+    database: &mut MessagesDatabase,
+    files: impl Iterator<Item = MessagesFileDescriptor> + ExactSizeIterator,
+) -> anyhow::Result<Vec<KeySymbol>> {
+    let mut processed_files = vec![];
+    run_in_thread_pool(
+        files,
+        |descriptor| {
+            let MessagesFileDescriptor { file_path, locale } = descriptor;
+            let content = std::fs::read_to_string(&file_path).expect(&format!(
+                "Failed to read messages file at {}",
+                file_path.display()
+            ));
+            let file_path = key_symbol(&file_path.to_string_lossy());
+
+            let (definitions, translations) = if is_message_definitions_file(&file_path) {
+                match crate::sources::extract_definitions_from_file(file_path, &content) {
+                    Ok((meta, definitions)) => (
+                        Some((meta, definitions.collect::<Vec<RawMessageDefinition>>())),
+                        None,
+                    ),
+                    _ => (None, None),
+                }
+            } else {
+                let translations = crate::sources::extract_translations_from_file(
+                    key_symbol(&file_path),
+                    &content,
+                )
+                .map(|translations| translations.collect::<Vec<RawMessageTranslation>>());
+                (None, Some(translations))
+            };
+            Ok((locale, file_path, definitions, translations))
+        },
+        |(locale, file_path, definitions, translations)| {
+            processed_files.push(file_path);
+            if let Some((source_meta, definitions)) = definitions {
+                crate::sources::insert_definitions(
+                    database,
+                    file_path,
+                    locale,
+                    source_meta,
+                    definitions.into_iter(),
+                )?;
+            }
+
+            if let Some(translations) = translations {
+                crate::sources::insert_translations(
+                    database,
+                    file_path,
+                    locale,
+                    translations?.into_iter(),
+                )?;
+            }
+            Ok(())
+        },
+    )?;
+    Ok(processed_files)
 }
 
 pub fn process_definitions_file(

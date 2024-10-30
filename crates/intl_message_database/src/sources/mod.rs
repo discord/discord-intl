@@ -1,5 +1,5 @@
-use std::iter::FusedIterator;
-
+use crate::public::is_message_definitions_file;
+use ignore::WalkBuilder;
 use intl_database_core::{
     key_symbol, DatabaseError, DatabaseResult, DefinitionFile, FilePosition, KeySymbol,
     KeySymbolSet, MessageDefinitionSource, MessageTranslationSource, MessagesDatabase, RawMessage,
@@ -7,6 +7,10 @@ use intl_database_core::{
 };
 use intl_database_js_source::JsMessageSource;
 use intl_database_json_source::JsonMessageSource;
+use intl_message_utils::is_message_translations_file;
+use serde::Serialize;
+use std::iter::FusedIterator;
+use std::path::PathBuf;
 
 struct SourceFileKeyTrackingIterator<T: RawMessage, I: Iterator<Item = T>> {
     iterator: I,
@@ -63,6 +67,66 @@ fn get_translation_source_from_file_name(file_name: &str) -> Option<impl Message
     } else {
         None
     }
+}
+
+pub(crate) fn get_locale_from_file_name(
+    file_name: &str,
+    default_definition_locale: KeySymbol,
+) -> KeySymbol {
+    if is_message_translations_file(file_name) {
+        get_translation_source_from_file_name(file_name)
+            .map_or(default_definition_locale, |source| {
+                source.get_locale_from_file_name(file_name)
+            })
+    } else {
+        get_definition_source_from_file_name(file_name)
+            .map_or(default_definition_locale, |source| {
+                source.get_default_locale(file_name)
+            })
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct MessagesFileDescriptor {
+    pub file_path: PathBuf,
+    pub locale: KeySymbol,
+}
+
+/// Discover all files that are presumed to contain message definitions or translations by scanning
+/// the file system through the given `directories`. Each returned entry will have both the path
+/// for the file and the locale that it should represent. For definitions files,
+/// `default_definition_locale` will be used unless the source is able to provide more information
+/// about what locale it represents.
+pub fn find_all_messages_files<A: AsRef<str>>(
+    mut directories: impl Iterator<Item = A>,
+    default_definition_locale: &str,
+) -> impl Iterator<Item = MessagesFileDescriptor> {
+    let first_directory = directories
+        .next()
+        .expect("find_all_messages_files requires at least one directory to scan");
+    let default_definition_locale = key_symbol(default_definition_locale);
+    let mut builder = WalkBuilder::new(first_directory.as_ref());
+    for directory in directories {
+        builder.add(directory.as_ref());
+    }
+    let walker = builder.build();
+    walker.into_iter().filter_map(move |item| {
+        let Ok(item) = item else {
+            return None;
+        };
+        let file_path = item.path().to_path_buf();
+        let Some(basename) = file_path.file_name() else {
+            return None;
+        };
+        let basename = &basename.to_string_lossy();
+        if item.file_type().is_some_and(|file_type| file_type.is_dir())
+            || !(is_message_translations_file(&basename) || is_message_definitions_file(&basename))
+        {
+            return None;
+        }
+        let locale = get_locale_from_file_name(&basename, default_definition_locale);
+        Some(MessagesFileDescriptor { file_path, locale })
+    })
 }
 
 pub fn process_definitions_file(

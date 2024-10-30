@@ -17,24 +17,14 @@ const COMPILATION_FORMAT = /** @type {IntlCompiledMessageFormat} */ (
 );
 
 const SOURCE_FILES = [
-  './data/input/en-US.js',
-  './data/input/en-US.untranslated.js',
-  './data/input/international.untranslated.js',
+  './data/input/en-US.messages.js',
+  './data/input/untranslated.messages.js',
+  './data/input/international.messages.js',
 ];
 
 bench('processing', () => {
-  for (const file of SOURCE_FILES) {
-    database.processDefinitionsFile(file);
-  }
-
-  // Multithreaded:
-  /** @type {Record<string, string>} */
-  const localeMap = {};
-  for (const locale of locales) {
-    localeMap[locale] = `./data/input/${locale}.jsona`;
-  }
-
-  database.processAllTranslationFiles(localeMap);
+  let files = database.findAllMessagesFiles(['./data/input'], 'en-US');
+  database.processAllMessagesFiles(files);
 });
 
 bench('get a message', () => {

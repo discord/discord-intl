@@ -9,8 +9,9 @@ use napi::JsUnknown;
 use napi_derive::napi;
 use std::collections::HashMap;
 
-use crate::napi::types::{IntlDiagnostic, IntlMessageBundlerOptions};
+use crate::napi::types::{IntlDiagnostic, IntlMessageBundlerOptions, IntlMessagesFileDescriptor};
 use crate::public;
+use crate::sources::MessagesFileDescriptor;
 use intl_database_core::MessagesDatabase;
 
 mod types;
@@ -27,6 +28,50 @@ impl IntlMessagesDatabase {
         IntlMessagesDatabase {
             database: MessagesDatabase::new(),
         }
+    }
+
+    #[napi]
+    pub fn find_all_messages_files(
+        &mut self,
+        directories: Vec<String>,
+        default_definition_locale: String,
+    ) -> anyhow::Result<Vec<IntlMessagesFileDescriptor>> {
+        let sources = public::find_all_messages_files(
+            directories.iter().map(String::as_str),
+            &default_definition_locale,
+        );
+        Ok(sources
+            .into_iter()
+            .map(IntlMessagesFileDescriptor::from)
+            .collect())
+    }
+
+    #[napi]
+    pub fn filter_all_messages_files(
+        &mut self,
+        files: Vec<String>,
+        default_definition_locale: String,
+    ) -> anyhow::Result<Vec<IntlMessagesFileDescriptor>> {
+        let sources = public::filter_all_messages_files(
+            files.iter().map(String::as_str),
+            &default_definition_locale,
+        );
+        Ok(sources
+            .into_iter()
+            .map(IntlMessagesFileDescriptor::from)
+            .collect())
+    }
+
+    #[napi]
+    pub fn process_all_messages_files(
+        &mut self,
+        directories: Vec<IntlMessagesFileDescriptor>,
+    ) -> anyhow::Result<Vec<String>> {
+        let sources = public::process_all_messages_files(
+            &mut self.database,
+            directories.iter().map(MessagesFileDescriptor::from),
+        )?;
+        Ok(sources.into_iter().map(|key| key.to_string()).collect())
     }
 
     #[napi]
