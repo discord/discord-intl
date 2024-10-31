@@ -8,7 +8,17 @@ use threadpool::ThreadPool;
 /// is almost always run in the context of other work being done (i.e., as a
 /// Node addon, as part of a bundler process, etc.), and that shouldn't have the
 /// world stopped because of this (albeit fast) process consuming everything.
+///
+/// This can be overridden using the `INTL_CONCURRENCY` environment variable for
+/// situations where it's expected that the computed count will be wrong (e.g.,
+/// in Docker environments that incorrectly report system resources).
 pub(crate) fn get_reasonable_thread_count() -> usize {
+    if let Ok(concurrency) = std::env::var("INTL_CONCURRENCY") {
+        if let Ok(requested_count) = concurrency.parse::<usize>() {
+            return requested_count;
+        }
+    }
+
     let physical = num_cpus::get_physical();
     let logical = num_cpus::get();
     // Use half of the cores on small machines
@@ -21,7 +31,7 @@ pub(crate) fn get_reasonable_thread_count() -> usize {
     }
 
     // Otherwise use 2/3 of available resources.
-    return logical * 2 / 3;
+    logical * 2 / 3
 }
 
 /// For each element of `data`, run `thread_func` in a separate thread using a thread pool with a
