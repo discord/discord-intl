@@ -107,7 +107,6 @@ async function transformAsset(assetData) {
   if (!hasInitializedAllDefinitions) {
     debug('Initializing database with all messages files within watch folders: %O', watchFolders);
     processAllMessagesFiles(findAllMessagesFiles(watchFolders));
-    database.getAllSourceFilePaths();
     hasInitializedAllDefinitions = true;
   }
 
