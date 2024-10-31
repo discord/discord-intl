@@ -117,6 +117,7 @@ const intlLoader = function intlLoader(source) {
         'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
       );
     }
+    this.cacheable(false);
 
     const compiledResult = precompileFileForLocale(sourcePath, locale, undefined, {
       format,
