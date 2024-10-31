@@ -7,6 +7,8 @@ const {
 
 const { database } = require('./src/database');
 const {
+  findAllMessagesFiles,
+  processAllMessagesFiles,
   generateTypeDefinitions,
   processDefinitionsFile,
   processTranslationsFile,
@@ -31,5 +33,7 @@ module.exports = {
   processDefinitionsFile,
   processTranslationsFile,
   precompileFileForLocale,
+  findAllMessagesFiles,
+  processAllMessagesFiles,
   watcher,
 };

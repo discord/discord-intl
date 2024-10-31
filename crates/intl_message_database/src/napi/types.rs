@@ -1,15 +1,17 @@
-use std::collections::HashMap;
-
-use napi::{JsNumber, JsObject};
-use napi_derive::napi;
-
+use crate::sources::MessagesFileDescriptor;
+use intl_database_core::key_symbol;
 use intl_database_exporter::CompiledMessageFormat;
 use intl_validator::MessageDiagnostic;
+use napi::{JsNumber, JsObject};
+use napi_derive::napi;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[napi(object)]
 #[derive(Default)]
 pub struct IntlMessageBundlerOptions {
     pub format: Option<IntlCompiledMessageFormat>,
+    #[napi(js_name = "bundleSecrets")]
     pub bundle_secrets: Option<bool>,
 }
 
@@ -82,10 +84,12 @@ pub struct IntlMessage {
     /// Original, plain text name of the message given in its definition.
     pub key: String,
     /// Hashed version of the key, used everywhere for minification and obfuscation.
+    #[napi(js_name = "hashedKey")]
     pub hashed_key: String,
     /// Map of all translations for this message, including the default.
     pub translations: HashMap<String, IntlMessageValue>,
     /// The source definition information for this message (locale and location).
+    #[napi(js_name = "sourceLocale")]
     pub source_locale: Option<String>,
     /// Meta information about how to handle and process this message.
     pub meta: IntlMessageMeta,
@@ -112,6 +116,31 @@ impl From<IntlCompiledMessageFormat> for CompiledMessageFormat {
         match value {
             IntlCompiledMessageFormat::Json => CompiledMessageFormat::Json,
             IntlCompiledMessageFormat::KeylessJson => CompiledMessageFormat::KeylessJson,
+        }
+    }
+}
+
+#[napi(object)]
+pub struct IntlMessagesFileDescriptor {
+    #[napi(js_name = "filePath")]
+    pub file_path: String,
+    pub locale: String,
+}
+
+impl From<&IntlMessagesFileDescriptor> for MessagesFileDescriptor {
+    fn from(value: &IntlMessagesFileDescriptor) -> Self {
+        MessagesFileDescriptor {
+            file_path: PathBuf::from(&value.file_path),
+            locale: key_symbol(&value.locale),
+        }
+    }
+}
+
+impl From<MessagesFileDescriptor> for IntlMessagesFileDescriptor {
+    fn from(value: MessagesFileDescriptor) -> Self {
+        IntlMessagesFileDescriptor {
+            file_path: value.file_path.to_string_lossy().to_string(),
+            locale: value.locale.to_string(),
         }
     }
 }

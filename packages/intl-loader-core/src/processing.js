@@ -15,7 +15,7 @@ const { findAllTranslationFiles, getLocaleFromTranslationsFileName } = require('
 
 /**
  * @param {string} sourcePath
- * @param {import('@discord/intl-message-database').IntlSourceFile} sourceFile
+ * @param {import('../types').IntlSourceFile} sourceFile
  */
 function debugSourceFile(sourcePath, sourceFile) {
   debug(
@@ -26,7 +26,7 @@ function debugSourceFile(sourcePath, sourceFile) {
 /**
  *
  * @param {string} sourcePath Path of the source file being processed, for debug logging
- * @param {import('@discord/intl-message-database').IntlSourceFile} sourceFile SourceFile object from the database used to find translations.
+ * @param {import('../types').IntlSourceFile} sourceFile SourceFile object from the database used to find translations.
  * @param {string} translationsPath Fully-resolved path to the directory for translations.
  * @returns {Record<string, string>}
  */
@@ -41,6 +41,33 @@ function buildTranslationsLocaleMap(sourcePath, sourceFile, translationsPath) {
     return {};
   }
   return map;
+}
+
+/**
+ * Scan the entire file system within the given `directories` to find all files that can be treated
+ * as messages definitions _or_ translations.
+ *
+ * @param {string[]} directories
+ * @param {string} defaultLocale
+ * @returns {import('../types').IntlMessagesFileDescriptor[]}
+ */
+function findAllMessagesFiles(directories, defaultLocale = 'en-US') {
+  return database.findAllMessagesFiles(directories, defaultLocale);
+}
+
+/**
+ * Iterate the given `files`, processing each one's content into the database. Processing is done
+ * in parallel using native acceleration, and returns the list of all file names that were used.
+ *
+ * Note that this method _only_ operates by reading file contents from the system, it is not
+ * possible to supply preloaded content through a Buffer in the same way as `processDefinitionsFile`
+ * with a `sourceContent` argument.
+ *
+ * @param {import('../types').IntlMessagesFileDescriptor[]} files
+ * @returns {string[]}
+ */
+function processAllMessagesFiles(files) {
+  return database.processAllMessagesFiles(files);
 }
 
 /**
@@ -188,6 +215,8 @@ function generateTypeDefinitions(sourcePath, outputFile, allowNullability = fals
 }
 
 module.exports = {
+  findAllMessagesFiles,
+  processAllMessagesFiles,
   generateTypeDefinitions,
   precompileFileForLocale,
   processDefinitionsFile,

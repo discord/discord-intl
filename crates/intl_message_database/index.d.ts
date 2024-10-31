@@ -2,6 +2,9 @@
 /* eslint-disable */
 export declare class IntlMessagesDatabase {
   constructor()
+  findAllMessagesFiles(directories: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
+  filterAllMessagesFiles(files: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
+  processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>): Array<string>
   processDefinitionsFile(filePath: string, locale?: string | undefined | null): string
   processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): string
   processAllTranslationFiles(localeMap: Record<string, string>): void
@@ -65,6 +68,11 @@ export interface IntlMessageMeta {
   secret: boolean
   translate: boolean
   translationsPath: string
+}
+
+export interface IntlMessagesFileDescriptor {
+  filePath: string
+  locale: string
 }
 
 export interface IntlMessageValue {

@@ -9,6 +9,9 @@ const {
   processTranslationsFile,
   precompileFileForLocale,
   IntlCompiledMessageFormat,
+  processAllMessagesFiles,
+  findAllMessagesFiles,
+  database,
 } = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:rspack-intl-loader');
 
@@ -26,6 +29,8 @@ function makePosixRelativePath(source, file) {
   );
 }
 
+let hasInitializedAllDefinitions = false;
+
 /**
  * Take in a file that contains message definitions (e.g., calls to
  * `defineMessages`), extract the pieces necessary for the runtime i18n code
@@ -38,6 +43,7 @@ function makePosixRelativePath(source, file) {
  *   bundleSecrets: boolean,
  *   jsonExportMode?: 'rspack' | 'webpack',
  *   preGenerateBinds?: boolean,
+ *   watchFolders?: string[]
  * }>}
  */
 const intlLoader = function intlLoader(source) {
@@ -48,7 +54,15 @@ const intlLoader = function intlLoader(source) {
     format = IntlCompiledMessageFormat.KeylessJson,
     jsonExportMode = 'rspack',
     preGenerateBinds,
+    watchFolders = [this._compiler?.context ?? process.cwd()],
   } = this.getOptions();
+
+  if (!hasInitializedAllDefinitions) {
+    debug('Initializing database with all messages files within watch folders: %O', watchFolders);
+    processAllMessagesFiles(findAllMessagesFiles(watchFolders));
+    database.getAllSourceFilePaths();
+    hasInitializedAllDefinitions = true;
+  }
 
   debug(`[${sourcePath}] Processing intl messages file (forceTranslation=${forceTranslation})`);
 

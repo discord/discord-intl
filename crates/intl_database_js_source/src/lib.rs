@@ -1,7 +1,7 @@
 use swc_common::errors::HANDLER;
 
 use intl_database_core::{
-    KeySymbol, MessageDefinitionSource, MessageSourceError, MessageSourceResult,
+    key_symbol, KeySymbol, MessageDefinitionSource, MessageSourceError, MessageSourceResult,
     RawMessageDefinition, SourceFileKind, SourceFileMeta,
 };
 
@@ -12,6 +12,10 @@ mod extractor;
 pub struct JsMessageSource;
 
 impl MessageDefinitionSource for JsMessageSource {
+    fn get_default_locale(&self, _file_name: &str) -> KeySymbol {
+        key_symbol("en-US")
+    }
+
     fn extract_definitions(
         self,
         file_name: KeySymbol,

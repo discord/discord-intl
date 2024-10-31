@@ -86,6 +86,9 @@ impl RawMessage for RawMessageTranslation {
 }
 
 pub trait MessageDefinitionSource {
+    /// Return the default locale for which definitions in the given `file_name` should be applied.
+    fn get_default_locale(&self, file_name: &str) -> KeySymbol;
+
     /// Return an [`Iterator`] over all of the message definitions contained in the source file.
     /// Any kind of iterator is valid, so long as it yields complete [`RawMessageDefinition`]
     /// structs for the database to handle inserting and updating as needed.
@@ -100,6 +103,9 @@ pub trait MessageDefinitionSource {
 }
 
 pub trait MessageTranslationSource {
+    /// Return the locale for which translations within the given `file_name` should be applied.
+    fn get_locale_from_file_name(&self, file_name: &str) -> KeySymbol;
+
     /// Return an [`Iterator`] over all of the message translations contained in the source file.
     /// Any kind of iterator is valid, so long as it yields complete [`RawMessageTranslation`]
     /// structs for the database to handle inserting and updating as needed.
