@@ -1,6 +1,6 @@
 {
   "name": "@discord/jest-processor-discord-intl",
-  "version": "0.11.1",
+  "version": "0.11.2-rc.0",
   "license": "MIT",
   "description": "Processor plugin for Jest to handle intl message definitions and translations from @discord/intl",
   "exports": {
