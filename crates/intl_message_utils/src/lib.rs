@@ -64,9 +64,13 @@ pub fn is_any_messages_file(file_name: &str) -> bool {
     let mut parts = file_name.rsplitn(3, '.');
     let last_extension = parts.next();
     let second_extension = parts.next();
+    let stem = parts.next();
 
-    last_extension.is_some_and(|ext| ext == "messages")
-        || second_extension.is_some_and(|ext| ext == "messages")
+    let is_messages_extesnsion = last_extension.is_some_and(|ext| ext == "messages")
+        || second_extension.is_some_and(|ext| ext == "messages");
+
+    // Disallow any file with more prefix parts, such as `.compiled.messages.json`.
+    is_messages_extesnsion && !stem.is_some_and(|stem| stem.contains('.'))
 }
 
 static DOUBLE_NEWLINE_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"\n\n"));

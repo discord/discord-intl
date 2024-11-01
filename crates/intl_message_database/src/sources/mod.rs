@@ -1,4 +1,3 @@
-use crate::public::is_message_definitions_file;
 use ignore::WalkBuilder;
 use intl_database_core::{
     key_symbol, DatabaseError, DatabaseResult, DefinitionFile, FilePosition, KeySymbol,
@@ -7,7 +6,8 @@ use intl_database_core::{
 };
 use intl_database_js_source::JsMessageSource;
 use intl_database_json_source::JsonMessageSource;
-use intl_message_utils::is_message_translations_file;
+use intl_message_utils::{is_any_messages_file, is_message_translations_file};
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 use std::iter::FusedIterator;
 use std::path::PathBuf;
@@ -110,17 +110,23 @@ pub fn find_all_messages_files<A: AsRef<str>>(
         builder.add(directory.as_ref());
     }
     let walker = builder.build();
+    let mut found_files = FxHashSet::default();
     walker.into_iter().filter_map(move |item| {
         let Ok(item) = item else {
             return None;
         };
         let file_path = item.path().to_path_buf();
+        if found_files.contains(&file_path) {
+            return None;
+        }
+        found_files.insert(file_path.clone());
+
         let Some(basename) = file_path.file_name() else {
             return None;
         };
         let basename = &basename.to_string_lossy();
         if item.file_type().is_some_and(|file_type| file_type.is_dir())
-            || !(is_message_translations_file(&basename) || is_message_definitions_file(&basename))
+            || !is_any_messages_file(basename)
         {
             return None;
         }
