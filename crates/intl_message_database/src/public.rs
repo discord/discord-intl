@@ -60,16 +60,37 @@ pub fn filter_all_messages_files<A: AsRef<str>>(
     result
 }
 
+pub struct MultiProcessingResult {
+    pub processed: Vec<KeySymbol>,
+    pub failed: Vec<(KeySymbol, DatabaseError)>,
+}
+
+impl From<Vec<(KeySymbol, DatabaseResult<KeySymbol>)>> for MultiProcessingResult {
+    fn from(value: Vec<(KeySymbol, DatabaseResult<KeySymbol>)>) -> Self {
+        let mut processed = Vec::with_capacity(value.len());
+        let mut failed = Vec::with_capacity(4);
+
+        for (file, result) in value {
+            processed.push(file);
+            if let Err(error) = result {
+                failed.push((file, error));
+            }
+        }
+
+        Self { processed, failed }
+    }
+}
+
 /// Given a list of directories, scan their entire contents to find all messages files (both
 /// definitions _and_ translations), then process their content into the database.
 ///
-/// Returns the list of file keys that were processed.
+/// Returns a list of processing results containing the file key and information about whether it
+/// was processed successfully.
 pub fn process_all_messages_files(
     database: &mut MessagesDatabase,
     files: impl Iterator<Item = MessagesFileDescriptor> + ExactSizeIterator,
-) -> anyhow::Result<Vec<KeySymbol>> {
-    let mut processed_files = vec![];
-    run_in_thread_pool(
+) -> anyhow::Result<MultiProcessingResult> {
+    let results = run_in_thread_pool(
         files,
         |descriptor| {
             let MessagesFileDescriptor { file_path, locale } = descriptor;
@@ -95,32 +116,33 @@ pub fn process_all_messages_files(
                 .map(|translations| translations.collect::<Vec<RawMessageTranslation>>());
                 (None, Some(translations))
             };
-            Ok((locale, file_path, definitions, translations))
+            (locale, file_path, definitions, translations)
         },
         |(locale, file_path, definitions, translations)| {
-            processed_files.push(file_path);
-            if let Some((source_meta, definitions)) = definitions {
+            let result = if let Some((source_meta, definitions)) = definitions {
                 crate::sources::insert_definitions(
                     database,
                     file_path,
                     locale,
                     source_meta,
                     definitions.into_iter(),
-                )?;
-            }
-
-            if let Some(translations) = translations {
-                crate::sources::insert_translations(
-                    database,
-                    file_path,
-                    locale,
-                    translations?.into_iter(),
-                )?;
-            }
-            Ok(())
+                )
+            } else if let Some(translations) = translations {
+                translations.and_then(|translations| {
+                    crate::sources::insert_translations(
+                        database,
+                        file_path,
+                        locale,
+                        translations.into_iter(),
+                    )
+                })
+            } else {
+                Err(DatabaseError::NoExtractableValues(file_path.to_string()))
+            };
+            (file_path, result)
         },
     )?;
-    Ok(processed_files)
+    Ok(results.into())
 }
 
 pub fn process_definitions_file(
@@ -150,30 +172,34 @@ pub fn process_definitions_file_content(
 pub fn process_all_translation_files(
     database: &mut MessagesDatabase,
     locale_map: HashMap<String, String>,
-) -> anyhow::Result<()> {
-    run_in_thread_pool(
+) -> anyhow::Result<MultiProcessingResult> {
+    let results = run_in_thread_pool(
         locale_map.into_iter(),
         |(locale, file_path)| {
             let content = std::fs::read_to_string(&file_path)
                 .expect(&format!("Failed to read translation file at {}", file_path));
-            Ok((
+            (
                 key_symbol(&locale),
                 key_symbol(&file_path),
                 crate::sources::extract_translations_from_file(key_symbol(&file_path), &content)
                     .map(|translations| translations.collect::<Vec<RawMessageTranslation>>()),
-            ))
+            )
         },
         |(locale, file_path, translations)| {
-            crate::sources::insert_translations(
-                database,
+            (
                 file_path,
-                locale,
-                translations?.into_iter(),
-            )?;
-            Ok(())
+                translations.and_then(|translations| {
+                    crate::sources::insert_translations(
+                        database,
+                        file_path,
+                        locale,
+                        translations.into_iter(),
+                    )
+                }),
+            )
         },
     )?;
-    Ok(())
+    Ok(results.into())
 }
 
 pub fn process_translation_file(

@@ -23,7 +23,8 @@ const SOURCE_FILES = [
 ];
 
 bench('processing', () => {
-  let files = database.findAllMessagesFiles(['./data/input'], 'en-US');
+  let p = './data/input';
+  let files = database.findAllMessagesFiles([p], 'en-US');
   database.processAllMessagesFiles(files);
 });
 

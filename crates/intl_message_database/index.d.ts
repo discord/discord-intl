@@ -4,10 +4,10 @@ export declare class IntlMessagesDatabase {
   constructor()
   findAllMessagesFiles(directories: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
   filterAllMessagesFiles(files: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
-  processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>): Array<string>
+  processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>): IntlMultiProcessingResult
   processDefinitionsFile(filePath: string, locale?: string | undefined | null): string
   processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): string
-  processAllTranslationFiles(localeMap: Record<string, string>): void
+  processAllTranslationFiles(localeMap: Record<string, string>): IntlMultiProcessingResult
   processTranslationFile(filePath: string, locale: string): string
   processTranslationFileContent(filePath: string, locale: string, content: string): string
   getKnownLocales(): Array<string>
@@ -80,6 +80,16 @@ export interface IntlMessageValue {
   parsed: object
   variables: object
   filePosition: object
+}
+
+export interface IntlMultiProcessingFailure {
+  file: string
+  error: string
+}
+
+export interface IntlMultiProcessingResult {
+  processed: Array<string>
+  failed: Array<IntlMultiProcessingFailure>
 }
 
 export interface IntlSourceFile {

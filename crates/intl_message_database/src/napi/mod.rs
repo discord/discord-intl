@@ -9,7 +9,10 @@ use napi::JsUnknown;
 use napi_derive::napi;
 use std::collections::HashMap;
 
-use crate::napi::types::{IntlDiagnostic, IntlMessageBundlerOptions, IntlMessagesFileDescriptor};
+use crate::napi::types::{
+    IntlDiagnostic, IntlMessageBundlerOptions, IntlMessagesFileDescriptor,
+    IntlMultiProcessingResult,
+};
 use crate::public;
 use crate::sources::MessagesFileDescriptor;
 use intl_database_core::MessagesDatabase;
@@ -66,12 +69,12 @@ impl IntlMessagesDatabase {
     pub fn process_all_messages_files(
         &mut self,
         directories: Vec<IntlMessagesFileDescriptor>,
-    ) -> anyhow::Result<Vec<String>> {
+    ) -> anyhow::Result<IntlMultiProcessingResult> {
         let sources = public::process_all_messages_files(
             &mut self.database,
             directories.iter().map(MessagesFileDescriptor::from),
         )?;
-        Ok(sources.into_iter().map(|key| key.to_string()).collect())
+        Ok(sources.into())
     }
 
     #[napi]
@@ -108,8 +111,9 @@ impl IntlMessagesDatabase {
     pub fn process_all_translation_files(
         &mut self,
         locale_map: HashMap<String, String>,
-    ) -> anyhow::Result<()> {
-        public::process_all_translation_files(&mut self.database, locale_map)
+    ) -> anyhow::Result<IntlMultiProcessingResult> {
+        let result = public::process_all_translation_files(&mut self.database, locale_map)?;
+        Ok(result.into())
     }
 
     #[napi]

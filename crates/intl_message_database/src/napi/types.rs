@@ -1,3 +1,4 @@
+use crate::public::MultiProcessingResult;
 use crate::sources::MessagesFileDescriptor;
 use intl_database_core::key_symbol;
 use intl_database_exporter::CompiledMessageFormat;
@@ -141,6 +142,38 @@ impl From<MessagesFileDescriptor> for IntlMessagesFileDescriptor {
         IntlMessagesFileDescriptor {
             file_path: value.file_path.to_string_lossy().to_string(),
             locale: value.locale.to_string(),
+        }
+    }
+}
+
+#[napi(object)]
+pub struct IntlMultiProcessingFailure {
+    pub file: String,
+    pub error: String,
+}
+
+#[napi(object)]
+pub struct IntlMultiProcessingResult {
+    pub processed: Vec<String>,
+    pub failed: Vec<IntlMultiProcessingFailure>,
+}
+
+impl From<MultiProcessingResult> for IntlMultiProcessingResult {
+    fn from(value: MultiProcessingResult) -> Self {
+        IntlMultiProcessingResult {
+            processed: value
+                .processed
+                .into_iter()
+                .map(|value| value.to_string())
+                .collect(),
+            failed: value
+                .failed
+                .into_iter()
+                .map(|(key, error)| IntlMultiProcessingFailure {
+                    file: key.to_string(),
+                    error: error.to_string(),
+                })
+                .collect(),
         }
     }
 }

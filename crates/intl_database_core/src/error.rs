@@ -8,6 +8,8 @@ use crate::MessageSourceError;
 pub enum DatabaseError {
     #[error(transparent)]
     SourceError(MessageSourceError),
+    #[error("Processing {0} yielded neither message definitions nor translations")]
+    NoExtractableValues(String),
     #[error("{0} has no matching source implementation")]
     NoSourceImplementation(String),
     #[error("{0} has already been defined in this source file and cannot be defined again")]

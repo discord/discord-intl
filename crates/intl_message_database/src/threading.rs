@@ -40,15 +40,16 @@ pub(crate) fn get_reasonable_thread_count() -> usize {
 /// called with it as the argument.
 pub(crate) fn run_in_thread_pool<
     Data: IntoIterator<Item = T> + ExactSizeIterator,
-    T: Send + Sync + 'static,
-    R: Send + 'static,
-    P: Fn(T) -> anyhow::Result<R> + Copy + Send + Sync + 'static,
-    F: FnMut(R) -> anyhow::Result<()>,
+    T: Send + Sync + 'static, // Data being processed
+    V: Send + 'static,        // Value returned from thread_func
+    R,                        // Return value of the processor
+    P: Fn(T) -> V + Copy + Send + Sync + 'static,
+    F: FnMut(V) -> R,
 >(
     data: Data,
     thread_func: P,
     mut processor: F,
-) -> napi::Result<()> {
+) -> anyhow::Result<Vec<R>> {
     let num_jobs = data.len();
     let pool = ThreadPool::new(get_reasonable_thread_count());
     let (tx, rx) = channel();
@@ -62,10 +63,9 @@ pub(crate) fn run_in_thread_pool<
         });
     }
 
+    let mut results = Vec::with_capacity(num_jobs);
     for result in rx.iter().take(num_jobs) {
-        let result = result?;
-        processor(result)?;
+        results.push(processor(result));
     }
-
-    Ok(())
+    Ok(results)
 }
