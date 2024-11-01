@@ -64,7 +64,7 @@ function findAllMessagesFiles(directories, defaultLocale = 'en-US') {
  * with a `sourceContent` argument.
  *
  * @param {import('../types').IntlMessagesFileDescriptor[]} files
- * @returns {string[]}
+ * @returns {import('../types').IntlMultiProcessingResult}
  */
 function processAllMessagesFiles(files) {
   return database.processAllMessagesFiles(files);
@@ -110,7 +110,8 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   );
 
   if (processTranslations) {
-    database.processAllTranslationFiles(translationsLocaleMap);
+    const translationsResult = database.processAllTranslationFiles(translationsLocaleMap);
+    debug('[${sourcePath}] Finished processing all translations: %O', translationsResult);
   }
 
   return {
