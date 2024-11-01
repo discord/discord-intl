@@ -11,7 +11,6 @@ const {
   IntlCompiledMessageFormat,
   processAllMessagesFiles,
   findAllMessagesFiles,
-  database,
 } = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:rspack-intl-loader');
 

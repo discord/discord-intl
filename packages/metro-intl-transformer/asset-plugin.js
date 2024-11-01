@@ -10,7 +10,6 @@ const {
   IntlCompiledMessageFormat,
   findAllMessagesFiles,
   processAllMessagesFiles,
-  database,
 } = require('@discord/intl-loader-core');
 
 /**
