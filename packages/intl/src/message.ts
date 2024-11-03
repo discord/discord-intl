@@ -123,7 +123,8 @@ function serializeAstTag(node: TagNode, result: { value: string }) {
     case '$link':
       // The target is the first child of the link. We don't have to care if it's a placeholder
       // or not, because the serialization will automatically remove the extra empty.
-      const children = node[AstNodeIndices.Children], target = node[3]
+      const children = node[AstNodeIndices.Children];
+      const target = node[AstNodeIndices.Control];
       result.value += '[';
       serializeAst(children, result);
       result.value += '](';
