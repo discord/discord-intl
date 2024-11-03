@@ -34,65 +34,67 @@ export class InternalIntlMessage {
 // appended, rather than creating a bunch of intermediate strings.
 function serializeAst(ast: AstNode[], result: { value: string }) {
   for (const node of ast) {
-    if (typeof node[0] === 'string') {
-      result.value += node[0];
-      return;
+    if (typeof node === 'string') {
+      result.value += node;
+      continue;
     }
 
     switch (node[AstNodeIndices.Type]) {
       case FormatJsNodeType.Argument:
         result.value += '{' + node[AstNodeIndices.Value] + '}';
-        return;
+        break;
       case FormatJsNodeType.Date:
         result.value += '{' + node[AstNodeIndices.Value] + ', date';
         if (node[AstNodeIndices.Style] != null) {
           result.value += ', ' + node[AstNodeIndices.Style];
         }
         result.value += '}';
-        return;
+        break;
       case FormatJsNodeType.Time:
         result.value += '{' + node[AstNodeIndices.Value] + ', time';
         if (node[AstNodeIndices.Style] != null) {
           result.value += ', ' + node[AstNodeIndices.Style];
         }
         result.value += '}';
-        return;
+        break;
       case FormatJsNodeType.Number:
         result.value += '{' + node[AstNodeIndices.Value] + ', number';
         if (node[AstNodeIndices.Style] != null) {
           result.value += ', ' + node[AstNodeIndices.Style];
         }
         result.value += '}';
-        return;
+        break;
       case FormatJsNodeType.Plural: {
         const pluralType =
           node[AstNodeIndices.PluralType] == 'ordinal' ? 'selectordinal' : 'plural';
-        result.value += '{' + node[AstNodeIndices.Value] + ', ' + pluralType + ', ';
+        result.value += '{' + node[AstNodeIndices.Value] + ', ' + pluralType + ',';
         if (node[AstNodeIndices.Offset]) {
-          result.value += 'offset:' + node[AstNodeIndices.Offset];
+          result.value += ' offset:' + node[AstNodeIndices.Offset];
         }
         for (const [name, arm] of Object.entries(node[AstNodeIndices.Options])) {
           result.value += ' ' + name + ' {';
           serializeAst(arm, result);
           result.value += '}';
         }
-        return;
+        result.value += '}';
+        break;
       }
       case FormatJsNodeType.Pound:
         result.value += '#';
-        return;
+        break;
       case FormatJsNodeType.Select: {
-        result.value += '{' + node[AstNodeIndices.Value] + ', select, ';
+        result.value += '{' + node[AstNodeIndices.Value] + ', select,';
         for (const [name, arm] of Object.entries(node[AstNodeIndices.Options])) {
           result.value += ' ' + name + ' {';
           serializeAst(arm, result);
           result.value += '}';
         }
-        return;
+        result.value += '}';
+        break;
       }
       case FormatJsNodeType.Tag:
         serializeAstTag(node, result);
-        return;
+        break;
     }
   }
 }
@@ -103,38 +105,39 @@ function serializeAstTag(node: TagNode, result: { value: string }) {
       result.value += '**';
       serializeAst(node[AstNodeIndices.Children], result);
       result.value += '**';
-      return;
+      break;
     case '$i':
       result.value += '*';
       serializeAst(node[AstNodeIndices.Children], result);
       result.value += '*';
-      return;
+      break;
     case '$code':
       result.value += '`';
       serializeAst(node[AstNodeIndices.Children], result);
       result.value += '`';
-      return;
+      break;
     case '$p':
       serializeAst(node[AstNodeIndices.Children], result);
       result.value += '\n\n';
-      return;
+      break;
     case '$link':
       // The target is the first child of the link. We don't have to care if it's a placeholder
       // or not, because the serialization will automatically remove the extra empty.
-      const [target, ...children] = node[AstNodeIndices.Children];
+      const children = node[AstNodeIndices.Children];
+      const target = node[AstNodeIndices.Control];
       result.value += '[';
       serializeAst(children, result);
       result.value += '](';
       if (target != null) {
-        serializeAst([target], result);
+        serializeAst(target, result);
       }
       result.value += ')';
-      return;
+      break;
     default:
       // Any other tag name is a hook, which just adds the `$[` on a link tag.
       result.value += '$[';
       serializeAst(node[AstNodeIndices.Children], result);
       result.value += '](' + node[AstNodeIndices.Value] + ')';
-      return;
+      break;
   }
 }
