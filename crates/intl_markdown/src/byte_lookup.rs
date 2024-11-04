@@ -2,7 +2,7 @@ use intl_markdown_macros::generate_ascii_lookup_table;
 
 generate_ascii_lookup_table!(
     SIGNIFICANT_PUNCTUATION_BYTES,
-    b"\n\x0C\r!\"$&'()*:<>[\\]_`{}~"
+    b"\n\x0C\r!\"$&'()*:<>[\\]_`{}~#"
 );
 
 /// Returns true if the given byte represents a significant character that

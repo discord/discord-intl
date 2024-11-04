@@ -49,6 +49,11 @@ mod icu_formatjs_types {
         r#"[[6,"count",{"=-1":[[7]],"=5":["five"]},0,"cardinal"]]"#
     );
     ast_test!(
+        plural_surrounded_pound,
+        "{count, plural, one {put the # in the middle of an arm}}",
+        r#"[[6,"count",{"one":["put the ",[7]," in the middle of an arm"]},0,"cardinal"]]"#
+    );
+    ast_test!(
         selectordinal,
         "{count, selectordinal, one {#}}",
         r#"[[6,"count",{"one":[[7]]},0,"ordinal"]]"#

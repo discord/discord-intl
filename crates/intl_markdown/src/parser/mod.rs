@@ -1,17 +1,17 @@
+use crate::token::{SourceText, TriviaList};
 use crate::{
     lexer::{LexContext, LexerState},
     token::Trivia,
 };
-use crate::token::{SourceText, TriviaList};
 
 use super::{
     block_parser::BlockParser,
     delimiter::{AnyDelimiter, Delimiter},
     event::{Event, Marker},
     lexer::{Lexer, LexerCheckpoint},
-    SyntaxKind,
-    SyntaxToken,
-    token::TokenFlags, tree_builder::cst::{Document, parser_events_to_cst},
+    token::TokenFlags,
+    tree_builder::cst::{parser_events_to_cst, Document},
+    SyntaxKind, SyntaxToken,
 };
 
 use self::{block::parse_block, inline::parse_inline};
@@ -449,14 +449,14 @@ impl<'source> ICUMarkdownParser<'source> {
 
 #[cfg(test)]
 mod test {
-    use crate::{format_ast, process_cst_to_ast};
     use crate::event::DebugEventBuffer;
+    use crate::{format_ast, process_cst_to_ast};
 
     use super::ICUMarkdownParser;
 
     #[test]
     fn test_debug() {
-        let content = "this is a thing with multiple \n  works  ";
+        let content = "{color, select, orange {the # fluffy}}";
         let mut parser = ICUMarkdownParser::new(content, true);
         let source = parser.source.clone();
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
