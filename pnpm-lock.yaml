@@ -177,9 +177,6 @@ importers:
       debug:
         specifier: ^4.3.6
         version: 4.3.6
-      fast-glob:
-        specifier: ^3.3.2
-        version: 3.3.2
     devDependencies:
       '@types/debug':
         specifier: ^4.1.12
@@ -3002,7 +2999,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.0.0
+      '@types/node': 20.12.7
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -3552,7 +3549,6 @@ snapshots:
   '@types/node@20.12.7':
     dependencies:
       undici-types: 5.26.5
-    optional: true
 
   '@types/node@22.0.0':
     dependencies:
@@ -5058,8 +5054,7 @@ snapshots:
 
   typescript@5.5.4: {}
 
-  undici-types@5.26.5:
-    optional: true
+  undici-types@5.26.5: {}
 
   undici-types@6.11.1: {}
 

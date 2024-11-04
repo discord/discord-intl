@@ -33,8 +33,7 @@
   "dependencies": {
     "@discord/intl-message-database": "workspace:*",
     "chokidar": "^3.6.0",
-    "debug": "^4.3.6",
-    "fast-glob": "^3.3.2"
+    "debug": "^4.3.6"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",

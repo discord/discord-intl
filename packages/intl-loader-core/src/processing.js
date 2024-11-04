@@ -54,6 +54,18 @@ function buildTranslationsLocaleMap(sourcePath, sourceFile, translationsPath) {
 function findAllMessagesFiles(directories, defaultLocale = 'en-US') {
   return database.findAllMessagesFiles(directories, defaultLocale);
 }
+/**
+ * Given an arbitrary list of `files`, keep only those that can be treated as messages files, either
+ * definitions or translations. The returned list is a set of descriptors that can be processed by
+ * `processAllMessagesFiles`.
+ *
+ * @param {string[]} files
+ * @param {string} defaultLocale
+ * @returns {import('../types').IntlMessagesFileDescriptor[]}
+ */
+function filterAllMessagesFiles(files, defaultLocale = 'en-US') {
+  return database.filterAllMessagesFiles(files, defaultLocale);
+}
 
 /**
  * Iterate the given `files`, processing each one's content into the database. Processing is done
@@ -217,6 +229,7 @@ function generateTypeDefinitions(sourcePath, outputFile, allowNullability = fals
 
 module.exports = {
   findAllMessagesFiles,
+  filterAllMessagesFiles,
   processAllMessagesFiles,
   generateTypeDefinitions,
   precompileFileForLocale,
