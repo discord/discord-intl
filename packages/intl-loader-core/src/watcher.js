@@ -29,6 +29,12 @@ const MESSAGES_FILE_PATTERNS = ['**/*.messages.*'];
 const DEFAULT_LOCALE = 'en-US';
 
 /**
+ * @typedef {{
+ *   on(event: string, callback: (event: string, path: string) => void): void
+ * }} BasicWatcher
+ */
+
+/**
  * Start a new filesystem watcher to discover and monitor messages files, allowing consumers to
  * react to changes in a single, consistent way.
  *
@@ -39,9 +45,7 @@ const DEFAULT_LOCALE = 'en-US';
  *  persistent?: boolean,
  *  once?: boolean,
  * }} options
- * @returns {Promise<{
- *   on(event: string, callback: (event: string, path: string) => void): void
- * }>}
+ * @returns {Promise<BasicWatcher>}
  */
 async function watchMessagesFiles(
   watchedFolders,
@@ -94,7 +98,7 @@ async function watchMessagesFiles(
 /**
  * Watch the file system for any changes to message files and regenerate their types.
  *
- * @param {chokidar.FSWatcher} watcher
+ * @param {BasicWatcher} watcher
  * @param {{
  *  allowNullability?: boolean
  * }} options
@@ -111,7 +115,7 @@ async function generateMessageTypes(watcher, { allowNullability }) {
  * Watch the file system for changes to message _definitions_ files, and pre-process them into
  * compiled assets (with the extension `.compiled.messages.${assetExtension}`).
  *
- * @param {chokidar.FSWatcher} watcher
+ * @param {BasicWatcher} watcher
  * @param {{
  *  ignore?: string[],
  *  assetExtension?: string
