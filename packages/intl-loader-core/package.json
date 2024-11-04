@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-loader-core",
-  "version": "0.11.4",
+  "version": "0.11.5",
   "license": "MIT",
   "description": "Core utilities for writing loaders and transformers using @discord/intl",
   "author": "Jon Egeland",
