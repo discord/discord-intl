@@ -37,14 +37,33 @@ const DEFAULT_LOCALE = 'en-US';
  *  ignore?: string[],
  *  skipInitial?: boolean,
  *  persistent?: boolean,
+ *  once?: boolean,
  * }} options
+ * @returns {Promise<{
+ *   on(event: string, callback: (event: string, path: string) => void): void
+ * }>}
  */
 async function watchMessagesFiles(
   watchedFolders,
-  { ignore = [], skipInitial = false, persistent = true } = {},
+  { ignore = [], skipInitial = false, once = true } = {},
 ) {
   debug('Pre-initializing database with all discoverable messages files');
-  processAllMessagesFiles(findAllMessagesFiles(watchedFolders));
+  const files = findAllMessagesFiles(watchedFolders);
+  processAllMessagesFiles(files);
+  if (once) {
+    debug('Performing one-shot watch because `once` was true');
+    // This is a weird hack around file watching just not working well on
+    // containers/CI. `add` events won't fire consistently from chokidar when
+    // it's not set to be persistent. So for a `once` run, we can just manually
+    // invoke the event for every file that was discovered on the initial scan.
+    return {
+      on(_, callback) {
+        for (const file of files) {
+          callback('add', file.filePath);
+        }
+      },
+    };
+  }
 
   const ignoredPatterns = ignore.concat(ALWAYS_IGNORE_PATTERNS);
   const globs = watchedFolders.flatMap((folder) =>
@@ -55,7 +74,7 @@ async function watchMessagesFiles(
   const watcher = chokidar.watch(globs, {
     ignored: ignoredPatterns,
     ignoreInitial: skipInitial,
-    persistent,
+    persistent: !once,
   });
   watcher.on('all', (event, path) => {
     processAllMessagesFiles(filterAllMessagesFiles([path]));
