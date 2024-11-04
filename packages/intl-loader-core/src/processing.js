@@ -44,6 +44,33 @@ function buildTranslationsLocaleMap(sourcePath, sourceFile, translationsPath) {
 }
 
 /**
+ * Return file paths for all definitions files with a translations path meta value that would
+ * include the given `translationPath`. This can be used to add reverse dependencies, and safely
+ * cache translations files with appropriate change detection.
+ *
+ * Note that this process is _only_ accurate if the database has full knowledge of all messages
+ * files that exist in the project, which can be guaranteed by running `findAllMessagesFiles` and
+ * `processAllMessagesFiles` beforehand. In most cases, this is suitable to do only once when a
+ * loader process is initializing.
+ *
+ * @param {string} filePath
+ * @returns {string[]}
+ */
+function findAllDefinitionsFilesForTranslations(filePath) {
+  const expectedTranslationsPath = path.dirname(filePath);
+  const sourceFiles = database.getAllSourceFilePaths();
+  const relevantPaths = [];
+  for (const file of sourceFiles) {
+    const source = database.getSourceFile(file);
+    if (source.type === 'definition' && source.meta.translationsPath === expectedTranslationsPath) {
+      console.log(file, source.meta);
+      relevantPaths.push(source.file);
+    }
+  }
+  return relevantPaths;
+}
+
+/**
  * Scan the entire file system within the given `directories` to find all files that can be treated
  * as messages definitions _or_ translations.
  *
@@ -54,6 +81,7 @@ function buildTranslationsLocaleMap(sourcePath, sourceFile, translationsPath) {
 function findAllMessagesFiles(directories, defaultLocale = 'en-US') {
   return database.findAllMessagesFiles(directories, defaultLocale);
 }
+
 /**
  * Given an arbitrary list of `files`, keep only those that can be treated as messages files, either
  * definitions or translations. The returned list is a set of descriptors that can be processed by
@@ -228,6 +256,7 @@ function generateTypeDefinitions(sourcePath, outputFile, allowNullability = fals
 }
 
 module.exports = {
+  findAllDefinitionsFilesForTranslations,
   findAllMessagesFiles,
   filterAllMessagesFiles,
   processAllMessagesFiles,

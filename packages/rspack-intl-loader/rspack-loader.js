@@ -11,6 +11,7 @@ const {
   IntlCompiledMessageFormat,
   processAllMessagesFiles,
   findAllMessagesFiles,
+  findAllDefinitionsFilesForTranslations,
 } = require('@discord/intl-loader-core');
 const debug = require('debug')('intl:rspack-intl-loader');
 
@@ -75,6 +76,9 @@ const intlLoader = function intlLoader(source) {
     // Ensure that rspack knows to watch all of the translations files, even though they aren't
     // directly imported from a source. Without this, even though the compiled loader references the
     // transpiled message files, it won't trigger refreshes when those files change.
+    //
+    // Note that this creates a semi-intentional circular dependency between translations and
+    // definitions due to the reverse dependence of translations on definitions for their content.
     for (const translationsFile of Object.values(result.translationsLocaleMap)) {
       this.addDependency(translationsFile);
     }
@@ -109,6 +113,13 @@ const intlLoader = function intlLoader(source) {
     if (isMessageTranslationsFile(sourcePath)) {
       debug(`[${sourcePath}] Determined to be a translations file`);
       processTranslationsFile(sourcePath, source, { locale });
+      // Translations file content is affected by the content of the definitions file (e.g., the
+      // `secret` meta value), so it can only be cached safely by adding a loader dependency on the
+      // definitions file.
+      const owningDefinitions = findAllDefinitionsFilesForTranslations(sourcePath);
+      for (const file in owningDefinitions) {
+        this.addBuildDependency(file);
+      }
     } else if (forceTranslation) {
       debug(`[${sourcePath}] Forcing processing as a translation file`);
     } else {
@@ -116,7 +127,6 @@ const intlLoader = function intlLoader(source) {
         'Expected a translation file or the `forceTranslation` query parameter on this import, but none was found',
       );
     }
-    this.cacheable(false);
 
     const compiledResult = precompileFileForLocale(sourcePath, locale, undefined, {
       format,

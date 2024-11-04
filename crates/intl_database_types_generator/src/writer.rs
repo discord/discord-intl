@@ -84,8 +84,9 @@ impl TypeDocWriter {
 
     pub fn push_prefix(&mut self, content: &str) {
         debug_assert!(
-            content.contains('\n'),
-            "line prefixes should not contain newlines"
+            !content.contains('\n'),
+            "line prefixes should not contain newlines. Adding '{content}' to '{}'",
+            self.line_prefix
         );
         self.prefix_stack.push(self.line_prefix.len());
         self.line_prefix += content;
