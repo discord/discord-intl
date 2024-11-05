@@ -8,7 +8,6 @@ use intl_database_core::{
 pub struct TypeDef {
     pub name: KeySymbol,
     pub variables: MessageVariables,
-    pub allow_nullability: bool,
     pub spurious_variable_keys: KeySymbolSet,
 }
 
@@ -19,11 +18,7 @@ impl TypeDef {
     ) -> AlphabeticSymbolSet {
         let mut set = AlphabeticSymbolSet::new();
         for instance in instances {
-            if self.allow_nullability {
-                add_loose_type_names(&mut set, &instance.kind)
-            } else {
-                add_strict_type_name(&mut set, &instance.kind)
-            }
+            add_strict_type_name(&mut set, &instance.kind)
         }
         set
     }
@@ -71,71 +66,31 @@ fn add_strict_type_name(set: &mut AlphabeticSymbolSet, kind: &MessageVariableTyp
             set.insert("any".into());
         }
         MessageVariableType::Number => {
+            // Number allows both `number` and `string`, because `Intl.NumberFormat` is able to
+            // internally parse the string into a number before formatting. Note that this _only_
+            // applies to number formatting and does not happen for dates or times or other values.
             set.insert("number".into());
+            set.insert("string".into());
         }
         MessageVariableType::Plural => {
             set.insert("number".into());
         }
-        MessageVariableType::Enum(_) => {
-            todo!()
+        MessageVariableType::Enum(values) => {
+            for value in values {
+                if value == "other" {
+                    set.insert("string".into());
+                } else {
+                    set.insert(format!("'{value}'").into());
+                }
+            }
         }
         MessageVariableType::Date => {
-            set.insert("number".into());
-            set.insert("string".into());
-            set.insert("Date".into());
-        }
-        MessageVariableType::Time => {
-            set.insert("number".into());
-            set.insert("string".into());
-            set.insert("Date".into());
-        }
-        MessageVariableType::HookFunction => {
-            set.insert("HookFunction".into());
-        }
-        MessageVariableType::LinkFunction => {
-            set.insert("LinkFunction".into());
-        }
-        MessageVariableType::HandlerFunction => {
-            set.insert("HandlerFunction".into());
-        }
-    }
-}
-
-/// When `allow_nullability` is true, use this method in place of `add_strict_type_name` to get
-/// a type that allows nulls and other looser types for the variable.
-fn add_loose_type_names(set: &mut AlphabeticSymbolSet, kind: &MessageVariableType) {
-    // TODO: All of these undefined unions are technically incorrect and should
-    // be handled on the consuming side somehow.
-    match kind {
-        MessageVariableType::Any => {
-            set.insert("any".into());
-        }
-        MessageVariableType::Number => {
-            set.insert("number".into());
-            set.insert("string".into());
-            set.insert("null".into());
-            set.insert("undefined".into());
-        }
-        MessageVariableType::Plural => {
-            set.insert("number".into());
-            set.insert("string".into());
-            set.insert("null".into());
-            set.insert("undefined".into());
-        }
-        MessageVariableType::Enum(_) => todo!(),
-        MessageVariableType::Date => {
             set.insert("Date".into());
             set.insert("number".into());
-            set.insert("string".into());
-            set.insert("null".into());
-            set.insert("undefined".into());
         }
         MessageVariableType::Time => {
             set.insert("Date".into());
             set.insert("number".into());
-            set.insert("string".into());
-            set.insert("null".into());
-            set.insert("undefined".into());
         }
         MessageVariableType::HookFunction => {
             set.insert("HookFunction".into());

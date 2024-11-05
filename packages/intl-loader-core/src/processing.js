@@ -231,27 +231,18 @@ function precompileFileForLocale(sourcePath, locale, outputFile, options = {}) {
  * replaced by `.d.ts`. For example, a file like `SomeMessages.Other.messages.js` would become
  * `SomeMessages.Other.messages.d.ts`.
  *
- * If `allowNullability` is set, the generated types for variables within messages will allow
- * `null` and `undefined` for most value types, as well as looser restrictions on typing, such as
- * allowing `string | number` for number variables.
- *
  * Returns `true` if the types were successfully generated, or `false` otherwise, such as if the
  * source file is not already in the database.
  *
  * @param {string} sourcePath
  * @param {string=} outputFile
- * @param {boolean=} allowNullability
  * @returns {boolean}
  */
-function generateTypeDefinitions(sourcePath, outputFile, allowNullability = false) {
+function generateTypeDefinitions(sourcePath, outputFile) {
   const paths = database.getAllSourceFilePaths();
   if (!paths.includes(sourcePath)) return false;
 
-  database.generateTypes(
-    sourcePath,
-    outputFile ?? sourcePath.replace(/\.[^.]+$/, '.d.ts'),
-    allowNullability,
-  );
+  database.generateTypes(sourcePath, outputFile ?? sourcePath.replace(/\.[^.]+$/, '.d.ts'));
   return true;
 }
 

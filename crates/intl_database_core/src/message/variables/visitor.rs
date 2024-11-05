@@ -103,8 +103,8 @@ impl Visit for MessageVariablesVisitor {
     fn visit_icu_select(&mut self, select: &IcuSelect) {
         let name_symbol = key_symbol(select.name());
         self.current_plural_variable_name = Some(name_symbol);
-        // TODO(faulty): change this to ::Enum.
-        self.current_variable_type = Some(MessageVariableType::Plural);
+        let selectors = select.arms().iter().map(|arm| arm.selector().clone());
+        self.current_variable_type = Some(MessageVariableType::Enum(selectors.collect()));
         select.visit_children_with(self);
     }
 

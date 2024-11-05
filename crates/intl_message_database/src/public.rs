@@ -279,15 +279,10 @@ pub fn generate_types(
     database: &MessagesDatabase,
     source_file_path: &str,
     output_file_path: &str,
-    allow_nullability: Option<bool>,
 ) -> anyhow::Result<()> {
     let source_file_key = get_key_symbol_or_error(source_file_path)?;
-    let mut generator = IntlTypesGenerator::new(
-        &database,
-        source_file_key,
-        output_file_path.to_string(),
-        allow_nullability.unwrap_or(false),
-    );
+    let mut generator =
+        IntlTypesGenerator::new(&database, source_file_key, output_file_path.to_string());
     generator.run()?;
     std::fs::write(&output_file_path, generator.take_buffer())?;
     let map_file_path = String::from(output_file_path) + ".map";

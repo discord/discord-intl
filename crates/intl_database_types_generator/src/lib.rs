@@ -19,7 +19,6 @@ pub struct IntlTypesGenerator<'a> {
     database: &'a MessagesDatabase,
     source_file_key: KeySymbol,
     output: TypeDocWriter,
-    allow_nullability: bool,
     output_file_path: String,
 }
 
@@ -28,13 +27,11 @@ impl<'a> IntlTypesGenerator<'a> {
         database: &'a MessagesDatabase,
         source_file_key: KeySymbol,
         output_file_path: String,
-        allow_nullability: bool,
     ) -> Self {
         Self {
             database,
             source_file_key,
             output: TypeDocWriter::new(),
-            allow_nullability,
             output_file_path,
         }
     }
@@ -123,7 +120,6 @@ impl<'a> IntlTypesGenerator<'a> {
         TypeDef {
             name: message.key(),
             variables: message.all_variables(),
-            allow_nullability: self.allow_nullability,
             spurious_variable_keys,
         }
     }

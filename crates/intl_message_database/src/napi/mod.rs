@@ -184,14 +184,8 @@ impl IntlMessagesDatabase {
         &self,
         source_file_path: String,
         output_file_path: String,
-        allow_nullability: Option<bool>,
     ) -> anyhow::Result<()> {
-        public::generate_types(
-            &self.database,
-            &source_file_path,
-            &output_file_path,
-            allow_nullability,
-        )
+        public::generate_types(&self.database, &source_file_path, &output_file_path)
     }
 
     #[napi]

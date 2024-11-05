@@ -99,15 +99,12 @@ async function watchMessagesFiles(
  * Watch the file system for any changes to message files and regenerate their types.
  *
  * @param {BasicWatcher} watcher
- * @param {{
- *  allowNullability?: boolean
- * }} options
  */
-async function generateMessageTypes(watcher, { allowNullability }) {
+async function generateMessageTypes(watcher) {
   watcher.on('all', (_, filePath) => {
     if (!isMessageDefinitionsFile(filePath)) return;
     debug(`Regenerating types for ${filePath}`);
-    generateTypeDefinitions(filePath, undefined, allowNullability);
+    generateTypeDefinitions(filePath, undefined);
   });
 }
 
