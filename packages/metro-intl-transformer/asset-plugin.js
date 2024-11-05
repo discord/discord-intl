@@ -66,31 +66,51 @@ const defaultConfig = {
  * the desired configuration for that run of the bundler. If the Metro configuration for the current
  * process is at a non-default location, this method will likely fail.
  *
- * @returns {Promise<ResolvedIntlAssetPluginConfig>}
+ * @returns {Promise<[ResolvedIntlAssetPluginConfig, import('metro-config').ConfigT]>}
  */
 async function fetchConfig() {
   debug(`Loading Metro config`);
   const metroConfig = await metro.loadConfig();
+  const watchFolders = [metroConfig.projectRoot, ...metroConfig.watchFolders];
   const defaults = {
     ...defaultConfig,
-    watchFolders: [metroConfig.projectRoot, ...metroConfig.watchFolders],
+    watchFolders,
   };
 
-  // @ts-expect-error We're latching on `intlAssetPlugin` as a field in the transformer config.
-  const config = metroConfig.transformer?.intlAssetPlugin;
+  /** @type {IntlAssetPluginConfig} */
+  const config =
+    // @ts-expect-error We're latching on `intlAssetPlugin` as a field in the transformer config.
+    metroConfig.transformer?.intlAssetPlugin;
   if (config == null) {
     debug('asset-plugin configuration was empty. Using defaults: %O', defaults);
-    return { ...defaults };
+    return [{ ...defaults }, metroConfig];
   }
   debug(`discovered asset-plugin configuration: %O`, config);
+  const resolved = {
+    ...defaults,
+    ...config,
+  };
 
-  if (config.cacheDir != null && path.isAbsolute(config.cacheDir)) {
+  if (resolved.cacheDir == null) {
     throw new Error(
-      '`cacheDir` configuration for the intl Metro asset-plugin must be a relative path.',
+      'metro-intl-transformer asset-plugin cacheDir configuration resolved to null. Assets cannot be compiled',
     );
   }
 
-  return { ...defaults, ...config };
+  const cacheDir = path.resolve(metroConfig.projectRoot, resolved.cacheDir);
+  const cacheDirIsWatched = watchFolders.some((folder) => {
+    const relative = path.relative(folder, resolved.cacheDir);
+    return !relative.startsWith('..');
+  });
+  if (!cacheDirIsWatched) {
+    throw new Error(
+      "metro-intl-transformer cacheDir is not visible to metro's file watching. Assets cannot be used after compilation",
+    );
+  }
+
+  resolved.cacheDir = cacheDir;
+  debug(`Resolved cache directory to ${resolved.cacheDir}`);
+  return [{ ...defaults, ...config }, metroConfig];
 }
 
 const pluginConfig = fetchConfig();
@@ -101,7 +121,8 @@ let hasInitializedAllDefinitions = false;
  * @param {any} assetData
  */
 async function transformAsset(assetData) {
-  const { cacheDir, assetExtension, format, bundleSecrets, watchFolders } = await pluginConfig;
+  const [config, metroConfig] = await pluginConfig;
+  const { cacheDir, assetExtension, format, bundleSecrets, watchFolders } = config;
 
   if (!hasInitializedAllDefinitions) {
     debug('Initializing database with all messages files within watch folders: %O', watchFolders);
@@ -123,7 +144,9 @@ async function transformAsset(assetData) {
 
   debug(`[${filename}] Processing translation asset`);
 
-  const outputDir = path.resolve(assetData.fileSystemLocation, cacheDir);
+  const relativeLocation = path.relative(metroConfig.projectRoot, assetData.fileSystemLocation);
+  const dirHash = btoa(path.dirname(relativeLocation));
+  const outputDir = path.resolve(cacheDir, dirHash);
   const outputName = `${assetData.name}.${assetData.hash}.compiled.messages`;
   const outputFile = path.join(outputDir, outputName) + '.' + assetExtension;
   debug(`[${filename}] Output file path: ${outputFile}`);
