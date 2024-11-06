@@ -25,16 +25,6 @@ export enum RichTextNodeType {
   Code = 'inlineCode',
   Link = 'link',
   Paragraph = 'paragraph',
-  /**
-   * A special extension for when the value of a placeholder is an object.
-   * Rather than casting to a string here, the object is preserved as-is for a
-   * future formatter to render as appropriate (i.e., using an object as a
-   * value when formatting to an AST should keep that object structure so that
-   * the final AST is accurate for what the user expects, but when rendering to
-   * a plain string, the final formatter can just cast that object to a string
-   * using its `toString` method or some other mechanism).
-   */
-  Object = 'object',
 }
 
 interface RichTextNodeBase<ContentType> {
@@ -61,7 +51,7 @@ interface RichTextParagraphNode extends RichTextNodeBase<RichTextNode[]> {
 }
 interface RichTextLinkNode extends RichTextNodeBase<RichTextNode[]> {
   type: RichTextNodeType.Link;
-  target: string;
+  target: object;
 }
 
 export type RichTextNode =
@@ -80,7 +70,7 @@ const AST_RICH_TEXT_ELEMENTS: RichTextFormattingMap<AstFunctionTypes['hook']> = 
   $code: (content) => ({ type: RichTextNodeType.Code, content }),
   $link: (content, _, [target]) => ({
     type: RichTextNodeType.Link,
-    target: target.content as string,
+    target,
     content,
   }),
   $p: (content) => ({ type: RichTextNodeType.Paragraph, content }),
