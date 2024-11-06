@@ -36,16 +36,20 @@ function isRichTextTag(name: string) {
   return name[0] === '$';
 }
 
-export abstract class FormatBuilder<Result> {
+export abstract class FormatBuilder<Result, ObjectType = Result extends object ? Result : never> {
   abstract pushRichTextTag(tag: RichTextTagNames, children: Result[], control: Result[]): void;
   abstract pushLiteralText(text: string): void;
-  abstract pushObject(value: object): void;
+  abstract pushObject(value: ObjectType): void;
   abstract finish(): Result[];
 }
 
 export type FormatBuilderConstructor<Result> = new () => FormatBuilder<Result>;
 
-export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>(
+export function bindFormatValuesWithBuilder<
+  T,
+  ObjectType,
+  Builder extends FormatBuilder<T, ObjectType>,
+>(
   builder: Builder,
   nodes: AstNode[],
   locales: string | string[],
@@ -89,8 +93,15 @@ export function bindFormatValuesWithBuilder<T, Builder extends FormatBuilder<T>>
     const value = values[variableName];
     switch (nodeType) {
       case FormatJsNodeType.Argument:
+        // `function` here captures ReactNodes, which can be functions that
+        // return elements. Basically everything else fits in the `object`
+        // type, and the generic type requires that an explicit ObjectType
+        // be specified for cases where it's not. That means there's an
+        // escape hatch that _might_ break this, but it would have to be
+        // intentionally set by internal code to function that way, so we'll
+        // operate on a promise that it won't for now.
         if (typeof value === 'object' || typeof value === 'function') {
-          builder.pushObject(value);
+          builder.pushObject(value as ObjectType);
         } else {
           // Taken from FormatJS: non-objects (strings, numbers, and falsy
           // values) all get cast to strings immediately as literal nodes.

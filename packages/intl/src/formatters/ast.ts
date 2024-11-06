@@ -63,9 +63,6 @@ interface RichTextLinkNode extends RichTextNodeBase<RichTextNode[]> {
   type: RichTextNodeType.Link;
   target: string;
 }
-interface RichTextObjectNode extends RichTextNodeBase<object> {
-  type: RichTextNodeType.Object;
-}
 
 export type RichTextNode =
   | RichTextTextNode
@@ -74,8 +71,7 @@ export type RichTextNode =
   | RichTextStrikethroughNode
   | RichTextCodeNode
   | RichTextParagraphNode
-  | RichTextLinkNode
-  | RichTextObjectNode;
+  | RichTextLinkNode;
 
 const AST_RICH_TEXT_ELEMENTS: RichTextFormattingMap<AstFunctionTypes['hook']> = {
   $b: (content) => ({ type: RichTextNodeType.Strong, content }),
@@ -114,8 +110,8 @@ class AstBuilder extends FormatBuilder<RichTextNode> {
     }
   }
 
-  pushObject(value: object) {
-    this.result.push({ type: RichTextNodeType.Object, content: value });
+  pushObject(value: RichTextNode) {
+    this.result.push(value);
   }
 
   finish(): RichTextNode[] {

@@ -66,9 +66,7 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
       }
     }
 
-    pushObject(value: object) {
-      // @ts-expect-error this is technically invalid, but we'll just assume that if a format
-      // returns an object, it'll be acting as some form of ReactNode.
+    pushObject(value: React.ReactNode) {
       this.result.push(value);
     }
 
