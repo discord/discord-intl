@@ -48,6 +48,17 @@ ustr = { version = "1.0.0", features = ["serde"] }
 memchr = "2.7.4"
 once_cell = "1.19.0"
 
+[profile.release-profiling]
+inherits = "release"
+codegen-units = 1
+lto = true
+# Optimize for performance
+opt-level = 3
+debug = true
+strip = false
+panic = "abort"
+
+
 [profile.release]
 codegen-units = 1
 lto = true

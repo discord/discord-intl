@@ -5,8 +5,14 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = []
+# Enable to compile the library as a static library
+static_link = []
 
 [dependencies]
 anyhow = { workspace = true }
