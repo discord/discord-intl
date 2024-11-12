@@ -1,5 +1,7 @@
-// #[global_allocator]
-// static GLOBAL: MiMalloc = MiMalloc;
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 pub mod sources;
 mod threading;
