@@ -13,8 +13,8 @@
     "url": "https://github.com/discord/discord-intl"
   },
   "scripts": {
-    "build": "cargo build --target wasm32-unknown-unknown --release && cp ../../target/wasm32-unknown-unknown/release/swc_intl_message_transformer.wasm .",
-    "build:dev": "cargo build --target wasm32-unknown-unknown && cp ../../target/wasm32-unknown-unknown/debug/swc_intl_message_transformer.wasm .",
+    "build": "cargo build --target wasm32-wasi --release && cp ../../target/wasm32-wasi/release/swc_intl_message_transformer.wasm .",
+    "build:dev": "cargo build --target wasm32-wasi && cp ../../target/wasm32-wasi/debug/swc_intl_message_transformer.wasm .",
     "prepublishOnly": "ls swc_intl_message_transformer.wasm"
   },
   "files": [

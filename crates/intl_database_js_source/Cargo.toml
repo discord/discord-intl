@@ -6,8 +6,10 @@ edition = "2021"
 [dependencies]
 intl_database_core = { workspace = true }
 intl_message_utils = { workspace = true }
-swc_common = "0.33.25"
-swc_core = { version = "0.90.x", features = [
+swc_common = "4.0.1"
+# This version is roughly tied to our rspack version: https://swc.rs/docs/plugin/selecting-swc-core
+# rspack 1.1 uses swc_core 5.0.1.
+swc_core = { version = "=5.0.1", features = [
     "ecma_parser",
     "ecma_ast",
     "ecma_visit",

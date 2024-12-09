@@ -101,7 +101,7 @@ impl VisitMut for IntlMessageConsumerTransformer {
 #[cfg(test)]
 mod tests {
     use swc_core::ecma::transforms::testing::test_inline_input_output;
-    use swc_core::ecma::visit::as_folder;
+    use swc_core::ecma::visit::visit_mut_pass;
 
     use crate::config::IntlMessageTransformerConfig;
 
@@ -111,7 +111,8 @@ mod tests {
     fn rewrite_message_keys_in_consumers() {
         test_inline_input_output(
             Default::default(),
-            |_| as_folder(IntlMessageConsumerTransformer::default()), // Input codes
+            Some(true),
+            |_| visit_mut_pass(IntlMessageConsumerTransformer::default()), // Input codes
             r#"
         import messages from "some/module.messages";
         import differentMess from "different.messages";
@@ -145,7 +146,8 @@ mod tests {
 
         test_inline_input_output(
             Default::default(),
-            |_| as_folder(IntlMessageConsumerTransformer::new(config)),
+            Some(true),
+            |_| visit_mut_pass(IntlMessageConsumerTransformer::new(config)),
             r#"
         import {untouchedSameSpec, t} from "@app/intl";
         import {untranslated} from "somewhere/else";
