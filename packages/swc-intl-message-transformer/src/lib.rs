@@ -1,5 +1,5 @@
 use swc_core::ecma::ast::Program;
-use swc_core::ecma::visit::{as_folder, FoldWith};
+use swc_core::ecma::visit::visit_mut_pass;
 use swc_core::plugin::{plugin_transform, proxies::TransformPluginProgramMetadata};
 
 use config::IntlMessageTransformerConfig;
@@ -16,7 +16,7 @@ pub fn process_transform(program: Program, metadata: TransformPluginProgramMetad
     )
     .expect("failed to parse swc-intl-message-transformer config");
 
-    program.fold_with(&mut as_folder(
+    program.apply(&mut visit_mut_pass(
         transformer::IntlMessageConsumerTransformer::new(config),
     ))
 }
