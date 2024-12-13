@@ -172,9 +172,12 @@ impl<W: std::io::Write> IntlDatabaseService for IntlMessageBundler<'_, W> {
             .map(|source| source.message_keys())
             .ok_or_else(|| IntlMessageBundlerError::SourceFileNotFound(self.source_key))?;
 
+        let mut sorted_message_keys = Vec::with_capacity(message_keys.len());
+        message_keys.iter().collect_into(&mut sorted_message_keys).sort();
+
         write!(self.output, "{{")?;
         let mut is_first = true;
-        for key in message_keys {
+        for key in sorted_message_keys {
             let message = self
                 .database
                 .messages
