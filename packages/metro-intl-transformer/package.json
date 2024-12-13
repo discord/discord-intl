@@ -1,6 +1,6 @@
 {
   "name": "@discord/metro-intl-transformer",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "license": "MIT",
   "description": "Metro/Babel transformer plugin for compiling, bundling, and minifying intl message definitions and usages using intl-message-database.",
   "exports": {
