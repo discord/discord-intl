@@ -127,9 +127,9 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
             }
         }
 
-        self.output.write(&[b'"'])?;
-        self.output.write(&buffer)?;
-        self.output.write(&[b'"'])?;
+        self.output.write_all(b"\"")?;
+        self.output.write_all(&buffer)?;
+        self.output.write_all(b"\"")?;
         Ok(true)
     }
 
@@ -173,7 +173,10 @@ impl<W: std::io::Write> IntlDatabaseService for IntlMessageBundler<'_, W> {
             .ok_or_else(|| IntlMessageBundlerError::SourceFileNotFound(self.source_key))?;
 
         let mut sorted_message_keys = Vec::with_capacity(message_keys.len());
-        message_keys.iter().collect_into(&mut sorted_message_keys).sort();
+        message_keys
+            .iter()
+            .collect_into(&mut sorted_message_keys)
+            .sort();
 
         write!(self.output, "{{")?;
         let mut is_first = true;

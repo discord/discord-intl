@@ -288,7 +288,7 @@ pub fn generate_types(
     let map_file_path = String::from(output_file_path) + ".map";
     let mut source_map_file = std::fs::File::create(map_file_path)?;
     let source_map = generator.into_sourcemap()?;
-    source_map_file.write(source_map.as_bytes())?;
+    source_map_file.write_all(source_map.as_bytes())?;
     Ok(())
 }
 

@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 intl_database_core = { workspace = true }
 intl_message_utils = { workspace = true }
-swc_common = "0.33.25"
-swc_core = { version = "0.90.x", features = [
+swc_common = "5.0.0"
+swc_core = { version = "9.0.0", features = [
     "ecma_parser",
     "ecma_ast",
     "ecma_visit",

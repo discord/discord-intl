@@ -1,5 +1,5 @@
 use std::borrow::{Borrow, Cow};
-use swc_common::source_map::Pos;
+use swc_common::source_map::SmallPos;
 use swc_common::sync::Lrc;
 use swc_common::{BytePos, FileName, SourceMap, Spanned};
 use swc_core::ecma::ast::{
@@ -21,7 +21,7 @@ pub fn parse_message_definitions_file(
 ) -> PResult<(Lrc<SourceMap>, Module)> {
     let cm: Lrc<SourceMap> = Default::default();
 
-    let fm = cm.new_source_file(FileName::Custom(file_name.into()), source.into());
+    let fm = cm.new_source_file(Lrc::new(FileName::Custom(file_name.into())), source.into());
     let lexer = Lexer::new(
         Syntax::Es(Default::default()),
         Default::default(),
