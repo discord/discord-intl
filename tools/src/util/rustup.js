@@ -28,10 +28,14 @@ async function installTarget(targetTriple) {
  */
 async function ensureWasmSetup() {
   console.log('Ensuring wasm environment setup for building');
-  if (await rustup.hasTargetInstalled('wasm32-unknown-unknown')) return;
+  const hasTargets =
+    (await rustup.hasTargetInstalled('wasm32-wasip1')) &&
+    (await rustup.hasTargetInstalled('wasm32-unknown-unknown'));
+  if (hasTargets) return;
   console.log('Installing wasm32 rust targets');
 
   await installTarget('wasm32-unknown-unknown');
+  await installTarget('wasm32-wasip1');
   console.log('wasm build environment successfully installed');
 }
 
