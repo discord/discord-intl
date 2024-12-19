@@ -13,6 +13,7 @@ doctest = false
 
 [dependencies]
 bitflags = "2"
+cjk = "0.2.5"
 intl_markdown_macros = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
