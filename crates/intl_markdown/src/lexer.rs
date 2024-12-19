@@ -23,6 +23,7 @@ pub(super) struct LexerState {
     pub last_was_whitespace: bool,
     pub last_was_punctuation: bool,
     pub last_was_newline: bool,
+    pub last_was_cjk_punctuation: bool,
     /// True if the last token was entirely an escaped token, which has an
     /// effect on whether the next token is considered punctuation or not when
     /// computing delimiters.
@@ -45,6 +46,7 @@ impl LexerState {
             last_was_newline: true,
             last_was_whitespace: true,
             last_was_punctuation: false,
+            last_was_cjk_punctuation: false,
             last_token_was_escape: false,
             is_after_newline: true,
         }
@@ -56,6 +58,7 @@ impl LexerState {
         self.last_was_whitespace = true;
         self.last_was_newline = true;
         self.last_was_punctuation = false;
+        self.last_was_cjk_punctuation = false;
         self.last_token_was_escape = false;
         self.is_after_newline = true;
     }
@@ -215,9 +218,9 @@ impl<'source> Lexer<'source> {
             c if self.state.last_was_newline
                 && c.is_ascii_whitespace()
                 && self.state.indent_depth > 0 =>
-            {
-                self.consume_leading_whitespace()
-            }
+                {
+                    self.consume_leading_whitespace()
+                }
             b'\0' => self.consume_byte(SyntaxKind::EOF),
             _ => self.consume_verbatim_line(),
         }
@@ -585,6 +588,9 @@ impl<'source> Lexer<'source> {
                 GeneralCategoryGroup::Punctuation | GeneralCategoryGroup::Symbol
             )
         });
+        // https://talk.commonmark.org/t/emphasis-and-east-asian-text/2491/5
+        // https://github.com/commonmark/cmark/pull/208
+        let next_is_cjk = next.map_or(false, |c| !c.is_ascii() && cjk::is_cjk_codepoint(c));
         let next_is_escaped = matches!(next, Some('\\'));
 
         let mut flags = TokenFlags::default();
@@ -594,11 +600,17 @@ impl<'source> Lexer<'source> {
         if self.state.last_was_punctuation && !self.state.last_token_was_escape {
             flags.insert(TokenFlags::HAS_PRECEDING_PUNCTUATION);
         }
+        if self.state.last_was_cjk_punctuation {
+            flags.insert(TokenFlags::HAS_PRECEDING_CJK_PUNCTUATION)
+        }
         if next_is_whitespace {
             flags.insert(TokenFlags::HAS_FOLLOWING_WHITESPACE);
         }
         if next_is_punctuation && !next_is_escaped {
             flags.insert(TokenFlags::HAS_FOLLOWING_PUNCTUATION);
+        }
+        if next_is_cjk {
+            flags.insert(TokenFlags::HAS_FOLLOWING_CJK);
         }
 
         self.advance();
@@ -1043,6 +1055,10 @@ impl<'source> Lexer<'source> {
         } else {
             last_char.is_ascii_punctuation()
         };
+        // [cjk] includes all ascii characters as CJK punctuation for some reason, which we
+        // specifically do not want to match here, so the check is also guarded that the character
+        // is not plain ASCII.
+        self.state.last_was_cjk_punctuation = !last_char.is_ascii() && cjk::is_cjk_punctuation_codepoint(last_char);
 
         self.state.last_was_newline = last_char == '\n';
         self.state.last_was_whitespace = last_char.is_whitespace();
