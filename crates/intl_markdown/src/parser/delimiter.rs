@@ -1,8 +1,8 @@
 use std::ops::Range;
 
-use crate::{delimiter::EmphasisDelimiter, event::Event, SyntaxKind};
 use crate::delimiter::Delimiter;
 use crate::parser::emphasis::process_emphasis;
+use crate::{delimiter::EmphasisDelimiter, event::Event, SyntaxKind};
 
 use super::ICUMarkdownParser;
 
@@ -59,22 +59,24 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
         !first_flags.has_preceding_whitespace()
             // 2. Either:
             && (
-                // - not preceded by a punctuation. OR
-                !first_flags.has_preceding_punctuation()
+            // - not preceded by a punctuation. OR
+            // (CJK extension: preceding CJK punctuation is allowed)
+            (!first_flags.has_preceding_punctuation() || first_flags.has_preceding_cjk_punctuation())
                 // - preceded by punctuation but followed by whitespace or punctuation
-                || (last_flags.has_following_whitespace() || last_flags.has_following_punctuation())
-            );
+                // (CJK extension: following CJK characters are allowed)
+                || (last_flags.has_following_whitespace() || last_flags.has_following_punctuation() || last_flags.has_following_cjk())
+        );
 
     // Left-flanking definition
     // 1. Not followed by whitespace AND
     let is_left_flanking = !last_flags.has_following_whitespace()
-            // 2. Either:
-            && (
-                // - not followed by a punctuation. OR
-                !last_flags.has_following_punctuation()
-                // - followed by punctuation but preceded by whitespace or punctuation.
-                || (first_flags.has_preceding_whitespace() || first_flags.has_preceding_punctuation())
-            );
+        // 2. Either:
+        && (
+        // - not followed by a punctuation. OR
+        !last_flags.has_following_punctuation()
+            // - followed by punctuation but preceded by whitespace or punctuation.
+            || (first_flags.has_preceding_whitespace() || first_flags.has_preceding_punctuation())
+    );
 
     // Using the determined flanking and context flags and the `kind` of the
     // token, determine if it can be used to open and/or close emphasis.
