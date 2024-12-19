@@ -13,7 +13,7 @@ const debug = require('debug')('intl:metro-intl-transformer');
  * @param {{
  *  filename: string,
  *  src: string,
- *  getPrelude: () => string,
+ *  getPrelude?: () => string,
  *  format?: IntlCompiledMessageFormat,
  *  bundleSecrets?: boolean,
  *  preGenerateBinds?: boolean,
@@ -34,6 +34,10 @@ function transformToString({
       // TODO: Make this more configurable
       locale: 'en-US',
     });
+    // Ideally, we would split _all_ message values into separate files so that all locales are
+    // treated equally. However, Metro _really_ doesn't like letting you generate new modules, so
+    // instead we just inline the values for the definition locale directly into the map here.
+    // This sentinel value is replaced below in the `getTranslationImport` hook of the transformer.
     result.translationsLocaleMap[result.locale] = 'intl$sentinel-use-local';
     debug('Locale map created: %O', result.translationsLocaleMap);
 
@@ -49,7 +53,7 @@ function transformToString({
         if (importPath === 'intl$sentinel-use-local') {
           return `Promise.resolve({default: ${sourceMessages}})`;
         }
-        return `import("${importPath}")`;
+        return `import("${importPath}").then((data) => ({default: data}))`;
       },
       getPrelude,
       debug: process.env.NODE_ENV === 'development',
