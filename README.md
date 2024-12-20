@@ -68,41 +68,44 @@ export default defineMessages({
 
 ## Development
 
-### Local development in another React Native project
-
-If you need to develop discord/intl and test on react-native projects using Metro, you will have a bad time trying to
-deal with node_modules and dependency linking. Even though this project uses pnpm, which is generally pretty good about
-managing workspaces and cross-project links for you automatically, Metro doesn't understand the symlink nature of a lot
-of what pnpm does, and will throw errors about module resolution constantly.
-
-The only way to work around this is to either use an npm-published version of the dependency, which is pre-compiled and
-always copied directly into the host project's node modules folder, _or_ use `pnpm pack` on the package you want to test
-out locally, then manually install that package in the host project use a tarball link.
-
-The latter is far and away the easiest and least-polluting method, so this workspace provides a command to pack all of
-the projects in this workspace into tarballs that you can then add manually:
+This repository contains a CLI tool for easily managing all development and maintenance tasks. After cloning the repository, run:
 
 ```shell
-pnpm intl-cli eco local-pack
+# Install dependencies
+pnpm i
+# Run the cli
+pnpm intl-cli --help
 ```
 
-Once this succeeds, you'll have a `./.local-packs` folder in this repo with tarballs of each package. Then you can add
-those to your host project's dependencies like a normal file link:
+When working on the native code side in any of the Rust crates, tests most likely run through the `db` project:
 
-```json
-{
-  "dependencies": {
-    "@discord/metro-intl-transformer": "link:../discord-intl/.local-packs/discord-metro-intl-transformer-0.0.1.tgz"
-  }
-}
+```shell
+# Build a local version of the database package
+pnpm intl-cli db build --target local
+# Benchmark the local database, building it fresh before running.
+pnpm intl-cli db bench --build
 ```
 
-The package manager for the host project should then _copy_ and install the dependency, allowing Metro to treat it like
-any other dependency with proper node_modules resolution and all. To update the package and test a new change, just run
-the `intl-cli eco local-pack` command again, then re-install the package on the host. It's tedious, but it's the only
-way that currently works with module resolution across all bundlers.
+Frontend packages sometimes need build steps as well, which can also be managed with the CLI:
 
-Note that if you are testing changes in multiple packages, or in packages with nested dependencies, you will need to
-_explicitly_ install each package you're changing in the host project, even if it's normally an implicit dependency.
-Otherwise, the host package manager might not link the right version (this is a limitation of `pnpm pack` and how it is
-being used to make this method work).
+```shell
+# Build the intl runtime
+pnpm intl-cli runtime build
+# Build the SWC message transformer plugin
+pnpm intl-cli swc build
+```
+
+All packages can be used locally in other projects as `file:` and `link:` dependencies. Note that the Metro bundler does not respect `link:` dependencies locally and will need to use `file:` and re-install the package every time a change is made.
+
+## Releasing
+
+The CLI also manages tasks for versioning and releasing packages for public use:
+
+```shell
+# Bump the version of all packages in the repo to prepare for release
+pnpm intl-cli eco version bump --help
+# Release a new canary build (only works for non-built projects)
+pnpm intl-cli ci publish-canary @discord/intl [...and more packages]
+# Publish a complete new release of all packages
+pnpm intl-cli ci release
+```

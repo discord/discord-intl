@@ -82,3 +82,5 @@ structure of each node in this tree (each node has a `type` and `value` in the s
 ```
 
 These examples are not minified fully, but showcase just how much repetition can be omitted by pre-defining the keys.
+
+This is a library crate that is only built as part of another crate.
