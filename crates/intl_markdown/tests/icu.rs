@@ -31,6 +31,8 @@ mod icu_inline {
         "false setext\n---",
         "false setext\n---"
     );
+
+    icu_string_test!(unclosed_icu, "{username unclosed", "{username unclosed");
 }
 
 mod icu_variable_formats {

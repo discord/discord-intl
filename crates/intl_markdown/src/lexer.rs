@@ -860,7 +860,7 @@ impl<'source> Lexer<'source> {
                 // and closing braces.
                 // NOTE: This does _not_ deal with "escaped escapes", but that's fine for now.
                 b'\'' => {
-                    while self.current() != b'\'' {
+                    while !self.is_eof() && self.current() != b'\'' {
                         self.advance()
                     }
                 }
@@ -911,7 +911,7 @@ impl<'source> Lexer<'source> {
             }
         }
 
-        while self.current().is_ascii_digit() {
+        while !self.is_eof() && self.current().is_ascii_digit() {
             self.advance();
         }
 
@@ -931,7 +931,8 @@ impl<'source> Lexer<'source> {
             return SyntaxKind::TEXT;
         }
 
-        while is_unicode_identifier_continue(self.current_char()) {
+        while !self.is_eof() && is_unicode_identifier_continue(self.current_char()) {
+            println!("next: {}", self.current_char());
             self.advance();
         }
 
