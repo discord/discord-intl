@@ -932,7 +932,6 @@ impl<'source> Lexer<'source> {
         }
 
         while !self.is_eof() && is_unicode_identifier_continue(self.current_char()) {
-            println!("next: {}", self.current_char());
             self.advance();
         }
 

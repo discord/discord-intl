@@ -39,6 +39,8 @@ napi = { version = "3.0.0-alpha.8", features = ["error_anyhow", "serde-json"] }
 rustc-hash = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+swc_common = "5.0.0"
+swc_core = "10.6.1"
 thiserror = "1"
 threadpool = "1.8.1"
 unescape_zero_copy = "2.1.1"
