@@ -42,6 +42,14 @@ const {
  *
  * This configuration also automatically reads `projectRoot` and replaces `process.cwd()` when it
  * has been specified.
+ *
+ * @property {string} publicPath
+ * The path where assets are served from on Metro's HTTP server, used during development. Defaults
+ * to `/assets`, which is the default path Metro assigns internally. Any overwritten path should
+ * also include `/assets` as the base path for Metro to understand how to serve it.
+ *
+ * When rewriting an asset after compilation, this path will be prepended to the cache directory
+ * where messages were compiled to, creating a full path for Metro to access the asset at runtime.
  */
 
 /**
@@ -55,6 +63,7 @@ const defaultConfig = {
   format: IntlCompiledMessageFormat.KeylessJson,
   bundleSecrets: false,
   watchFolders: [process.cwd()],
+  publicPath: '/assets',
 };
 
 /**
@@ -75,6 +84,7 @@ async function fetchConfig() {
   const defaults = {
     ...defaultConfig,
     watchFolders,
+    publicPath: metroConfig.transformer?.publicPath ?? defaultConfig.publicPath,
   };
 
   /** @type {IntlAssetPluginConfig} */
@@ -146,7 +156,8 @@ async function transformAsset(assetData) {
 
   const relativeLocation = path.relative(metroConfig.projectRoot, assetData.fileSystemLocation);
   const dirHash = btoa(path.dirname(relativeLocation));
-  const outputDir = path.resolve(cacheDir, dirHash);
+  const relativeOutputDir = path.join(cacheDir, dirHash);
+  const outputDir = path.resolve(relativeOutputDir);
   const outputName = `${assetData.name}.${assetData.hash}.compiled.messages`;
   const outputFile = path.join(outputDir, outputName) + '.' + assetExtension;
   debug(`[${filename}] Output file path: ${outputFile}`);
@@ -156,20 +167,28 @@ async function transformAsset(assetData) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
+  debug(`[${filename}] processing file`);
+  debug(`[${filename}] ${metroConfig.transformer?.publicPath}`);
+
   const result = processTranslationsFile(filename);
+  debug(`[${filename}] precompiling file`);
   precompileFileForLocale(filename, result.locale, outputFile, {
     format,
     bundleSecrets,
   });
+  debug(`[${filename}] finished precompiling`);
 
-  return {
+  const finalAssetData = {
     ...assetData,
     fileSystemLocation: outputDir,
-    httpServerLocation: `${assetData.httpServerLocation}/${cacheDir}`,
+    httpServerLocation: path.join(config.publicPath, relativeOutputDir),
     files: [outputFile],
     name: outputName,
     type: assetExtension,
   };
+
+  debug(`[${filename}] Asset data: %O`, finalAssetData);
+  return finalAssetData;
 }
 
 module.exports = transformAsset;
