@@ -28,17 +28,19 @@ bench('processing', () => {
   database.processAllMessagesFiles(files);
 });
 
+const sourceFile = database.getSourceFile(SOURCE_FILES[0]);
+
 bench('get a message', () => {
-  // console.log(
-  //   util.inspect(database.getMessage('DISCORD'), {
-  //     depth: null,
-  //   }),
-  // );
+  console.log(
+    util.inspect(database.getMessage(sourceFile.messageKeys[0]), {
+      depth: null,
+    }),
+  );
 });
 
 bench('get source file', () => {
-  const source = database.getSourceFileMessageValues(SOURCE_FILES[0]);
-  // console.log(Object.entries(source).map(([key, value]) => [key, value?.raw]));
+  const sourceFile = database.getSourceFile(SOURCE_FILES[0]);
+  console.dir(sourceFile, { depth: 1 });
 });
 
 bench('export translations', () => {
@@ -47,12 +49,12 @@ bench('export translations', () => {
 
 bench('validate', () => {
   const validations = database.validateMessages();
-  console.log(
-    util.inspect(
-      validations.filter((d) => d.severity === 'error'),
-      { depth: null },
-    ),
-  );
+  // console.log(
+  //   util.inspect(
+  //     validations.filter((d) => d.severity === 'error'),
+  //     { depth: null },
+  //   ),
+  // );
 });
 
 bench('generate types', () => {

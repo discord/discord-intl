@@ -12,7 +12,7 @@ use serde::Serialize;
 use std::iter::FusedIterator;
 use std::path::PathBuf;
 
-struct SourceFileKeyTrackingIterator<T: RawMessage, I: Iterator<Item = T>> {
+struct SourceFileKeyTrackingIterator<T: RawMessage, I: Iterator<Item=T>> {
     iterator: I,
     inserted_keys: KeySymbolSet,
     /// Keys that used to exist in the file but are not found on this iteration are _removed_,
@@ -23,7 +23,7 @@ struct SourceFileKeyTrackingIterator<T: RawMessage, I: Iterator<Item = T>> {
     removed_keys: KeySymbolSet,
 }
 
-impl<T: RawMessage, I: Iterator<Item = T>> SourceFileKeyTrackingIterator<T, I> {
+impl<T: RawMessage, I: Iterator<Item=T>> SourceFileKeyTrackingIterator<T, I> {
     fn new(existing_keys: KeySymbolSet, iterator: I) -> Self {
         Self {
             iterator,
@@ -33,7 +33,7 @@ impl<T: RawMessage, I: Iterator<Item = T>> SourceFileKeyTrackingIterator<T, I> {
     }
 }
 
-impl<T: RawMessage, I: Iterator<Item = T>> Iterator for &mut SourceFileKeyTrackingIterator<T, I> {
+impl<T: RawMessage, I: Iterator<Item=T>> Iterator for &mut SourceFileKeyTrackingIterator<T, I> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -48,10 +48,9 @@ impl<T: RawMessage, I: Iterator<Item = T>> Iterator for &mut SourceFileKeyTracki
     }
 }
 
-impl<T: RawMessage, I: Iterator<Item = T>> FusedIterator
-    for &mut SourceFileKeyTrackingIterator<T, I>
-{
-}
+impl<T: RawMessage, I: Iterator<Item=T>> FusedIterator
+for &mut SourceFileKeyTrackingIterator<T, I>
+{}
 
 fn get_definition_source_from_file_name(file_name: &str) -> Option<impl MessageDefinitionSource> {
     if file_name.ends_with(".js") {
@@ -88,6 +87,7 @@ pub(crate) fn get_locale_from_file_name(
 
 #[derive(Clone, Debug, Serialize)]
 pub struct MessagesFileDescriptor {
+    #[serde(rename = "filePath")]
     pub file_path: PathBuf,
     pub locale: KeySymbol,
 }
@@ -98,9 +98,9 @@ pub struct MessagesFileDescriptor {
 /// `default_definition_locale` will be used unless the source is able to provide more information
 /// about what locale it represents.
 pub fn find_all_messages_files<A: AsRef<str>>(
-    mut directories: impl Iterator<Item = A>,
+    mut directories: impl Iterator<Item=A>,
     default_definition_locale: &str,
-) -> impl Iterator<Item = MessagesFileDescriptor> {
+) -> impl Iterator<Item=MessagesFileDescriptor> {
     let first_directory = directories
         .next()
         .expect("find_all_messages_files requires at least one directory to scan");
@@ -152,7 +152,7 @@ pub fn extract_definitions_from_file(
     content: &str,
 ) -> DatabaseResult<(
     SourceFileMeta,
-    impl Iterator<Item = RawMessageDefinition> + '_,
+    impl Iterator<Item=RawMessageDefinition> + '_,
 )> {
     let source = get_definition_source_from_file_name(&file_key)
         .ok_or(DatabaseError::NoSourceImplementation(file_key.to_string()))?;
@@ -167,7 +167,7 @@ pub fn insert_definitions(
     file_key: KeySymbol,
     locale_key: KeySymbol,
     source_file_meta: SourceFileMeta,
-    definitions: impl Iterator<Item = RawMessageDefinition>,
+    definitions: impl Iterator<Item=RawMessageDefinition>,
 ) -> DatabaseResult<KeySymbol> {
     let source_file = db.get_or_create_source_file(
         file_key,
@@ -212,7 +212,7 @@ pub fn process_translations_file(
 pub fn extract_translations_from_file(
     file_key: KeySymbol,
     content: &str,
-) -> DatabaseResult<impl Iterator<Item = RawMessageTranslation> + '_> {
+) -> DatabaseResult<impl Iterator<Item=RawMessageTranslation> + '_> {
     let source = get_translation_source_from_file_name(&file_key)
         .ok_or(DatabaseError::NoSourceImplementation(file_key.to_string()))?;
     source
@@ -224,7 +224,7 @@ pub fn insert_translations(
     db: &mut MessagesDatabase,
     file_key: KeySymbol,
     locale_key: KeySymbol,
-    translations: impl Iterator<Item = RawMessageTranslation>,
+    translations: impl Iterator<Item=RawMessageTranslation>,
 ) -> DatabaseResult<KeySymbol> {
     let source_file = db.get_or_create_source_file(
         file_key,

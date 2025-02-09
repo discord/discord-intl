@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 /// where translations for the messages can be found.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceFileMeta {
+    /// Optional additional context for the source file, giving more information  about where its
+    /// messages may be used or how the messages are intended to be grouped.
+    pub description: Option<String>,
     /// Whether the message should be considered private and not suitable for
     /// inclusion in production builds. Message consumers can use this
     /// information to control how messages are bundled. `secret` messages also
@@ -29,9 +32,6 @@ pub struct SourceFileMeta {
     /// for all messages contained in the set.
     #[serde(rename = "sourceFilePath")]
     pub source_file_path: PathBuf,
-    /// Optional additional context for the source file, giving more information  about where its
-    /// messages may be used or how the messages are intended to be grouped.
-    pub description: Option<String>,
 }
 
 impl SourceFileMeta {
@@ -88,6 +88,9 @@ impl SourceFileMeta {
 /// Meta information about how a message should be handled and processed. MessageMeta
 #[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MessageMeta {
+    /// Optional additional context for the source file, giving more information about where its
+    /// messages may be used or how the messages are intended to be grouped.
+    pub description: Option<String>,
     /// Whether the message should be considered private and not suitable for  inclusion in
     /// production builds. Message consumers can use this  information to control how messages are
     /// bundled. `secret` messages also have additional rules and guardrails applied to them to help
@@ -99,9 +102,6 @@ pub struct MessageMeta {
     /// `false`, the default message value will be used in all locales, no matter if there is a
     /// translation present.
     pub translate: bool,
-    /// Optional additional context for the source file, giving more information about where its
-    /// messages may be used or how the messages are intended to be grouped.
-    pub description: Option<String>,
 }
 
 impl Default for MessageMeta {

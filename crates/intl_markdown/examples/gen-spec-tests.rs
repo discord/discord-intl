@@ -11,6 +11,7 @@ struct ExampleDef {
     input: String,
     #[serde(rename = "html")]
     output: String,
+    #[serde(rename = "shouldSkip")]
     should_skip: Option<bool>,
 }
 

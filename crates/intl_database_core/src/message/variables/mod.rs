@@ -57,6 +57,7 @@ pub struct MessageVariableInstance {
     /// rich text formatting tags like `$b` and `$link`, which are almost never
     /// intended for a user to provide and/or only represent formatting points,
     /// but can be given as an override regardless.
+    #[serde(rename = "isBuiltin")]
     pub is_builtin: bool,
     /// The specific kind of the variable, used for generating types.
     pub kind: MessageVariableType,

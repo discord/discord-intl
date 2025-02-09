@@ -3,7 +3,7 @@ use crate::sources::MessagesFileDescriptor;
 use intl_database_core::key_symbol;
 use intl_database_exporter::CompiledMessageFormat;
 use intl_validator::MessageDiagnostic;
-use napi::{JsNumber, JsObject};
+use napi::{JsObject, JsString};
 use napi_derive::napi;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -64,19 +64,28 @@ pub struct IntlSourceFile {
     #[napi(js_name = "type")]
     pub ty: String,
     pub file: String,
+    pub locale: Option<JsString>,
     #[napi(js_name = "messageKeys")]
-    pub message_keys: Vec<JsNumber>,
-    pub meta: IntlMessageMeta,
-    pub locale: Option<JsNumber>,
+    pub message_keys: Vec<JsString>,
+    pub meta: IntlSourceFileMeta,
+}
+
+#[napi(object)]
+pub struct IntlSourceFileMeta {
+    pub description: String,
+    pub secret: bool,
+    pub translate: bool,
+    #[napi(js_name = "translationsPath")]
+    pub translations_path: String,
+    pub source_file_path: String,
 }
 
 // This is an unused struct purely for generating functional TS types.
 #[napi(object)]
 pub struct IntlMessageMeta {
+    pub description: String,
     pub secret: bool,
     pub translate: bool,
-    #[napi(js_name = "translationsPath")]
-    pub translations_path: String,
 }
 
 // This is an unused struct purely for generating functional TS types.

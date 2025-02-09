@@ -65,9 +65,9 @@ export interface IntlMessageBundlerOptions {
 }
 
 export interface IntlMessageMeta {
+  description: string
   secret: boolean
   translate: boolean
-  translationsPath: string
 }
 
 export interface IntlMessagesFileDescriptor {
@@ -95,9 +95,17 @@ export interface IntlMultiProcessingResult {
 export interface IntlSourceFile {
   type: string
   file: string
-  messageKeys: Array<number>
-  meta: IntlMessageMeta
-  locale?: number
+  locale?: string
+  messageKeys: Array<string>
+  meta: IntlSourceFileMeta
+}
+
+export interface IntlSourceFileMeta {
+  description: string
+  secret: boolean
+  translate: boolean
+  translationsPath: string
+  sourceFilePath: string
 }
 
 export declare function isMessageDefinitionsFile(key: string): boolean
