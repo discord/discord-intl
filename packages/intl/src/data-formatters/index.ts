@@ -10,17 +10,14 @@ export interface DataFormatters<FormatConfig extends FormatConfigType> {
     value: number | Date,
     style?: (keyof FormatConfig['date'] & string) | Intl.DateTimeFormatOptions,
   ): string;
-
   formatDuration(
     value: number,
     style?: (keyof FormatConfig['duration'] & string) | TemporaryDurationFormatOptions,
   ): string;
-
   formatNumber(
     value: number,
     style?: (keyof FormatConfig['number'] & string) | Intl.DateTimeFormatOptions,
   ): string;
-
   formatList(
     values: any[],
     style?: (keyof FormatConfig['list'] & string) | Intl.ListFormatOptions,
@@ -29,7 +26,6 @@ export interface DataFormatters<FormatConfig extends FormatConfigType> {
     values: T[],
     style?: (keyof FormatConfig['list'] & string) | Intl.ListFormatOptions,
   ): Array<T | string>;
-
   formatRelativeTime(
     value: number,
     unit: Intl.RelativeTimeFormatUnit,
@@ -39,7 +35,6 @@ export interface DataFormatters<FormatConfig extends FormatConfigType> {
     value: number | Date,
     style?: (keyof FormatConfig['time'] & string) | Intl.DateTimeFormatOptions,
   ): string;
-
   getPluralRules(options: Intl.PluralRulesOptions): Intl.PluralRules;
 }
 
@@ -47,42 +42,27 @@ export function makeDataFormatters<const FormatConfig extends FormatConfigType>(
   locales: string[],
 ): DataFormatters<FormatConfig> {
   return {
-    formatDate(
-      value: number | Date,
-      style?: (keyof FormatConfig['date'] & string) | Intl.DateTimeFormatOptions,
-    ): string {
+    formatDate(value, style) {
       const options = resolveFormatConfigOptions(this.formatConfig.date, style);
       return dataFormatterCache.getDateTimeFormatter(locales, options).format(value);
     },
 
-    formatDuration(
-      value: number,
-      style?: (keyof FormatConfig['duration'] & string) | TemporaryDurationFormatOptions,
-    ): string {
+    formatDuration(value, style) {
       const options = resolveFormatConfigOptions(this.formatConfig.time, style);
       return dataFormatterCache.getDurationFormatter(locales, options).format(value);
     },
 
-    formatNumber(
-      value: number,
-      style?: (keyof FormatConfig['number'] & string) | Intl.DateTimeFormatOptions,
-    ): string {
+    formatNumber(value, style) {
       const options = resolveFormatConfigOptions(this.formatConfig.number, style);
       return dataFormatterCache.getNumberFormatter(locales, options).format(value);
     },
 
-    formatList(
-      values: any[],
-      style?: (keyof FormatConfig['list'] & string) | Intl.ListFormatOptions,
-    ): string {
+    formatList(values, style) {
       const options = resolveFormatConfigOptions(this.formatConfig.list, style);
       return dataFormatterCache.getListFormatter(locales, options).format(values);
     },
 
-    formatListToParts<T>(
-      values: T[],
-      style?: (keyof FormatConfig['list'] & string) | Intl.ListFormatOptions,
-    ): Array<T | string> {
+    formatListToParts(values, style) {
       const options = resolveFormatConfigOptions(this.formatConfig.list, style);
       // Intl.ListFormat only accepts string arguments, even for `formatToParts`,
       // but we want to support formatting of complex values like React nodes as
@@ -102,24 +82,17 @@ export function makeDataFormatters<const FormatConfig extends FormatConfigType>(
       return parts.map((part) => (part.value = placeholders[part.value] ?? part.value));
     },
 
-    formatRelativeTime(
-      value: number,
-      unit: Intl.RelativeTimeFormatUnit,
-      style?: (keyof FormatConfig['relativeTime'] & string) | Intl.RelativeTimeFormatOptions,
-    ): string {
+    formatRelativeTime(value, unit, style) {
       const options = resolveFormatConfigOptions(this.formatConfig.relativeTime, style);
       return dataFormatterCache.getRelativeTimeFormatter(locales, options).format(value, unit);
     },
 
-    formatTime(
-      value: number | Date,
-      style?: (keyof FormatConfig['time'] & string) | Intl.DateTimeFormatOptions,
-    ): string {
+    formatTime(value, style) {
       const options = resolveFormatConfigOptions(this.formatConfig.time, style);
       return dataFormatterCache.getDateTimeFormatter(locales, options).format(value);
     },
 
-    getPluralRules(options: Intl.PluralRulesOptions): Intl.PluralRules {
+    getPluralRules(options) {
       return dataFormatterCache.getPluralRules(locales, options);
     },
   };

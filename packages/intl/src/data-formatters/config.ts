@@ -19,7 +19,7 @@ export function resolveFormatConfigOptions<T extends object, const K extends str
   return name;
 }
 
-export const DEFAULT_FORMAT_CONFIG: FormatConfigType = {
+export const DEFAULT_FORMAT_CONFIG = {
   // These have no known defaults, so they can't be applied easily.
   duration: {},
   list: {},
@@ -89,4 +89,4 @@ export const DEFAULT_FORMAT_CONFIG: FormatConfigType = {
       timeZoneName: 'short',
     },
   },
-};
+} satisfies FormatConfigType;
