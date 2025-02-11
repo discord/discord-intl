@@ -1,5 +1,6 @@
-import type { DurationFormatOptions } from '@formatjs/intl-durationformat/src/types';
+import type { DurationFormatOptions, DurationInput } from '@formatjs/intl-durationformat/src/types';
 
+export type TemporaryDurationInput = DurationInput;
 export type TemporaryDurationFormatOptions = DurationFormatOptions;
 
 export interface FormatConfigType {
@@ -13,10 +14,15 @@ export interface FormatConfigType {
 
 export function resolveFormatConfigOptions<T extends object, const K extends string>(
   config: Record<K, T>,
-  name: K | T,
+  style?: T & { format?: K },
 ): T {
-  if (typeof name === 'string') return config[name];
-  return name;
+  if (typeof style?.format === 'string') {
+    return {
+      ...config[style.format],
+      ...style,
+    };
+  }
+  return style;
 }
 
 export const DEFAULT_FORMAT_CONFIG = {

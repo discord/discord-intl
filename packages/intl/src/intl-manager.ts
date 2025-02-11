@@ -84,7 +84,7 @@ export class IntlManager<
     this.currentLocale = initialLocale;
     this.defaultLocale = defaultLocale;
     this.formatConfig = formatConfig;
-    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale]);
+    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale], this.formatConfig);
 
     this._localeSubscriptions = new Set();
   }
@@ -125,7 +125,7 @@ export class IntlManager<
    */
   setLocale(locale: string) {
     this.currentLocale = locale;
-    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale]);
+    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale], this.formatConfig);
     this.emitLocaleChange(locale);
   }
 
