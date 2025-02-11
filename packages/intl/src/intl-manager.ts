@@ -1,6 +1,5 @@
-import { createIntl, IntlShape } from '@formatjs/intl';
-import { Formatters } from 'intl-messageformat';
-
+import { DEFAULT_FORMAT_CONFIG, type FormatConfigType } from './data-formatters/config';
+import { bindFormatValues, FormatBuilderConstructor } from './format';
 import type {
   FormatterImplementation,
   IntlMessageGetter,
@@ -8,8 +7,7 @@ import type {
   TypedIntlMessageGetter,
 } from './types';
 import { InternalIntlMessage } from './message';
-import { bindFormatValues, FormatBuilderConstructor } from './format';
-import { DEFAULT_FORMAT_CONFIG, FormatConfig } from './format-config';
+import { DataFormatters, makeDataFormatters } from './data-formatters';
 
 /**
  * Fallback locale used for all internationalization when an operation in the
@@ -37,7 +35,7 @@ type ThisWithFormatters<
   [K in keyof T]: FormatFunction<T[K]>;
 };
 
-export interface IntlManagerOptions {
+export interface IntlManagerOptions<FormatConfig> {
   /**
    * The locale to initially have this manager use. Useful to set when information about the user's
    * likely locale is available sooner than when that information is definitely known (at which
@@ -53,28 +51,40 @@ export interface IntlManagerOptions {
    * @default DEFAULT_LOCALE
    */
   defaultLocale?: string;
+  /**
+   * Configuration for the different kinds of data dataFormatters that can be used both inside of
+   * messages and in their own functions (like `intl.formatDate`) as shorthands for common sets of
+   * options. For example, with the default config, this enables `intl.formatDate(now, 'short')`
+   * rather than having to specify the exact properties of each style every time.
+   *
+   * @default DEFAULT_FORMATTER_CONFIG
+   */
+  formatConfig?: FormatConfig;
 }
 
-export class IntlManager {
+export class IntlManager<
+  const FormatConfig extends FormatConfigType = typeof DEFAULT_FORMAT_CONFIG,
+> {
   defaultLocale: string;
   currentLocale: string;
-  intl: IntlShape;
   formatConfig: FormatConfig;
+
+  data: DataFormatters<FormatConfig>;
 
   _localeSubscriptions: Set<(locale: string) => void>;
 
   constructor({
     initialLocale = DEFAULT_LOCALE,
     defaultLocale = DEFAULT_LOCALE,
-  }: IntlManagerOptions) {
+    // @ts-expect-error If it's not given, formatConfig defaults to the same
+    // value as the type parameters, but typescript things this should be
+    // overwritten
+    formatConfig = DEFAULT_FORMAT_CONFIG,
+  }: IntlManagerOptions<FormatConfig>) {
     this.currentLocale = initialLocale;
     this.defaultLocale = defaultLocale;
-    this.formatConfig = DEFAULT_FORMAT_CONFIG;
-    this.intl = createIntl({
-      formats: DEFAULT_FORMAT_CONFIG,
-      defaultLocale,
-      locale: defaultLocale,
-    });
+    this.formatConfig = formatConfig;
+    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale]);
 
     this._localeSubscriptions = new Set();
   }
@@ -84,9 +94,9 @@ export class IntlManager {
    * property
    */
   withFormatters<const T extends Record<string, FormatterImplementation<any, any>>>(
-    formatters: T,
+    dataFormatters: T,
   ): ThisWithFormatters<this, T> {
-    for (const [name, formatter] of Object.entries(formatters)) {
+    for (const [name, formatter] of Object.entries(dataFormatters)) {
       this[name] = this.makeFormatFunction(formatter);
     }
 
@@ -115,7 +125,7 @@ export class IntlManager {
    */
   setLocale(locale: string) {
     this.currentLocale = locale;
-    this.intl = createIntl({ defaultLocale: this.defaultLocale, locale });
+    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale]);
     this.emitLocaleChange(locale);
   }
 
@@ -168,7 +178,7 @@ export class IntlManager {
       Builder,
       message.ast,
       [this.currentLocale, this.defaultLocale],
-      this.intl.formatters as Formatters,
+      this.data,
       this.formatConfig,
       values,
     );

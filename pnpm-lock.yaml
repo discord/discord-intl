@@ -150,6 +150,9 @@ importers:
         specifier: '18'
         version: 18.3.1
     devDependencies:
+      '@formatjs/intl-durationformat':
+        specifier: ^0.7.3
+        version: 0.7.3
       '@swc/cli':
         specifier: ^0.3.12
         version: 0.3.14(@swc/core@1.7.4)(chokidar@3.6.0)
@@ -371,8 +374,14 @@ packages:
   '@formatjs/ecma402-abstract@2.0.0':
     resolution: {integrity: sha512-rRqXOqdFmk7RYvj4khklyqzcfQl9vEL/usogncBHRZfZBDOwMGuSRNFl02fu5KGHXdbinju+YXyuR+Nk8xlr/g==}
 
+  '@formatjs/ecma402-abstract@2.3.3':
+    resolution: {integrity: sha512-pJT1OkhplSmvvr6i3CWTPvC/FGC06MbN5TNBfRO6Ox62AEz90eMq+dVvtX9Bl3jxCEkS0tATzDarRZuOLw7oFg==}
+
   '@formatjs/fast-memoize@2.2.0':
     resolution: {integrity: sha512-hnk/nY8FyrL5YxwP9e4r9dqeM6cAbo8PeU9UjyXojZMNvVad2Z06FAVHyR3Ecw6fza+0GH7vdJgiKIVXTMbSBA==}
+
+  '@formatjs/fast-memoize@2.2.6':
+    resolution: {integrity: sha512-luIXeE2LJbQnnzotY1f2U2m7xuQNj2DA8Vq4ce1BY9ebRZaoPB1+8eZ6nXpLzsxuW5spQxr7LdCg+CApZwkqkw==}
 
   '@formatjs/icu-messageformat-parser@2.7.8':
     resolution: {integrity: sha512-nBZJYmhpcSX0WeJ5SDYUkZ42AgR3xiyhNCsQweFx3cz/ULJjym8bHAzWKvG5e2+1XO98dBYC0fWeeAECAVSwLA==}
@@ -383,11 +392,17 @@ packages:
   '@formatjs/intl-displaynames@6.6.8':
     resolution: {integrity: sha512-Lgx6n5KxN16B3Pb05z3NLEBQkGoXnGjkTBNCZI+Cn17YjHJ3fhCeEJJUqRlIZmJdmaXQhjcQVDp6WIiNeRYT5g==}
 
+  '@formatjs/intl-durationformat@0.7.3':
+    resolution: {integrity: sha512-ROZc9Hab3pItwQfuSmCPHazZP5ia1OrHfFec4sK0OPra3PqX/pZ59L8YV5aMb0DSHlUXNKZoGunAncJApSV0aA==}
+
   '@formatjs/intl-listformat@7.5.7':
     resolution: {integrity: sha512-MG2TSChQJQT9f7Rlv+eXwUFiG24mKSzmF144PLb8m8OixyXqn4+YWU+5wZracZGCgVTVmx8viCf7IH3QXoiB2g==}
 
   '@formatjs/intl-localematcher@0.5.4':
     resolution: {integrity: sha512-zTwEpWOzZ2CiKcB93BLngUX59hQkuZjT2+SAQEscSm52peDW/getsawMcWF1rGRpMCX6D7nSJA3CzJ8gn13N/g==}
+
+  '@formatjs/intl-localematcher@0.6.0':
+    resolution: {integrity: sha512-4rB4g+3hESy1bHSBG3tDFaMY2CH67iT7yne1e+0CLTsGLDcmoEWWpJjjpWVaYgYfYuohIRuo0E+N536gd2ZHZA==}
 
   '@formatjs/intl@2.10.4':
     resolution: {integrity: sha512-56483O+HVcL0c7VucAS2tyH020mt9XTozZO67cwtGg0a7KWDukS/FzW3OnvaHmTHDuYsoPIzO+ZHVfU6fT/bJw==}
@@ -1464,6 +1479,9 @@ packages:
     peerDependenciesMeta:
       supports-color:
         optional: true
+
+  decimal.js@10.5.0:
+    resolution: {integrity: sha512-8vDa8Qxvr/+d94hSh5P3IJwI5t8/c0KsMp+g8bNw9cY2icONa5aPfvKeieW1WlG0WQYwwhJ7mjui2xtiePQSXw==}
 
   decompress-response@6.0.0:
     resolution: {integrity: sha512-aW35yZM6Bb/4oJlZncMH2LCoZtJXTRxES17vE3hoRiowU2kWHaJKFkSBDnDR+cm9J+9QhXmREyIfv0pji9ejCQ==}
@@ -2832,7 +2850,18 @@ snapshots:
       '@formatjs/intl-localematcher': 0.5.4
       tslib: 2.6.3
 
+  '@formatjs/ecma402-abstract@2.3.3':
+    dependencies:
+      '@formatjs/fast-memoize': 2.2.6
+      '@formatjs/intl-localematcher': 0.6.0
+      decimal.js: 10.5.0
+      tslib: 2.6.3
+
   '@formatjs/fast-memoize@2.2.0':
+    dependencies:
+      tslib: 2.6.3
+
+  '@formatjs/fast-memoize@2.2.6':
     dependencies:
       tslib: 2.6.3
 
@@ -2853,6 +2882,12 @@ snapshots:
       '@formatjs/intl-localematcher': 0.5.4
       tslib: 2.6.3
 
+  '@formatjs/intl-durationformat@0.7.3':
+    dependencies:
+      '@formatjs/ecma402-abstract': 2.3.3
+      '@formatjs/intl-localematcher': 0.6.0
+      tslib: 2.6.3
+
   '@formatjs/intl-listformat@7.5.7':
     dependencies:
       '@formatjs/ecma402-abstract': 2.0.0
@@ -2860,6 +2895,10 @@ snapshots:
       tslib: 2.6.3
 
   '@formatjs/intl-localematcher@0.5.4':
+    dependencies:
+      tslib: 2.6.3
+
+  '@formatjs/intl-localematcher@0.6.0':
     dependencies:
       tslib: 2.6.3
 
@@ -3941,6 +3980,8 @@ snapshots:
   debug@4.3.6:
     dependencies:
       ms: 2.1.2
+
+  decimal.js@10.5.0: {}
 
   decompress-response@6.0.0:
     dependencies:

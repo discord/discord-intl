@@ -24,9 +24,9 @@ import {
 } from '@formatjs/icu-skeleton-parser';
 
 import { AstNode, AstNodeIndices, FormatJsNodeType } from '@discord/intl-ast';
-import { Formatters, MissingValueError } from 'intl-messageformat';
-import type { FormatConfig } from './format-config';
 import type { RichTextTagNames } from './types';
+import { FormatConfigType } from './data-formatters/config';
+import { DataFormatters } from './data-formatters';
 
 /**
  * Returns true if the tag name should be considered a rich text tag that
@@ -43,17 +43,30 @@ export abstract class FormatBuilder<Result, ObjectType = Result extends object ?
   abstract finish(): Result[];
 }
 
+class MissingValueError extends Error {
+  constructor(
+    public variableName: string,
+    public originalMessage: string,
+    public nodeType: FormatJsNodeType,
+  ) {
+    super(
+      `No value for variable '${variableName}' was provided for the localized message '${originalMessage}'`,
+    );
+  }
+}
+
 export type FormatBuilderConstructor<Result> = new () => FormatBuilder<Result>;
 
 export function bindFormatValuesWithBuilder<
   T,
   ObjectType,
   Builder extends FormatBuilder<T, ObjectType>,
+  FormatConfig extends FormatConfigType,
 >(
   builder: Builder,
   nodes: AstNode[],
   locales: string | string[],
-  formatters: Formatters,
+  formatters: DataFormatters<FormatConfig>,
   formatConfig: FormatConfig,
   values: Record<string, string | object> = {},
   currentPluralValue?: number,
@@ -78,7 +91,7 @@ export function bindFormatValuesWithBuilder<
         // numeric values are replaced, otherwise the value is completed ignored?
         // Behavior copied from FormatJS directly.
         if (typeof currentPluralValue === 'number') {
-          const value = formatters.getNumberFormat(locales).format(currentPluralValue);
+          const value = formatters.formatNumber(currentPluralValue);
           builder.pushLiteralText(value);
         }
         continue;
@@ -88,7 +101,7 @@ export function bindFormatValuesWithBuilder<
     // Enforce that all required values are provided by the caller, even if the
     // actual value is falsy/undefined.
     if (!(variableName in values) && !isRichTextTag(variableName)) {
-      throw new MissingValueError(variableName, originalMessage);
+      throw new MissingValueError(variableName, originalMessage, nodeType);
     }
 
     const value = values[variableName];
@@ -118,9 +131,8 @@ export function bindFormatValuesWithBuilder<
             ? formatConfig.date[nodeStyle]
             : nodeStyle != null
               ? parseDateTimeSkeleton(nodeStyle)
-              : formatConfig.time.medium;
-        // @ts-expect-error Cast string values to dates properly.
-        builder.pushLiteralText(formatters.getDateTimeFormat(locales, style).format(value));
+              : undefined;
+        builder.pushLiteralText(formatters.formatDate(value as number | Date, style));
         break;
       }
       case FormatJsNodeType.Time: {
@@ -132,11 +144,8 @@ export function bindFormatValuesWithBuilder<
             ? formatConfig.time[nodeStyle]
             : nodeStyle != null
               ? parseDateTimeSkeleton(nodeStyle)
-              : undefined; // TODO: parseSkeleton();
-        builder.pushLiteralText(
-          // @ts-expect-error Cast string values to dates properly.
-          formatters.getDateTimeFormat(locales, style).format(value),
-        );
+              : undefined;
+        builder.pushLiteralText(formatters.formatTime(value as number | Date, style));
         break;
       }
       case FormatJsNodeType.Number: {
@@ -147,12 +156,14 @@ export function bindFormatValuesWithBuilder<
           nodeStyle in formatConfig.number
             ? formatConfig.number[nodeStyle]
             : nodeStyle != null
-              ? parseNumberSkeleton(parseNumberSkeletonFromString(nodeStyle))
+              ? (parseNumberSkeleton(
+                  parseNumberSkeletonFromString(nodeStyle),
+                ) as Intl.NumberFormatOptions)
               : undefined;
         const scaledValue =
           // @ts-expect-error This is a weird cast that's not accurate, but works in the short term.
           typeof value !== 'number' ? (value as number) : (value as number) * (style?.scale ?? 1);
-        builder.pushLiteralText(formatters.getNumberFormat(locales, style).format(scaledValue));
+        builder.pushLiteralText(formatters.formatNumber(scaledValue, style));
         break;
       }
 
@@ -221,16 +232,18 @@ export function bindFormatValuesWithBuilder<
         const option = (() => {
           const exactSelector = `=${value}`;
           if (exactSelector in options) return options[exactSelector];
-          const rule = formatters
-            .getPluralRules(locales, { type: pluralType })
+
+          const rule = formatters.getPluralRules({ type: pluralType }).select(
             // @ts-expect-error Assert this `as number` properly.
-            .select((value as number) - (offset ?? 0));
+            (value as number) - (offset ?? 0),
+          );
           return options[rule] ?? options.other;
         })();
 
         if (option == null) {
           throw `${value} is not a known option for plural value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
         }
+
         bindFormatValuesWithBuilder(
           builder,
           option,
@@ -247,11 +260,11 @@ export function bindFormatValuesWithBuilder<
   }
 }
 
-export function bindFormatValues<Result>(
+export function bindFormatValues<Result, FormatConfig extends FormatConfigType>(
   Builder: FormatBuilderConstructor<Result>,
   nodes: string | AstNode[],
   locales: string | string[],
-  formatters: Formatters,
+  dataFormatters: DataFormatters<FormatConfig>,
   formatConfig: FormatConfig,
   values: Record<string, string | object> = {},
   currentPluralValue?: number,
@@ -265,7 +278,7 @@ export function bindFormatValues<Result>(
       builder,
       nodes,
       locales,
-      formatters,
+      dataFormatters,
       formatConfig,
       values,
       currentPluralValue,
