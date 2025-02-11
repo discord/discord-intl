@@ -65,6 +65,7 @@ export function bindFormatValuesWithBuilder<
     return;
   }
 
+  let keyIndex = 0;
   for (const node of nodes) {
     if (typeof node === 'string') {
       builder.pushLiteralText(node);
@@ -189,7 +190,7 @@ export function bindFormatValuesWithBuilder<
           if (typeof value !== 'function') {
             throw `expected a function type for a Tag formatting value, ${variableName}. got ${typeof value}: ${value}`;
           }
-          let chunks = value(appliedChildren);
+          let chunks = value(appliedChildren, `${keyIndex++}`);
           chunks = Array.isArray(chunks) ? chunks : [chunks];
           for (const chunk of chunks) {
             if (typeof chunk === 'string') {
