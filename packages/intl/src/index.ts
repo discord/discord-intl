@@ -1,4 +1,5 @@
 export { type DataFormatters, makeDataFormatters } from './data-formatters';
+export { dataFormatterCache } from './data-formatters/cache';
 export { FormatBuilder, FormatBuilderConstructor, bindFormatValues } from './format';
 export * from './formatters';
 export { runtimeHashMessageKey } from './hash';

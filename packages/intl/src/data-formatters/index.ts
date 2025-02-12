@@ -44,26 +44,44 @@ export interface DataFormatters<FormatConfig extends FormatConfigType> {
 export function makeDataFormatters<const FormatConfig extends FormatConfigType>(
   locales: string[],
   formatConfig: FormatConfig,
+  /**
+   * The FormatJs Polyfill for locale-matcher has really poor performance when
+   * using the BestFitMatcher. When this value is set, the matcher will be
+   * forced to use the LookupMatcher instead, which is much more performant.
+   */
+  forceLookupMatch: boolean = false,
 ): DataFormatters<FormatConfig> {
+  function optionsWithLocaleMatcher(options: object) {
+    return forceLookupMatch ? { ...options, localeMatcher: 'lookup' } : options;
+  }
+
   return {
     formatDate(value, style) {
       const options = resolveFormatConfigOptions(formatConfig.date, style);
-      return dataFormatterCache.getDateTimeFormatter(locales, options).format(value);
+      return dataFormatterCache
+        .getDateTimeFormatter(locales, optionsWithLocaleMatcher(options))
+        .format(value);
     },
 
     formatDuration(value, style) {
       const options = resolveFormatConfigOptions(formatConfig.time, style);
-      return dataFormatterCache.getDurationFormatter(locales, options).format(value);
+      return dataFormatterCache
+        .getDurationFormatter(locales, optionsWithLocaleMatcher(options))
+        .format(value);
     },
 
     formatNumber(value, style) {
       const options = resolveFormatConfigOptions(formatConfig.number, style);
-      return dataFormatterCache.getNumberFormatter(locales, options).format(value);
+      return dataFormatterCache
+        .getNumberFormatter(locales, optionsWithLocaleMatcher(options))
+        .format(value);
     },
 
     formatList(values, style) {
       const options = resolveFormatConfigOptions(formatConfig.list, style);
-      return dataFormatterCache.getListFormatter(locales, options).format(values);
+      return dataFormatterCache
+        .getListFormatter(locales, optionsWithLocaleMatcher(options))
+        .format(values);
     },
 
     formatListToParts(values, style) {
@@ -80,7 +98,7 @@ export function makeDataFormatters<const FormatConfig extends FormatConfigType>(
         placeholders['$+/-$placeholder.' + index] = values[index];
       }
       const parts = dataFormatterCache
-        .getListFormatter(locales, options)
+        .getListFormatter(locales, optionsWithLocaleMatcher(options))
         .formatToParts(Object.keys(placeholders));
 
       return parts.map((part) => (part.value = placeholders[part.value] ?? part.value));
@@ -88,16 +106,20 @@ export function makeDataFormatters<const FormatConfig extends FormatConfigType>(
 
     formatRelativeTime(value, unit, style) {
       const options = resolveFormatConfigOptions(formatConfig.relativeTime, style);
-      return dataFormatterCache.getRelativeTimeFormatter(locales, options).format(value, unit);
+      return dataFormatterCache
+        .getRelativeTimeFormatter(locales, optionsWithLocaleMatcher(options))
+        .format(value, unit);
     },
 
     formatTime(value, style) {
       const options = resolveFormatConfigOptions(formatConfig.time, style);
-      return dataFormatterCache.getDateTimeFormatter(locales, options).format(value);
+      return dataFormatterCache
+        .getDateTimeFormatter(locales, optionsWithLocaleMatcher(options))
+        .format(value);
     },
 
     getPluralRules(options) {
-      return dataFormatterCache.getPluralRules(locales, options);
+      return dataFormatterCache.getPluralRules(locales, optionsWithLocaleMatcher(options));
     },
   };
 }

@@ -60,6 +60,14 @@ export interface IntlManagerOptions<FormatConfig> {
    * @default DEFAULT_FORMATTER_CONFIG
    */
   formatConfig?: FormatConfig;
+  /**
+   * The FormatJs Polyfill for locale-matcher has really poor performance when
+   * using the BestFitMatcher. When this value is set, the matcher will be
+   * forced to use the LookupMatcher instead, which is much more performant.
+   *
+   * @default false
+   */
+  forceLookupMatcher?: boolean;
 }
 
 export class IntlManager<
@@ -72,6 +80,7 @@ export class IntlManager<
   data: DataFormatters<FormatConfig>;
 
   _localeSubscriptions: Set<(locale: string) => void>;
+  _forceLookupMatcher: boolean;
 
   constructor({
     initialLocale = DEFAULT_LOCALE,
@@ -80,11 +89,17 @@ export class IntlManager<
     // value as the type parameters, but typescript things this should be
     // overwritten
     formatConfig = DEFAULT_FORMAT_CONFIG,
+    forceLookupMatcher = false,
   }: IntlManagerOptions<FormatConfig>) {
     this.currentLocale = initialLocale;
     this.defaultLocale = defaultLocale;
     this.formatConfig = formatConfig;
-    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale], this.formatConfig);
+    this._forceLookupMatcher = forceLookupMatcher;
+    this.data = makeDataFormatters(
+      [this.currentLocale, this.defaultLocale],
+      this.formatConfig,
+      this._forceLookupMatcher,
+    );
 
     this._localeSubscriptions = new Set();
   }
@@ -125,7 +140,11 @@ export class IntlManager<
    */
   setLocale(locale: string) {
     this.currentLocale = locale;
-    this.data = makeDataFormatters([this.currentLocale, this.defaultLocale], this.formatConfig);
+    this.data = makeDataFormatters(
+      [this.currentLocale, this.defaultLocale],
+      this.formatConfig,
+      this._forceLookupMatcher,
+    );
     this.emitLocaleChange(locale);
   }
 
