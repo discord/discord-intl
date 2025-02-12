@@ -91,9 +91,31 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
  * intl message, even if the actual value comes from elsewhere (like a
  * user-generated string).
  */
-// This is explicitly `ReactElement | string` and _not_ `ReactNode`, because nullish values and any
-// other type that ReactNode accepts (boolean, number, etc.) are _not_ valid children of a message.
-export type ReactIntlMessage = Array<React.ReactElement | string> & { __brand: 'discord-intl' };
+export type ReactIntlMessage =
+  // This is _not_ a branded string for the sake of compatibility in end-user code. Because these
+  // are plain strings, there's still no risk of users providing arbitrary nodes here (unless they
+  // forcibly or mistakenly downcast to `strings` themselves.
+  // In the future, this could become `ReactIntlPlainString` instead.
+  | string
+  // This is explicitly `ReactElement | string` and _not_ `ReactNode`, because nullish values and
+  // all other types it accepts (boolean, number, etc.) are _not_ valid children of a message.
+  | ReactIntlRichText;
+
+/**
+ * A branded type representing a plain string that has been rendered by the React formatter. This
+ * type should generally _not_ be used as a type constraint unless _absolute certainty_ that a
+ * message was formatted is desirable. Instead, accept plain `string`, and this will be compatible.
+ */
+export type ReactIntlPlainString = string & { __brand: 'discord-intl' };
+
+/**
+ * While `ReactIntlMessage` represents the result of rendering _any_ message with the React
+ * formatter, `ReactIntlRichText` specifically represents a message that was rendered and contains
+ * rich text, meaning the result contains React nodes itself and represents a CST of the message.
+ */
+export type ReactIntlRichText = Array<React.ReactElement | string> & {
+  __brand: 'discord-intl';
+};
 
 export function formatReact(
   this: IntlManager,
@@ -101,12 +123,10 @@ export function formatReact(
   values: object,
   Builder: FormatBuilderConstructor<React.ReactElement>,
 ): ReactIntlMessage {
-  if (typeof message === 'string') {
-    return [message] as ReactIntlMessage;
-  }
+  if (typeof message === 'string') return message as ReactIntlPlainString;
 
   const parts = this.bindFormatValues(Builder, message, values);
-  return parts as ReactIntlMessage;
+  return parts as ReactIntlRichText;
 }
 
 /**

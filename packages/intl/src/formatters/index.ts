@@ -6,5 +6,7 @@ export {
   DEFAULT_REACT_RICH_TEXT_ELEMENTS,
   type ReactFunctionTypes,
   ReactIntlMessage,
+  ReactIntlPlainString,
+  ReactIntlRichText,
 } from './react';
 export { stringFormatter, type StringFunctionTypes } from './string';
