@@ -1,7 +1,12 @@
 // Configuration for projects that run in Browser/client environments.
 {
   "compilerOptions": {
-    "lib": ["es2015"],
+    // Including the latest Intl libraries means we can use things like
+    // `Intl.DurationFormat` before they've been fully standardized, and just
+    // inform users to polyfill them as needed.
+    // This should _not_ be `ESNext`, since we want to know which structures
+    // are currently "out there" and have good polyfills (like from FormatJS).
+    "lib": ["es2015", "ES2020.Intl", "ES2021.Intl", "ES2022.Intl"],
     "noEmit": false,
     "outDir": "./dist",
     "declaration": true,

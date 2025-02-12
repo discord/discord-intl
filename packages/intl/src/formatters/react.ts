@@ -76,6 +76,21 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
   };
 }
 
+/**
+ * A type representing any message that has been formatted using one of the
+ * default React formatting methods in the `@discord/intl` system. Use this
+ * type when you don't care about whether a message is static or contains rich
+ * text or has dynamically-formatted values, when you need to handle both in
+ * tandem, or when you need a generic return type for a function returning "any
+ * already-formatted React message".
+ *
+ * Generally, this is like `React.ReactNode`, accepting both strings and rich
+ * `ReactElement`s, but it is more specific to disallow nullish values and
+ * other special React elements like `ReactPortal`. Seeing this type, you can
+ * be confident that the value is intended to be the result of formatting an
+ * intl message, even if the actual value comes from elsewhere (like a
+ * user-generated string).
+ */
 // This is explicitly `ReactElement | string` and _not_ `ReactNode`, because nullish values and any
 // other type that ReactNode accepts (boolean, number, etc.) are _not_ valid children of a message.
 export type ReactIntlMessage = Array<React.ReactElement | string> & { __brand: 'discord-intl' };
