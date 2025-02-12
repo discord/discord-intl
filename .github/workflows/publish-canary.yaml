@@ -3,10 +3,6 @@ name: Publish canary packages
 on:
   workflow_dispatch:
     inputs:
-      commit:
-        required: true
-        type: string
-        description: 'Commit SHA'
       packages:
         required: true
         type: string
@@ -35,7 +31,6 @@ jobs:
         uses: ./.github/actions/setup-build-env
         with:
           native: false
-          ref: ${{ inputs.commit }}
           target: wasm
 
       - name: Set canary versions

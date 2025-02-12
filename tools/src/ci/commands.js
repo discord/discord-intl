@@ -54,8 +54,7 @@ export default async function () {
               required: true,
             });
 
-      const run = await gh.runWorkflow('publish-canary.yaml', {
-        commit: git.currentHead(),
+      const run = await gh.runWorkflow('publish-canary.yaml', git.currentBranch(), {
         strict: loose ? 'false' : 'true',
         packages: chosenPackages.join(' '),
       });
@@ -77,14 +76,12 @@ export default async function () {
       await git.rejectIfHasChanges(true);
 
       const options = {
-        commit: git.currentHead(),
         publish: dryRun ? 'false' : 'true',
         'fail-fast': failFast ? 'true' : 'false',
         tag,
       };
 
-      console.log(options);
-      const run = await gh.runWorkflow('release.yaml', options);
+      const run = await gh.runWorkflow('release.yaml', git.currentBranch(), options);
 
       logWorkflowRunResponseOrExit(run);
     });

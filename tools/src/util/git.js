@@ -1,7 +1,9 @@
 import { $ } from 'zx';
 
 /**
- * Return the full SHA of the current commit. If `short` is specified
+ * Return the full SHA of the current commit. If `short` is specified then the shortened version is
+ * returned instead.
+ *
  * @param {{
  *   short?: boolean,
  * }} options
@@ -10,6 +12,12 @@ import { $ } from 'zx';
 function currentHead(options = {}) {
   const { short = false } = options;
   return $.sync`git rev-parse ${short ? '--short' : ''} HEAD`.stdout.trim();
+}
+/**
+ * Return the name of the current branch (ref).
+ */
+function currentBranch(options = {}) {
+  return $.sync`git rev-parse --abbrev-ref HEAD`.stdout.trim();
 }
 
 /**
@@ -46,6 +54,7 @@ async function rejectIfHasChanges(hardExit = false) {
 
 export const git = {
   currentHead,
+  currentBranch,
   hasChanges,
   rejectIfHasChanges,
 };

@@ -4,10 +4,6 @@ description: |
   Setup node and rust, install dependencies, and prepare for cross-compiling packages on the host using cargo-zigbuild.
 
 inputs:
-  ref:
-    description: "The github ref to checkout. Must be a complete SHA"
-    required: true
-    type: string
   target:
     description: "Platform package name that can map to a Rust target triple to install."
     required: true

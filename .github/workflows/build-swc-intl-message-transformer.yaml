@@ -1,13 +1,5 @@
 name: Build swc-intl-message-transformer
 
-on:
-  workflow_call:
-    inputs:
-      ref:
-        description: "Git reference to checkout."
-        required: false
-        type: string
-
 jobs:
   build:
     name: Build swc-intl-message-transformer
@@ -21,7 +13,6 @@ jobs:
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
         with:
-          ref: ${{ inputs.ref }}
           target: wasm
 
       - name: Build @discord/swc-intl-message-transformer

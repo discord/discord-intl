@@ -11,10 +11,6 @@ on:
         description: "Which os/version to run this workflow on."
         required: true
         type: string
-      ref:
-        description: "Git reference to checkout."
-        required: false
-        type: string
 
 env:
   # This should ensure that the mac packages are allowed to run on all
@@ -38,7 +34,6 @@ jobs:
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
         with:
-          ref: ${{ inputs.ref }}
           runner: ${{ inputs.runner }}
           target: ${{ inputs.target }}
 

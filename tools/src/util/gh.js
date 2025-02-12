@@ -30,10 +30,11 @@ async function getWorkflowIdFromPath(filePath) {
  * given arguments supplied as JSON fields for the dispatch event.
  *
  * @param {string} yamlPath
+ * @param {string} ref
  * @param {Record<string, string>} args
  */
-async function triggerWorkflow(yamlPath, args) {
-  return await $`echo ${JSON.stringify(args)} | gh workflow run ${yamlPath} --json`;
+async function triggerWorkflow(yamlPath, ref, args) {
+  return await $`echo ${JSON.stringify(args)} | gh workflow run ${yamlPath} --json --ref ${ref}`;
 }
 
 /**
@@ -79,17 +80,18 @@ async function waitForNextRunResponse(workflowId, previousRunNumber) {
  * to run on GitHub Actions.
  *
  * @param {string} filePath
+ * @param {string} ref
  * @param {Record<string, string>} args
  * @returns {Promise<WorkflowRun | undefined>}
  */
-async function runWorkflow(filePath, args) {
+async function runWorkflow(filePath, ref, args) {
   const fullPath = path.join('.', '.github', 'workflows', filePath);
   console.log('Gathering workflow information from GitHub...');
   const workflowId = await getWorkflowIdFromPath(fullPath);
   const previousRun = await getLatestWorkflowRun(workflowId);
 
-  console.log(`Triggering workflow ${path.basename(filePath)} with args:`, args);
-  await triggerWorkflow(path.basename(filePath), args);
+  console.log(`Triggering workflow ${path.basename(filePath)} on ref ${ref}, with args:`, args);
+  await triggerWorkflow(path.basename(filePath), ref, args);
   console.log('Waiting for run request to be registered...');
   const latestRun = await gh.waitForNextRunResponse(workflowId, previousRun.number);
   if (latestRun == null) {
