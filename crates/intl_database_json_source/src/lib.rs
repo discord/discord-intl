@@ -1,9 +1,8 @@
 use intl_database_core::{
-    KeySymbol, MessageSourceResult, MessageTranslationSource,
-    RawMessageTranslation,
+    key_symbol, KeySymbol, MessageSourceResult, MessageTranslationSource, RawMessageTranslation,
+    RawPosition,
 };
-
-mod parser;
+use intl_flat_json_parser::parse_flat_translation_json;
 
 pub struct JsonMessageSource;
 
@@ -16,7 +15,14 @@ impl MessageTranslationSource for JsonMessageSource {
         self,
         _file_name: KeySymbol,
         content: &str,
-    ) -> MessageSourceResult<impl Iterator<Item=RawMessageTranslation>> {
-        Ok(parser::parse_flat_translation_json(&content))
+    ) -> MessageSourceResult<impl Iterator<Item = RawMessageTranslation>> {
+        let iter = parse_flat_translation_json(&content);
+        Ok(iter.map(|item| {
+            RawMessageTranslation::new(
+                key_symbol(&item.key),
+                RawPosition::new(item.position.line, item.position.col),
+                item.value,
+            )
+        }))
     }
 }

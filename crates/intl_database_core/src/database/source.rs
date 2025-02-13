@@ -32,6 +32,12 @@ pub struct RawPosition {
     pub col: u32,
 }
 
+impl RawPosition {
+    pub fn new(line: u32, col: u32) -> Self {
+        Self { line, col }
+    }
+}
+
 #[derive(Debug)]
 pub struct RawMessageDefinition {
     pub name: KeySymbol,

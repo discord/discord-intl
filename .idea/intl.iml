@@ -20,6 +20,7 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_validator/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown_visitor/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_message_database/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_flat_json_parser/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/runtime-bench/data" />
       <excludeFolder url="file://$MODULE_DIR$/crates/intl_markdown/target" />

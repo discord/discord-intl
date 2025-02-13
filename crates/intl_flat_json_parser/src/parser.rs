@@ -1,24 +1,32 @@
-use intl_database_core::{key_symbol, RawMessageTranslation, RawPosition};
+use crate::util::{char_length_from_byte, unescape_json_str};
 use std::borrow::Cow;
 use std::ops::Range;
-use unescape_zero_copy::Error;
+use std::rc::Rc;
 
-// COPIED FROM byte_lookup.rs in crates/intl_markdown.
-// Learned from: https://nullprogram.com/blog/2017/10/06/
-#[rustfmt::skip]
-static UTF8_LENGTH_LOOKUP: [usize; 32] = [
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0,
-];
-
-/// Return the byte length of the complete UTF-8 code point that starts with `byte`. This can be
-/// done branchlessly and without computing the entire `char`.
-#[inline(always)]
-pub(crate) fn char_length_from_byte(byte: u8) -> usize {
-    UTF8_LENGTH_LOOKUP[byte as usize >> 3]
+#[derive(Debug)]
+pub struct JsonPosition {
+    pub line: u32,
+    pub col: u32,
 }
 
-struct TranslationsJsonParser<'a> {
+#[derive(Debug)]
+pub struct JsonMessage {
+    pub key: Rc<str>,
+    pub value: Rc<str>,
+    pub position: JsonPosition,
+}
+
+impl JsonMessage {
+    pub fn new(key: &str, value: Cow<str>, position: JsonPosition) -> Self {
+        Self {
+            key: Rc::from(key),
+            value: Rc::from(value),
+            position,
+        }
+    }
+}
+
+pub struct TranslationsJsonParser<'a> {
     text: &'a str,
     position: usize,
     line: usize,
@@ -27,7 +35,7 @@ struct TranslationsJsonParser<'a> {
 }
 
 impl<'a> TranslationsJsonParser<'a> {
-    fn new(text: &'a str) -> TranslationsJsonParser<'a> {
+    pub fn new(text: &'a str) -> TranslationsJsonParser<'a> {
         Self {
             text,
             position: 0,
@@ -235,14 +243,14 @@ impl<'a> TranslationsJsonParser<'a> {
         Some(self.position)
     }
 
-    fn parse_start(&mut self) {
+    pub fn parse_start(&mut self) {
         // Assert a valid object start and advance into the content of the object. We can
         // _technically_ skip this, but we want some assurance that the input is well-formed beyond
         // just assuming it will be.
         self.advance_past(b'{');
     }
 
-    fn parse_message(&mut self) -> Option<RawMessageTranslation> {
+    pub fn parse_message(&mut self) -> Option<JsonMessage> {
         // Presume the last parse advanced past the `,` between messages or the
         // end of the object, so this should always succeed.
         let key_start = self.advance_past_quote()?;
@@ -264,25 +272,28 @@ impl<'a> TranslationsJsonParser<'a> {
         let message_key = self.str_slice(key_start..key_end);
         let raw = self.str_slice(value_start..value_end - 1);
         let value = if has_escapes {
-            key_symbol(&unescape_json_str(raw).ok()?)
+            unescape_json_str(raw).ok()?
         } else {
-            key_symbol(raw)
+            Cow::from(raw)
         };
 
-        Some(RawMessageTranslation::new(
-            key_symbol(message_key),
-            RawPosition {
+        Some(JsonMessage::new(
+            message_key,
+            value,
+            JsonPosition {
                 line: value_line as u32,
                 // We make an assumption here that there is no unicode in the message key, meaning
                 // the column is just the number of bytes since the last newline.
                 col: value_column as u32,
             },
-            value,
         ))
     }
+}
 
-    #[inline]
-    fn parse_next(&mut self) -> Option<RawMessageTranslation> {
+impl<'a> Iterator for TranslationsJsonParser<'a> {
+    type Item = JsonMessage;
+
+    fn next(&mut self) -> Option<Self::Item> {
         if self.has_failed || self.is_eof() {
             return None;
         }
@@ -291,84 +302,12 @@ impl<'a> TranslationsJsonParser<'a> {
     }
 }
 
-impl Iterator for TranslationsJsonParser<'_> {
-    type Item = RawMessageTranslation;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.parse_next()
-    }
-}
-
-fn unescape_json_str(str: &str) -> Result<Cow<'_, str>, Error> {
-    unescape_zero_copy::unescape(json_escape_sequence, str)
-}
-pub fn json_escape_sequence(s: &str) -> Result<(char, &str), Error> {
-    let mut chars = s.chars();
-    let next = chars.next().ok_or(Error::IncompleteSequence)?;
-    match next {
-        'b' => Ok(('\x08', chars.as_str())),
-        'f' => Ok(('\x0C', chars.as_str())),
-        'n' => Ok(('\n', chars.as_str())),
-        'r' => Ok(('\r', chars.as_str())),
-        't' => Ok(('\t', chars.as_str())),
-        '\r' | '\n' => Ok((next, chars.as_str())),
-        'u' => {
-            let first = u32::from_str_radix(&s[1..5], 16)?;
-            // This is the BMP surrogate range for the second character in a surrogate pair. If the
-            // value is in this range and this step, then we know it's incorrect since it can't
-            // stand on its own.
-            if (0xDC00..=0xDFFF).contains(&first) {
-                return Err(Error::InvalidUnicode(first));
-            }
-            if !(0xD800..=0xDBFF).contains(&first) {
-                // Characters outside the surrogate range should always be valid.
-                let next = char::from_u32(first).unwrap();
-                return Ok((next, &s[5..]));
-            }
-            // Now the value must definitely be a surrogate pair, so the second one should follow
-            // immediately, `\uXXXX\uXXXX`. We need to skip past the next `\u` as well to get the
-            // following bytes.
-            let second = u32::from_str_radix(&s[7..11], 16)?;
-            // Taken from serde_json: https://github.com/serde-rs/json/blob/1d7378e8ee87e9225da28094329e06345b76cd99/src/read.rs#L969
-            let next =
-                char::from_u32((((first - 0xD800) << 10) | (second - 0xDC00)) + 0x1_0000).unwrap();
-            Ok((next, &s[11..]))
-        }
-        ch => Ok((ch, chars.as_str())),
-    }
-}
-
-/// Parse the given `text` as a single, flat JSON object of message keys to
-/// message values. The JSON is assumed to be well-formed, and minimal error
-/// handling is implemented.
-///
-/// Since sources are able to accept an iterator of translation values, this
-/// parser never stores the completed object in memory and instead yields each
-/// translation as it is parsed.
-///
-/// This parser also handles tracking line and column positions within the
-/// source, which is the primary reason for this implementation over existing
-/// libraries like serde that only track that state internally.
-///
-/// Note that some extra assumptions are made here for the sake of simplicity
-/// and efficient parsing that other implementations aren't able to make:
-/// - The given text is a well-formed, flat JSON object
-/// - Keys may not contain escaped quotes, `}`, or newlines.
-/// - The only important positional information is the first character of the value.
-/// - There will be no errors during parsing. The iterator will return None instead.
-pub fn parse_flat_translation_json(
-    text: &str,
-) -> impl Iterator<Item = RawMessageTranslation> + use<'_> {
-    let mut parser = TranslationsJsonParser::new(text);
-    parser.parse_start();
-    parser.into_iter()
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parse_flat_translation_json;
 
-    fn assert_line_column(value: &RawMessageTranslation, line: u32, col: u32) {
+    fn assert_line_column(value: &JsonMessage, line: u32, col: u32) {
         assert_eq!(value.position.line, line);
         assert_eq!(value.position.col, col);
     }
@@ -389,8 +328,8 @@ mod test {
     pub fn test_one_message() {
         let result = parse_flat_translation_json(r#"{"KEY": "value"}  "#).collect::<Vec<_>>();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "KEY");
-        assert_eq!(result[0].value.raw, "value");
+        assert_eq!(result[0].key.as_ref(), "KEY");
+        assert_eq!(result[0].value.as_ref(), "value");
     }
 
     #[test]
@@ -398,16 +337,16 @@ mod test {
         let result = parse_flat_translation_json(r#"{"SINGLE_KEY": "value","KEY2":"value2"}  "#)
             .collect::<Vec<_>>();
         assert_eq!(result.len(), 2);
-        assert_eq!(result[0].name, "SINGLE_KEY");
-        assert_eq!(result[0].value.raw, "value");
+        assert_eq!(result[0].key.as_ref(), "SINGLE_KEY");
+        assert_eq!(result[0].value.as_ref(), "value");
     }
 
     #[test]
     pub fn test_single_trailing_comma() {
         let result = parse_flat_translation_json(r#"{"KEY": "trailing",}  "#).collect::<Vec<_>>();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "KEY");
-        assert_eq!(result[0].value.raw, "trailing");
+        assert_eq!(result[0].key.as_ref(), "KEY");
+        assert_eq!(result[0].value.as_ref(), "trailing");
     }
 
     #[test]
@@ -415,10 +354,10 @@ mod test {
         let result = parse_flat_translation_json(r#"{"KEY": "value","KEY2":"value2",}  "#)
             .collect::<Vec<_>>();
         assert_eq!(result.len(), 2);
-        assert_eq!(result[0].name, "KEY");
-        assert_eq!(result[0].value.raw, "value");
-        assert_eq!(result[1].name, "KEY2");
-        assert_eq!(result[1].value.raw, "value2");
+        assert_eq!(result[0].key.as_ref(), "KEY");
+        assert_eq!(result[0].value.as_ref(), "value");
+        assert_eq!(result[1].key.as_ref(), "KEY2");
+        assert_eq!(result[1].value.as_ref(), "value2");
     }
 
     #[test]
@@ -435,11 +374,11 @@ mod test {
         .collect::<Vec<_>>();
         println!("{:?}", result);
         assert_eq!(result.len(), 2);
-        assert_eq!(result[0].name, "KEY");
-        assert_eq!(result[0].value.raw, "value");
+        assert_eq!(result[0].key.as_ref(), "KEY");
+        assert_eq!(result[0].value.as_ref(), "value");
         assert_line_column(&result[0], 2, 18);
-        assert_eq!(result[1].name, "KEY2");
-        assert_eq!(result[1].value.raw, "value2");
+        assert_eq!(result[1].key.as_ref(), "KEY2");
+        assert_eq!(result[1].value.as_ref(), "value2");
         assert_line_column(&result[1], 5, 9);
     }
 
@@ -448,8 +387,8 @@ mod test {
         let result =
             parse_flat_translation_json(r#"{"EMAIL": "Въведи код",}  "#).collect::<Vec<_>>();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "EMAIL");
-        assert_eq!(result[0].value.raw, "Въведи код");
+        assert_eq!(result[0].key.as_ref(), "EMAIL");
+        assert_eq!(result[0].value.as_ref(), "Въведи код");
     }
 
     #[test]
@@ -457,8 +396,8 @@ mod test {
         let result = parse_flat_translation_json(r#"{"SPEAKER": "its a speaker 🔈",}  "#)
             .collect::<Vec<_>>();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "SPEAKER");
-        assert_eq!(result[0].value.raw, "its a speaker 🔈");
+        assert_eq!(result[0].key.as_ref(), "SPEAKER");
+        assert_eq!(result[0].value.as_ref(), "its a speaker 🔈");
     }
 
     #[test]
@@ -467,8 +406,8 @@ mod test {
             parse_flat_translation_json(r#"{"ESCAPED": "escaped speaker \uD83D\uDD08",}  "#)
                 .collect::<Vec<_>>();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "ESCAPED");
-        assert_eq!(result[0].value.raw, "escaped speaker 🔈");
+        assert_eq!(result[0].key.as_ref(), "ESCAPED");
+        assert_eq!(result[0].value.as_ref(), "escaped speaker 🔈");
     }
 
     #[test]
@@ -476,14 +415,14 @@ mod test {
         let result =
             parse_flat_translation_json(r#"{"ESCAPED": "\n\t\f55\/\r\\",}  "#).collect::<Vec<_>>();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "ESCAPED");
-        assert_eq!(result[0].value.raw, "\n\t\x0C55/\r\\");
+        assert_eq!(result[0].key.as_ref(), "ESCAPED");
+        assert_eq!(result[0].value.as_ref(), "\n\t\x0C55/\r\\");
     }
 
     #[test]
     pub fn test_multibyte_unicode_in_value() {
         let result = parse_flat_translation_json(r#"{"ELIPSIS": "hello…",}  "#).collect::<Vec<_>>();
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].value.raw, "hello…");
+        assert_eq!(result[0].value.as_ref(), "hello…");
     }
 }

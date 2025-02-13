@@ -1,0 +1,8 @@
+[package]
+name = "intl_flat_json_parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+memchr = { workspace = true }
+unescape_zero_copy = { workspace = true }

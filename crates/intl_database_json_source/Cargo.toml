@@ -5,5 +5,4 @@ edition = "2021"
 
 [dependencies]
 intl_database_core = { workspace = true }
-memchr = { workspace = true }
-unescape_zero_copy = { workspace = true }
+intl_flat_json_parser = { workspace = true }

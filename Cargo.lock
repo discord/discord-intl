@@ -779,8 +779,7 @@ name = "intl_database_json_source"
 version = "0.1.0"
 dependencies = [
  "intl_database_core",
- "memchr",
- "unescape_zero_copy",
+ "intl_flat_json_parser",
 ]
 
 [[package]]
@@ -799,6 +798,14 @@ dependencies = [
  "sourcemap",
  "thiserror 1.0.64",
  "ustr",
+]
+
+[[package]]
+name = "intl_flat_json_parser"
+version = "0.1.0"
+dependencies = [
+ "memchr",
+ "unescape_zero_copy",
 ]
 
 [[package]]

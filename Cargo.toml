@@ -6,10 +6,11 @@ members = [
     "crates/intl_database_json_source",
     "crates/intl_database_service",
     "crates/intl_database_types_generator",
-    "crates/intl_message_database",
+    "crates/intl_flat_json_parser",
     "crates/intl_markdown",
     "crates/intl_markdown_macros",
     "crates/intl_markdown_visitor",
+    "crates/intl_message_database",
     "crates/intl_message_utils",
     "crates/intl_validator",
     "crates/keyless_json",
@@ -24,6 +25,7 @@ intl_database_js_source = { path = "./crates/intl_database_js_source" }
 intl_database_json_source = { path = "./crates/intl_database_json_source" }
 intl_database_service = { path = "./crates/intl_database_service" }
 intl_database_types_generator = { path = "./crates/intl_database_types_generator" }
+intl_flat_json_parser = { path = "./crates/intl_flat_json_parser" }
 intl_markdown = { path = "./crates/intl_markdown" }
 intl_markdown_macros = { path = "./crates/intl_markdown_macros" }
 intl_markdown_visitor = { path = "./crates/intl_markdown_visitor" }
