@@ -1,11 +1,9 @@
 use intl_database_core::{
-    KeySymbol, MessageSourceError, MessageSourceResult, MessageTranslationSource,
-    RawMessageTranslation, SourceFileKind,
+    KeySymbol, MessageSourceResult, MessageTranslationSource,
+    RawMessageTranslation,
 };
 
-use crate::deserialize::Translations;
-
-mod deserialize;
+mod parser;
 
 pub struct JsonMessageSource;
 
@@ -18,10 +16,7 @@ impl MessageTranslationSource for JsonMessageSource {
         self,
         _file_name: KeySymbol,
         content: &str,
-    ) -> MessageSourceResult<impl Iterator<Item = RawMessageTranslation>> {
-        let translations: Translations = serde_json::from_str(content).map_err(|error| {
-            MessageSourceError::ParseError(SourceFileKind::Translation, error.to_string())
-        })?;
-        Ok(translations.into_iter())
+    ) -> MessageSourceResult<impl Iterator<Item=RawMessageTranslation>> {
+        Ok(parser::parse_flat_translation_json(&content))
     }
 }

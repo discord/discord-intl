@@ -26,12 +26,13 @@ pub trait RawMessage {
     fn name(&self) -> KeySymbol;
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct RawPosition {
     pub line: u32,
     pub col: u32,
 }
 
+#[derive(Debug)]
 pub struct RawMessageDefinition {
     pub name: KeySymbol,
     pub value: MessageValue,
@@ -62,6 +63,7 @@ impl RawMessage for RawMessageDefinition {
     }
 }
 
+#[derive(Debug)]
 pub struct RawMessageTranslation {
     pub name: KeySymbol,
     pub position: RawPosition,

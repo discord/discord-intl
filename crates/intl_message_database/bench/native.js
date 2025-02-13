@@ -40,7 +40,7 @@ bench('get a message', () => {
 
 bench('get source file', () => {
   const sourceFile = database.getSourceFile(SOURCE_FILES[0]);
-  console.dir(sourceFile, { depth: 1 });
+  // console.dir(sourceFile, { depth: 1 });
 });
 
 bench('export translations', () => {
@@ -49,12 +49,12 @@ bench('export translations', () => {
 
 bench('validate', () => {
   const validations = database.validateMessages();
-  // console.log(
-  //   util.inspect(
-  //     validations.filter((d) => d.severity === 'error'),
-  //     { depth: null },
-  //   ),
-  // );
+  console.log(
+    util.inspect(
+      validations.filter((d) => d.severity === 'error'),
+      { depth: null },
+    ),
+  );
 });
 
 bench('generate types', () => {

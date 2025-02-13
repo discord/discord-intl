@@ -779,8 +779,8 @@ name = "intl_database_json_source"
 version = "0.1.0"
 dependencies = [
  "intl_database_core",
- "serde",
- "serde_json",
+ "memchr",
+ "unescape_zero_copy",
 ]
 
 [[package]]
