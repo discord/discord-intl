@@ -42,7 +42,7 @@ let hasInitializedAllDefinitions = false;
  *   format: IntlCompiledMessageFormat,
  *   bundleSecrets: boolean,
  *   jsonExportMode?: 'rspack' | 'webpack',
- *   preGenerateBinds?: boolean,
+ *   preGenerateBinds?: boolean | 'proxy',
  *   watchFolders?: string[]
  * }>}
  */

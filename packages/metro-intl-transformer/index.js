@@ -18,7 +18,7 @@ const debug = require('debug')('intl:metro-intl-transformer');
  *  getTranslationImport: (importPath: string) => string,
  *  format?: IntlCompiledMessageFormat,
  *  bundleSecrets?: boolean,
- *  preGenerateBinds?: boolean,
+ *  preGenerateBinds?: boolean | 'proxy',
  * }} options
  * @returns {string | Buffer}
  */

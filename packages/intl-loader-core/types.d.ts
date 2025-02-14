@@ -68,7 +68,7 @@ export interface MessageDefinitionsTransformerOptions {
    *
    * @default false
    */
-  preGenerateBinds?: boolean;
+  preGenerateBinds?: boolean | 'proxy';
 }
 
 /**

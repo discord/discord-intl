@@ -111,6 +111,45 @@ class MessageDefinitionsTransformer {
   }
 
   /**
+   * When `options.pregenerateBinds` is set to 'proxy', this method is invoked to create it.
+   *
+   * The binds proxy is a plain `Proxy` object with configuration applied to make it act and
+   * function like a complete object, but without having to instantiate potentially thousands of
+   * binds during initialization. The Proxy supports `key in proxy` queries, getter access,
+   * iteration, and more.
+   *
+   * @param {string} keySetName Name of a Set to use for `has` queries.
+   * @returns {string}
+   */
+  createBindsProxy(keySetName) {
+    return `new Proxy({},
+      {
+        has(self, prop) {
+          return ${keySetName}.has(prop);
+        },
+        get(self, prop) {
+          if (prop === '$$typeof') {
+            return 'object';
+          }
+          if (prop === Symbol.toStringTag) {
+            return 'proxyAssign';
+          }
+          
+          if(!${keySetName}.has(prop)) return undefined;
+          
+          console.log('looking up again');
+          const getter = (locale) => {
+            const value = ${this.loaderName}.get(prop, locale);
+            return value;
+          }
+          self[prop] ||= getter;
+          return getter;
+        },
+      },
+    )`;
+  }
+
+  /**
    * Return a map of key names to bound message getter functions. If `preGenerateBinds` is
    * configured to be `true`, the binds will be created as a constant object in the output.
    * Otherwise, the generation will be done at runtime through the `getBinds` method on the loader.
@@ -118,7 +157,14 @@ class MessageDefinitionsTransformer {
    * @returns {string[]}
    */
   createLoaderAndBinds() {
-    if (this.options.preGenerateBinds) {
+    if (this.options.preGenerateBinds === 'proxy') {
+      return [
+        `const _keys = ${JSON.stringify(Object.keys(this.options.messageKeys))};`,
+        'const _keySet = new Set(_keys);',
+        `const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
+        `const binds = ${this.createBindsProxy('_keySet')};`,
+      ];
+    } else if (this.options.preGenerateBinds === true) {
       const bindLines = Object.keys(this.options.messageKeys).map(
         (bind) => `"${bind}"(locale) { return ${this.loaderName}.get("${bind}", locale) }`,
       );
