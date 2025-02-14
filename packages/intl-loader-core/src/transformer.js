@@ -124,7 +124,7 @@ class MessageDefinitionsTransformer {
    * @returns {string}
    */
   createBindsProxy(keyArrayName, keySetName, bindFunc) {
-    return `new Proxy(new Map(),
+    return `new Proxy({},
       {
         has(self, prop) {
           return ${keySetName}.has(prop);
@@ -150,9 +150,8 @@ class MessageDefinitionsTransformer {
           
           if(!${keySetName}.has(prop)) return undefined;
           
-          if(self.has(prop)) return self.get(prop);
-          self.set(prop, ${bindFunc});
-          return self.get(prop);
+          self[prop] ||= ${bindFunc};
+          return self[prop];
         },
       },
     )`;
