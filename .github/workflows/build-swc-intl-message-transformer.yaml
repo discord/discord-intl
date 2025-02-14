@@ -1,5 +1,8 @@
 name: Build swc-intl-message-transformer
 
+on:
+  workflow_call:
+
 jobs:
   build:
     name: Build swc-intl-message-transformer
