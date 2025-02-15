@@ -118,8 +118,6 @@ class MessageDefinitionsTransformer {
    * binds during initialization. The Proxy supports `key in proxy` queries, getter access,
    * spreads, and more.
    *
-   * @param {string} keyArrayName Name of an Array to use for `keys` queries.
-   * @param {string} keySetName Name of a Set to use for `has` queries.
    * @param {string} bindFunc Code expression that creates a getter bind
    * @returns {string}
    */
