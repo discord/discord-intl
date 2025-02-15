@@ -123,15 +123,9 @@ class MessageDefinitionsTransformer {
    * @param {string} bindFunc Code expression that creates a getter bind
    * @returns {string}
    */
-  createBindsProxy(keyArrayName, keySetName, bindFunc) {
+  createBindsProxy(bindFunc) {
     return `new Proxy({},
       {
-        has(self, prop) {
-          return ${keySetName}.has(prop);
-        },
-        ownKeys(self) {
-          return ${keyArrayName};
-        },
         getOwnPropertyDescriptor(self, prop) {
           return {
             value: self[prop] ||= ${bindFunc},
@@ -147,8 +141,6 @@ class MessageDefinitionsTransformer {
           if (prop === Symbol.toStringTag) {
             return 'proxyAssign';
           }
-          
-          if(!${keySetName}.has(prop)) return undefined;
           
           self[prop] ||= ${bindFunc};
           return self[prop];
@@ -167,10 +159,10 @@ class MessageDefinitionsTransformer {
   createLoaderAndBinds() {
     if (this.options.preGenerateBinds === 'proxy') {
       return [
-        `const _keys = ${JSON.stringify(Object.keys(this.options.messageKeys))};`,
-        'const _keySet = new Set(_keys);',
-        `const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
-        `const binds = ${this.createBindsProxy('_keys', '_keySet', `(locale) => ${this.loaderName}.get(prop, locale)`)};`,
+        // `const _keys = ${JSON.stringify(Object.keys(this.options.messageKeys))};`,
+        // 'const _keySet = new Set(_keys);',
+        `const ${this.loaderName} = createLoader([], _locales, _defaultLocale);`,
+        `const binds = ${this.createBindsProxy(`(locale) => ${this.loaderName}.get(prop, locale)`)};`,
       ];
     } else if (this.options.preGenerateBinds === true) {
       const bindLines = Object.keys(this.options.messageKeys).map(

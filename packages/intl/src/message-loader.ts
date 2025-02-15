@@ -179,8 +179,8 @@ export class MessageLoader {
     }
 
     // Then try to return the loaded message.
-    if (key in this.messages[locale]) {
-      const content = this.messages[locale][key];
+    const content = this.messages[locale][key];
+    if (content != null) {
       const message = new InternalIntlMessage(content, locale);
       (this._parseCache[locale] ??= {})[key] = message;
       return message;
