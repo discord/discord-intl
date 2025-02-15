@@ -19,6 +19,7 @@ const debug = require('debug')('intl:metro-intl-transformer');
  *  format?: IntlCompiledMessageFormat,
  *  bundleSecrets?: boolean,
  *  preGenerateBinds?: boolean | 'proxy',
+ *  sourceLocale?: string,
  * }} options
  * @returns {string | Buffer}
  */
@@ -31,13 +32,11 @@ function transformToString({
   format = IntlCompiledMessageFormat.KeylessJson,
   bundleSecrets = false,
   preGenerateBinds = true,
+  sourceLocale = 'en-US',
 }) {
   if (isMessageDefinitionsFile(filename)) {
     debug(`[${filename}] Processing as a definitions file`);
-    const result = processDefinitionsFile(filename, src, {
-      // TODO: Make this more configurable
-      locale: 'en-US',
-    });
+    const result = processDefinitionsFile(filename, src, { locale: sourceLocale });
     const compiledSourcePath = filename.replace(
       /\.messages\.js$/,
       `.compiled.messages.${getTranslationAssetExtension()}`,

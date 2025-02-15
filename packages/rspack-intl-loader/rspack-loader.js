@@ -43,7 +43,8 @@ let hasInitializedAllDefinitions = false;
  *   bundleSecrets: boolean,
  *   jsonExportMode?: 'rspack' | 'webpack',
  *   preGenerateBinds?: boolean | 'proxy',
- *   watchFolders?: string[]
+ *   watchFolders?: string[],
+ *   sourceLocale?: string,
  * }>}
  */
 const intlLoader = function intlLoader(source) {
@@ -55,6 +56,7 @@ const intlLoader = function intlLoader(source) {
     jsonExportMode = 'rspack',
     preGenerateBinds,
     watchFolders = [this._compiler?.context ?? process.cwd()],
+    sourceLocale = 'en-US',
   } = this.getOptions();
 
   if (!hasInitializedAllDefinitions) {
@@ -68,10 +70,7 @@ const intlLoader = function intlLoader(source) {
 
   if (isMessageDefinitionsFile(sourcePath) && !forceTranslation) {
     debug(`[${sourcePath}] Determined to be a definitions file`);
-    const result = processDefinitionsFile(sourcePath, source, {
-      // TODO: Make this more configurable
-      locale: 'en-US',
-    });
+    const result = processDefinitionsFile(sourcePath, source, { locale: sourceLocale });
 
     // Ensure that rspack knows to watch all of the translations files, even though they aren't
     // directly imported from a source. Without this, even though the compiled loader references the
