@@ -58,9 +58,29 @@ export class MessageLoader {
   _subscribers: Set<() => void>;
 
   /**
-   * Message to show as a fallback when the requested message is unavailable.
+   * If a message is not present in this loader, try looking it up in this
+   * loader instead before resorting to a default placeholder message.
+   *
+   * The order of lookups will be:
+   * - this loader, requested locale
+   * - this loader, default locale
+   * - fallback loader, requested locale
+   * - fallback loader, default locale
+   * - fallback message
+   */
+  fallbackLoader?: MessageLoader;
+  /**
+   * Message to show as a fallback when the requested message is unavailable
+   * from both this loader and the fallback loader.
    */
   fallbackMessage: InternalIntlMessage;
+
+  /**
+   * When `fallbackLoader` is set, this value will be set on the fallback
+   * loader to reference this loader. Setting this ensures that loaders won't
+   * ever form an infinite circular chain.
+   */
+  _parentLoader?: MessageLoader;
 
   ///
   // Debug mode values
@@ -125,6 +145,36 @@ export class MessageLoader {
     this._localeFileMap = localeFileMap;
   }
 
+  /**
+   * Configure a fallback loader to search for any message requests that are not resolved by this
+   * loader directly. For example, if a request for a message "abcdef" in locale `pt-BR` is not
+   * found in this loader's managed content, the request gets forwarded on to this fallback instead.
+   *
+   * The lookup first exhausts this loader entirely before checking the fallback, in the order:
+   * - This loader's requested locale.
+   * - This loader's default locale.
+   * - Fallback loader's requested locale.
+   * - Fallback loader's default locale.
+   * - Fallback loader's final fallback value.
+   * - This loader's final fallback value.
+   *
+   * Note that the final fallback value (the `fallbackMessage` property on this class) will first
+   * be retrieved from the fallback loader rather than this instance.
+   */
+  fallbackWith(fallback: MessageLoader) {
+    let parent: MessageLoader = this;
+    while (parent != null) {
+      parent = parent._parentLoader;
+      if (parent === this) {
+        throw new Error(
+          'Setting `fallbackWith` on MessageLoader created a circular chain that would never resolve',
+        );
+      }
+    }
+    this.fallbackLoader = fallback;
+    fallback._parentLoader = this;
+  }
+
   get(key: string, locale: LocaleId): InternalIntlMessage {
     const expectedValue = this.getMessageValue(key, locale);
     if (expectedValue != null) return expectedValue;
@@ -135,8 +185,13 @@ export class MessageLoader {
       return this.fallbackMessage;
     }
 
-    const fallbackValue = this.getMessageValue(key, this.defaultLocale);
-    if (fallbackValue != null) return fallbackValue;
+    const defaultLocaleValue = this.getMessageValue(key, this.defaultLocale);
+    if (defaultLocaleValue != null) return defaultLocaleValue;
+
+    const fallbackLoaderValue = this.fallbackLoader?.get(key, locale);
+    if (fallbackLoaderValue != null) {
+      return fallbackLoaderValue;
+    }
 
     // If the message couldn't be found in either the requested nor the default locale, then
     // nothing can be done.
