@@ -178,7 +178,14 @@ export class MessageLoader {
       return undefined;
     }
 
-    // Then try to return the loaded message.
+    // Then try to return the loaded message. Previously, this used a `key in ...` check to quickly
+    // verify whether the locale object contains the requested message, but in the case where the
+    // target is a Proxy or uses some other internalized method for providing gettable values, `in`
+    // queries aren't guaranteed to work. Instead, since this is realistically amortized to just be
+    // a property access on every call, we can just the returned value as the determining factor. If
+    // the locale object returns `undefined`, then it "does not contain" the message, whether it's
+    // still loading or otherwise. Future calls will then be able to pick up any changed value,
+    // since it won't be cached in the `_parseCache`.
     const content = this.messages[locale][key];
     if (content != null) {
       const message = new InternalIntlMessage(content, locale);
