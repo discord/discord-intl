@@ -18,18 +18,19 @@
  *
  * // SomeConsumer.tsx
  * import someModuleMessages from 'SomeModule.messages.js';
- * i18n.format(someModuleMessages.THIS_IS_A_MESSAGE, {values: "I'm a value!"});
+ * intl.format(someModuleMessages.THIS_IS_A_MESSAGE, {values: "I'm a value!"});
  * ```
  *
  * This transformer will only handle `SomeModule.messages.js`, and will output
  * something like:
  *
  * ```typescript
- * const {i18n} = require('@discord/intl');
- * const _keys = ["a9fn23"];
- * const _locales = {"en-US": () => require('./messages/en-US.messages.json')};
- * export const messagesLoader = createLoader(_keys, _locales);
- * export default messagesLoader.getBinds();
+ * const {createLoader} = require('@discord/intl');
+ * const _localeMap = {"en-US": () => require('./messages/en-US.messages.json')};
+ * export const messagesLoader = createLoader(_localeMap);
+ * export default {
+ *   a9fn23(locale) => messagesLoader.get("a9fn23", locale)
+ * };
  * ```
  *
  * Notice how the message keys have been hashed into short keys, and the
@@ -41,7 +42,7 @@
  *
  * ```typescript
  * import someModuleMessages from 'SomeModule.messages.js';
- * i18n.format(someModuleMessages["a9fn23"], {values: "i'm a value!"});
+ * intl.format(someModuleMessages["a9fn23"], {values: "i'm a value!"});
  * ```
  *
  * The transformed file also contains a named export for `messagesLoader`,
@@ -87,9 +88,8 @@ class MessageDefinitionsTransformer {
   getLocaleRequireMap() {
     const localeProperties = [];
     for (const [locale, importPath] of Object.entries(this.options.localeMap)) {
-      // This assumes that the author has specified `importPath`
-      // as a properly-resolvable path for the bundler, which we can't easily
-      // enforce, unfortunately.
+      // This assumes that the author has specified `importPath` as a properly-resolvable path for
+      // the bundler, which we can't easily enforce, unfortunately.
       localeProperties.push(`"${locale}": () => ${this.options.getTranslationImport(importPath)}`);
     }
 
@@ -111,26 +111,27 @@ class MessageDefinitionsTransformer {
   }
 
   /**
-   * When `options.pregenerateBinds` is set to 'proxy', this method is invoked to create it.
+   * When `option.proxyBinds` is set to true, this method is invoked to create it.
    *
    * The binds proxy is a plain `Proxy` object with configuration applied to make it act and
    * function like a complete object, but without having to instantiate potentially thousands of
-   * binds during initialization. The Proxy supports `key in proxy` queries, getter access,
-   * spreads, and more.
+   * binds during initialization. The proxy intentionally does _not_ support iteration nor `key in`
+   * queries, as they require up-front initialization that is too costly when multiple thousands
+   * of message keys are included.
    *
-   * @param {string} keyArrayName Name of an Array to use for `keys` queries.
-   * @param {string} keySetName Name of a Set to use for `has` queries.
+   * However, the proxy _does_ implement `ownKeys`, such that the returned list of keys represents
+   * all of the messages that have been _accessed_ through this proxy so far. This is generally
+   * more of a debugging utility than anything else, but can be useful for diagnosing when messages
+   * are used in critical paths or otherwise.
+   *
    * @param {string} bindFunc Code expression that creates a getter bind
    * @returns {string}
    */
-  createBindsProxy(keyArrayName, keySetName, bindFunc) {
+  createBindsProxy(bindFunc) {
     return `new Proxy({},
       {
-        has(self, prop) {
-          return ${keySetName}.has(prop);
-        },
         ownKeys(self) {
-          return ${keyArrayName};
+          return Reflect.ownKeys(self);
         },
         getOwnPropertyDescriptor(self, prop) {
           return {
@@ -145,10 +146,8 @@ class MessageDefinitionsTransformer {
             return 'object';
           }
           if (prop === Symbol.toStringTag) {
-            return 'proxyAssign';
+            return 'IntlMessagesProxy';
           }
-          
-          if(!${keySetName}.has(prop)) return undefined;
           
           self[prop] ||= ${bindFunc};
           return self[prop];
@@ -158,34 +157,32 @@ class MessageDefinitionsTransformer {
   }
 
   /**
-   * Return a map of key names to bound message getter functions. If `preGenerateBinds` is
+   * Return a map of key names to bound message getter functions. If `proxyBinds` is
    * configured to be `true`, the binds will be created as a constant object in the output.
    * Otherwise, the generation will be done at runtime through the `getBinds` method on the loader.
    *
    * @returns {string[]}
    */
   createLoaderAndBinds() {
-    if (this.options.preGenerateBinds === 'proxy') {
-      return [
-        `const _keys = ${JSON.stringify(Object.keys(this.options.messageKeys))};`,
-        'const _keySet = new Set(_keys);',
-        `const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
-        `const binds = ${this.createBindsProxy('_keys', '_keySet', `(locale) => ${this.loaderName}.get(prop, locale)`)};`,
-      ];
-    } else if (this.options.preGenerateBinds === true) {
-      const bindLines = Object.keys(this.options.messageKeys).map(
-        (bind) => `"${bind}"(locale) { return ${this.loaderName}.get("${bind}", locale) }`,
-      );
-      return [
-        `const binds = {${bindLines.join(',')}};`,
-        `const ${this.loaderName} = createLoader(Object.keys(binds), _locales, _defaultLocale);`,
-      ];
-    } else {
-      return [
-        `const _keys = ${JSON.stringify(Object.keys(this.options.messageKeys))};`,
-        `const ${this.loaderName} = createLoader(_keys, _locales, _defaultLocale);`,
-        `const binds = ${this.loaderName}.getBinds();`,
-      ];
+    switch (this.options.bindMode) {
+      case 'proxy':
+        return [
+          `const ${this.loaderName} = createLoader(_localeMap, _defaultLocale);`,
+          `const binds = ${this.createBindsProxy(`(locale) => ${this.loaderName}.get(prop, locale)`)};`,
+        ];
+      case 'literal': {
+        const bindLines = Object.keys(this.options.messageKeys).map(
+          (bind) => `"${bind}"(locale) { return ${this.loaderName}.get("${bind}", locale) }`,
+        );
+        return [
+          `const binds = {${bindLines.join(',')}};`,
+          `const ${this.loaderName} = createLoader(_localeMap, _defaultLocale);`,
+        ];
+      }
+      default:
+        throw new Error(
+          `Unknown value for intl transformer option 'bindMode': ${this.options.bindMode}`,
+        );
     }
   }
 
@@ -221,7 +218,7 @@ class MessageDefinitionsTransformer {
     return [
       this.options.getPrelude?.() ?? '// No additional prelude was configured.',
       `const {createLoader} = require('@discord/intl');`,
-      `const _locales = ${this.getLocaleRequireMap()};`,
+      `const _localeMap = ${this.getLocaleRequireMap()};`,
       `const _defaultLocale = ${JSON.stringify(this.options.defaultLocale)};`,
       ...this.createLoaderAndBinds(),
       ...this.debugModeSetup(),
