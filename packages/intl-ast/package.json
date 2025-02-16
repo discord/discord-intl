@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-ast",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "license": "MIT",
   "description": "Types and utilities for working with the ICU+Markdown AST format from @discord/intl",
   "main": "./index.ts",
