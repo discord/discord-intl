@@ -85,8 +85,7 @@ export class MessageLoader {
    */
   _localeFileMap?: Record<string, string>;
 
-  constructor(messageKeys: string[], localeImportMap: LocaleImportMap, defaultLocale: LocaleId) {
-    this.messageKeys = messageKeys;
+  constructor(localeImportMap: LocaleImportMap, defaultLocale: LocaleId) {
     this.messages = {};
     this.localeImportMap = localeImportMap;
     this.supportedLocales = Object.keys(localeImportMap);
@@ -195,28 +194,6 @@ export class MessageLoader {
 
     // Otherwise just assume it doesn't exist.
     return undefined;
-  }
-
-  /**
-   * Returns a record mapping the keys this object manages to bound functions
-   * for `get` with the that key as the first argument, allowing consumers to
-   * just call the function with a locale to retrieve the translated message
-   * for that key.
-   *
-   * This method is provided as a way to generate binds _at runtime_, but for
-   * very-large messages files (e.g., thousands of messages), this can be a
-   * non-negligible cost. Where feasible, consider generating these binds
-   * at build/bundle time, especially in cases where they can be substantially
-   * minified (i.e., Hermes bytecode). This is provided automatically as an
-   * option when using one of `@discord/intl`'s transformers.
-   */
-  getBinds(): Record<string, IntlMessageGetter> {
-    const result: Record<string, IntlMessageGetter> = {};
-    for (const key of this.messageKeys) {
-      result[key] = this.get.bind(this, key);
-    }
-
-    return result;
   }
 
   async _loadLocale(locale: LocaleId) {
@@ -335,16 +312,15 @@ export async function waitForAllDefaultIntlMessagesLoaded(): Promise<void> {
 }
 
 /**
- * Create a new MessageLoader, which handles lazily loading messages for
- * different locales and sanity checks as needed to provide accessors for each
- * message defined in `messageKeys`.
+ * Create a new MessageLoader, which handles lazily loading messages for different locales and
+ * sanity checks as needed to provide accessors for each message contained by the import map.
+ *
+ * Notably, this does _not_ verify whether the locale objects managed by this loader actually
+ * contain a given key. It is the responsibility of the caller to verify this (easily enforced with
+ * typescript, eslint rules, and others).
  */
-export function createLoader(
-  messageKeys: string[],
-  localeImportMap: LocaleImportMap,
-  defaultLocale: LocaleId,
-) {
-  const loader = new MessageLoader(messageKeys, localeImportMap, defaultLocale);
+export function createLoader(localeImportMap: LocaleImportMap, defaultLocale: LocaleId) {
+  const loader = new MessageLoader(localeImportMap, defaultLocale);
   LOADER_REGISTRY.push(loader);
   return loader;
 }
