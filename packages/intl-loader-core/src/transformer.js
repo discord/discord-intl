@@ -124,36 +124,13 @@ class MessageDefinitionsTransformer {
    * more of a debugging utility than anything else, but can be useful for diagnosing when messages
    * are used in critical paths or otherwise.
    *
-   * @param {string} bindFunc Code expression that creates a getter bind
-   * @returns {string}
+   * @returns {string[]}
    */
-  createBindsProxy(bindFunc) {
-    return `new Proxy({},
-      {
-        ownKeys(self) {
-          return Reflect.ownKeys(self);
-        },
-        getOwnPropertyDescriptor(self, prop) {
-          return {
-            value: self[prop] ||= ${bindFunc},
-            configurable: true,
-            enumerable: true,
-            writable: false,
-          };
-        },
-        get(self, prop) {
-          if (prop === '$$typeof') {
-            return 'object';
-          }
-          if (prop === Symbol.toStringTag) {
-            return 'IntlMessagesProxy';
-          }
-          
-          self[prop] ||= ${bindFunc};
-          return self[prop];
-        },
-      },
-    )`;
+  createBindsProxy() {
+    return [
+      `const {makeMessagesProxy} = require('@discord/intl');`,
+      `const binds = makeMessagesProxy(${this.loaderName});`,
+    ];
   }
 
   /**
@@ -168,7 +145,7 @@ class MessageDefinitionsTransformer {
       case 'proxy':
         return [
           `const ${this.loaderName} = createLoader(_localeMap, _defaultLocale);`,
-          `const binds = ${this.createBindsProxy(`(locale) => ${this.loaderName}.get(prop, locale)`)};`,
+          ...this.createBindsProxy(),
         ];
       case 'literal': {
         const bindLines = Object.keys(this.options.messageKeys).map(

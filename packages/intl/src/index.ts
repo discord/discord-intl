@@ -12,6 +12,8 @@ export {
 } from './message-loader';
 export type * from './types.d.ts';
 
+export { chainMessagesObjects, makeMessagesProxy } from './runtime-utils';
+
 /**
  * The return value of `formatToParts` from `@discord/intl`, this type
  * represents any AST structure for a message rendered using this system.
