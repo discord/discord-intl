@@ -11,6 +11,10 @@ on:
         description: "Which os/version to run this workflow on."
         required: true
         type: string
+      container:
+        description: "For cross builds, a container image to run the build in"
+        required: false
+        type: string
 
 env:
   # This should ensure that the mac packages are allowed to run on all
@@ -23,6 +27,7 @@ jobs:
   build:
     name: Build intl-message-database
     runs-on: ${{ inputs.runner }}
+    container: ${{ inputs.container }}
     defaults:
       run:
         shell: bash

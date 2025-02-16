@@ -34,10 +34,10 @@ jobs:
       matrix:
         target:
           # Linux
-          - ['ubuntu-20.04', 'linux-x64-gnu']
-          - ['ubuntu-20.04', 'linux-arm64-gnu']
-          - ['ubuntu-20.04', 'linux-x64-musl']
-          - ['ubuntu-20.04', 'linux-arm64-musl']
+          - ['ubuntu-latest', 'linux-x64-gnu', 'ghcr.io/cross-rs/x86_64-unknown-linux-gnu:centos']
+          - ['ubuntu-latest', 'linux-arm64-gnu', 'ghcr.io/cross-rs/aarch64-unknown-linux-gnu:centos']
+          - ['ubuntu-latest', 'linux-x64-musl']
+          - ['ubuntu-latest', 'linux-arm64-musl']
           # Windows
           - ['windows-latest', 'win32-ia32-msvc']
           - ['windows-latest', 'win32-x64-msvc']
@@ -50,6 +50,7 @@ jobs:
       # Using napi and cargo-zigbuild/cargo-xwin, everything _should_ be buildable on ubuntu directly.
       runner: ${{ matrix.target[0] }}
       target: ${{ matrix.target[1] }}
+      container: ${{ matrix.target[2] }}
     secrets: inherit
 
   build-swc:
