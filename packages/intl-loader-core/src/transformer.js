@@ -164,7 +164,7 @@ class MessageDefinitionsTransformer {
    * @returns {string[]}
    */
   createLoaderAndBinds() {
-    switch (this.options.bindMode) {
+    switch (this.options.bindMode ?? 'proxy') {
       case 'proxy':
         return [
           `const ${this.loaderName} = createLoader(_localeMap, _defaultLocale);`,
