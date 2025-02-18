@@ -7,6 +7,7 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 
 [features]
+default = []
 # Enable when building the NAPI extension version of this crate.
 node_addon = []
 
