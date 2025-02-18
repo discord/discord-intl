@@ -5,7 +5,6 @@ on:
 
 jobs:
   build:
-    name: Build swc-intl-message-transformer
     runs-on: ubuntu-latest
     defaults:
       run:

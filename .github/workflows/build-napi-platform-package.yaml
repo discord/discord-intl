@@ -33,7 +33,6 @@ env:
 
 jobs:
   build:
-    name: Build @discord/${{inputs.package}}-${{ inputs.target }}
     runs-on: ${{ inputs.runner }}
     defaults:
       run:
