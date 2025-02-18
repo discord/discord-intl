@@ -17,6 +17,14 @@
   "scripts": {
     "build:debug": "cargo build"
   },
+  "optionalDependencies": {
+    "@discord/intl-flat-json-parser-darwin-arm64": "workspace:*",
+    "@discord/intl-flat-json-parser-darwin-x64": "workspace:*",
+    "@discord/intl-flat-json-parser-linux-arm64-gnu": "workspace:*",
+    "@discord/intl-flat-json-parser-linux-x64-gnu": "workspace:*",
+    "@discord/intl-flat-json-parser-win32-arm64-msvc": "workspace:*",
+    "@discord/intl-flat-json-parser-win32-x64-msvc": "workspace:*"
+  },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4"
   },

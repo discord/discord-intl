@@ -37,6 +37,25 @@ importers:
         version: 5.5.4
 
   crates/intl_flat_json_parser:
+    optionalDependencies:
+      '@discord/intl-flat-json-parser-darwin-arm64':
+        specifier: workspace:*
+        version: link:npm/darwin-arm64
+      '@discord/intl-flat-json-parser-darwin-x64':
+        specifier: workspace:*
+        version: link:npm/darwin-x64
+      '@discord/intl-flat-json-parser-linux-arm64-gnu':
+        specifier: workspace:*
+        version: link:npm/linux-arm64-gnu
+      '@discord/intl-flat-json-parser-linux-x64-gnu':
+        specifier: workspace:*
+        version: link:npm/linux-x64-gnu
+      '@discord/intl-flat-json-parser-win32-arm64-msvc':
+        specifier: workspace:*
+        version: link:npm/win32-arm64-msvc
+      '@discord/intl-flat-json-parser-win32-x64-msvc':
+        specifier: workspace:*
+        version: link:npm/win32-x64-msvc
     devDependencies:
       '@napi-rs/cli':
         specifier: ^2.18.4
