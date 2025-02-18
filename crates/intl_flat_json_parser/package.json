@@ -15,7 +15,8 @@
     "url": "https://github.com/discord/discord-intl"
   },
   "scripts": {
-    "build:debug": "cargo build"
+    "build:debug": "cargo build",
+    "bench": "node ./bench/index.js"
   },
   "optionalDependencies": {
     "@discord/intl-flat-json-parser-darwin-arm64": "workspace:*",

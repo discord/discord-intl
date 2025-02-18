@@ -41,6 +41,17 @@ export default async function () {
       await buildNapiPackage('intl-flat-json-parser', dbPackage, target);
     });
 
+  group
+    .command('bench')
+    .description('Run the database benchmark in `bench/index.js`')
+    .option('--build', 'Rebuild the crate locally before running the bench')
+    .action(async ({ build }) => {
+      if (build) {
+        await buildNapiPackage('intl-flat-json-parser', dbPackage, hostPlatform.target);
+      }
+      await pnpm.runScriptInPackage(dbPackage, 'bench');
+    });
+
   group.addCommand(versionCommand('version', dbPackage, dbFamily));
   group.addCommand(npmPublishCommand('publish-root', dbPackage));
   group.addCommand(
