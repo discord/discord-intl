@@ -36,6 +36,24 @@ importers:
         specifier: 5.5.4
         version: 5.5.4
 
+  crates/intl_flat_json_parser:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^2.18.4
+        version: 2.18.4
+
+  crates/intl_flat_json_parser/npm/darwin-arm64: {}
+
+  crates/intl_flat_json_parser/npm/darwin-x64: {}
+
+  crates/intl_flat_json_parser/npm/linux-arm64-gnu: {}
+
+  crates/intl_flat_json_parser/npm/linux-x64-gnu: {}
+
+  crates/intl_flat_json_parser/npm/win32-arm64-msvc: {}
+
+  crates/intl_flat_json_parser/npm/win32-x64-msvc: {}
+
   crates/intl_message_database:
     optionalDependencies:
       '@discord/intl-message-database-darwin-arm64':

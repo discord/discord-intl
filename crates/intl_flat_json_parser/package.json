@@ -1,0 +1,40 @@
+{
+  "name": "@discord/intl-flat-json-parser",
+  "version": "0.19.2",
+  "license": "MIT",
+  "description": "Rust-based JSON parser with location information for flat objects.",
+  "author": "Jon Egeland",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "files": [
+    "index.d.ts",
+    "index.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  },
+  "scripts": {
+    "build:debug": "cargo build"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4"
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "napi": {
+    "name": "intl-flat-json-parser",
+    "triples": {
+      "defaults": false,
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu"
+      ]
+    }
+  }
+}

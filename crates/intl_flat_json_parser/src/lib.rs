@@ -3,6 +3,9 @@ mod util;
 
 pub use parser::{JsonMessage, JsonPosition, TranslationsJsonParser};
 
+#[cfg(not(feature = "node_addon"))]
+pub mod napi;
+
 /// Parse the given `text` as a single, flat JSON object of message keys to
 /// message values. The JSON is assumed to be well-formed, and minimal error
 /// handling is implemented.

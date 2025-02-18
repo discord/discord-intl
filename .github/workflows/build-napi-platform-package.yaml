@@ -1,8 +1,20 @@
-name: Build intl-message-database
+name: Build NAPI platform package
 
 on:
   workflow_call:
     inputs:
+      package:
+        description: "Base name of the NPM package being built (no @discord, no platform name included)"
+        required: true
+        type: string
+      crate:
+        description: "Path name of the crate being built (e.g., some_crate instead of some-crate)"
+        required: true
+        type: string
+      cli-name:
+        description: "Name of the project in the intl-cli tool (e.g., rt, db, swc)"
+        required: true
+        type: string
       target:
         description: "Platform package name that maps to a Rust target triple."
         required: true
@@ -21,7 +33,7 @@ env:
 
 jobs:
   build:
-    name: Build intl-message-database
+    name: Build @discord/${{inputs.package}}-${{ inputs.target }}
     runs-on: ${{ inputs.runner }}
     defaults:
       run:
@@ -37,14 +49,14 @@ jobs:
           runner: ${{ inputs.runner }}
           target: ${{ inputs.target }}
 
-      - name: Build @discord/intl-message-database-${{inputs.target}}
+      - name: Build @discord/${{inputs.package}}-${{inputs.target}}
         run: |
-          pnpm intl-cli db build --target ${{inputs.target}}
+          pnpm intl-cli ${{inputs.cli-name}} build --target ${{inputs.target}}
 
       - name: Upload artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: intl-message-database.${{inputs.target}}.node
-          path: crates/intl_message_database/npm/${{inputs.target}}/intl-message-database.${{inputs.target}}.node
+          name: ${{inputs.package}}.${{inputs.target}}.node
+          path: crates/${{inputs.crate}}/npm/${{inputs.target}}/${{inputs.package}}.${{inputs.target}}.node
           if-no-files-found: error

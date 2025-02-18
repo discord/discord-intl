@@ -45,9 +45,35 @@ jobs:
           # macOS
           - ['macos-latest', 'darwin-x64']
           - ['macos-latest', 'darwin-arm64']
-    uses: ./.github/workflows/build-intl-message-database.yaml
+    uses: ./.github/workflows/build-napi-platform-package.yaml
     with:
-      # Using napi and cargo-zigbuild/cargo-xwin, everything _should_ be buildable on ubuntu directly.
+      package: @discord/intl-message-database
+      crate: intl_message_database
+      cli-name: db
+      runner: ${{ matrix.target[0] }}
+      target: ${{ matrix.target[1] }}
+    secrets: inherit
+
+  build-json-parser:
+    name: Build intl-flat-json-parser
+    strategy:
+      fail-fast: ${{inputs.fail-fast}}
+      matrix:
+        target:
+          # Linux
+          - [ 'ubuntu-20.04', 'linux-x64-gnu' ]
+          - [ 'ubuntu-20.04', 'linux-arm64-gnu' ]
+          # Windows
+          - [ 'windows-latest', 'win32-x64-msvc' ]
+          - [ 'windows-latest', 'win32-arm64-msvc' ]
+          # macOS
+          - [ 'macos-latest', 'darwin-x64' ]
+          - [ 'macos-latest', 'darwin-arm64' ]
+    uses: ./.github/workflows/build-napi-platform-package.yaml
+    with:
+      package: @discord/intl-flat-json-parser
+      crate: intl_flat_json_parser
+      cli-name: json
       runner: ${{ matrix.target[0] }}
       target: ${{ matrix.target[1] }}
     secrets: inherit
@@ -78,6 +104,7 @@ jobs:
     needs:
       - lint
       - build-db
+      - build-json-parser
       - build-swc
     runs-on: ubuntu-latest
     permissions:

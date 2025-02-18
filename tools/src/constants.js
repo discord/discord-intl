@@ -14,4 +14,5 @@ export const NPM_PACKAGES = {
   LOADER_CORE: '@discord/intl-loader-core',
   RUNTIME: '@discord/intl',
   DATABASE: '@discord/intl-message-database',
+  JSON_PARSER: '@discord/intl-flat-json-parser',
 };

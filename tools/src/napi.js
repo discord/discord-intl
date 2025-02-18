@@ -28,10 +28,11 @@ export const NAPI_TARGET_MAP = {
 
 /**
  * Build a NAPI-RS platform package
+ * @param {string} baseName Root of the .node file built by cargo, e.g. `intl-message-database`.
  * @param {import('./pnpm.js').PnpmPackage} pack
  * @param {keyof typeof NAPI_TARGET_MAP} platformPackage
  */
-export async function buildNapiPackage(pack, platformPackage) {
+export async function buildNapiPackage(baseName, pack, platformPackage) {
   const targetTriple = NAPI_TARGET_MAP[platformPackage];
 
   const hostPlatform = process.platform;
@@ -65,7 +66,7 @@ export async function buildNapiPackage(pack, platformPackage) {
 
   // NAPI automatically copies the build artifact with an appropriate name into the crate's root
   // folder, so we just need to move it over into the npm package.
-  const artifactName = `intl-message-database.${platformPackage}.node`;
+  const artifactName = `${baseName}.${platformPackage}.node`;
   await fs.rename(
     path.resolve(pack.path, artifactName),
     path.resolve(pack.path, `npm`, platformPackage, artifactName),

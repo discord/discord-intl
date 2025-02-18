@@ -112,3 +112,18 @@ export declare function isMessageDefinitionsFile(key: string): boolean
 
 export declare function isMessageTranslationsFile(key: string): boolean
 
+export interface Message {
+  key: string
+  value: string
+  position: Position
+}
+
+export declare function parseJson(text: string): Array<Message>
+
+export declare function parseJsonFile(filePath: string): Array<Message>
+
+export interface Position {
+  line: number
+  col: number
+}
+

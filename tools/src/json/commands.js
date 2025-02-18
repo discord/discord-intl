@@ -26,41 +26,30 @@ export function buildTargetOption() {
 }
 
 export default async function () {
-  const dbPackage = await pnpm.getPackage(NPM_PACKAGES.DATABASE);
+  const dbPackage = await pnpm.getPackage(NPM_PACKAGES.JSON_PARSER);
   const dbFamily = await getPackageFamily(dbPackage);
 
-  const group = new Command('db')
-    .aliases(['intl-message-database'])
-    .description('Operate on the intl_message_database crate/package');
+  const group = new Command('json')
+    .aliases(['intl-flat-json-parser'])
+    .description('Operate on the intl_flat_json_parser crate/package');
 
   group
     .command('build')
-    .description('Build the intl_message_database native Node extension')
+    .description('Build the intl_flat_json_parser native Node extension')
     .addOption(buildTargetOption())
     .action(async ({ target }) => {
-      await buildNapiPackage('intl-message-database', dbPackage, target);
-    });
-
-  group
-    .command('bench')
-    .description('Run the database benchmark in `bench/native.js`')
-    .option('--build', 'Rebuild the crate locally before running the bench')
-    .action(async ({ build }) => {
-      if (build) {
-        await buildNapiPackage('intl-message-database', dbPackage, hostPlatform.target);
-      }
-      await pnpm.runScriptInPackage(dbPackage, 'bench:native');
+      await buildNapiPackage('intl-flat-json-parser', dbPackage, target);
     });
 
   group.addCommand(versionCommand('version', dbPackage, dbFamily));
   group.addCommand(npmPublishCommand('publish-root', dbPackage));
   group.addCommand(
     npmPublishCommand('publish-target')
-      .description('Publish a platform-specific package for intl-message-database to npm')
+      .description('Publish a platform-specific package for intl-flat-json-parser to npm')
       .addOption(buildTargetOption())
       .action(async (options) => {
         const targetPackage = await pnpm.getPackage(
-          `@discord/intl-message-database-${options.target}`,
+          `@discord/intl-flat-json-parser-${options.target}`,
         );
         await npmPublish(targetPackage, options);
       }),
@@ -68,7 +57,7 @@ export default async function () {
   group.addCommand(
     npmPublishCommand('publish-all')
       .description(
-        'Publish all packages under intl-message-database. Prefer this command in most situations',
+        'Publish all packages under intl-flat-json-parser. Prefer this command in most situations',
       )
       .action(async (options) => {
         if (!checkAllVersionsEqual(dbPackage, dbFamily)) {

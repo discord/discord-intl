@@ -1,5 +1,7 @@
 packages:
   - ./crates/intl_message_database
   - ./crates/intl_message_database/npm/*
+  - ./crates/intl_flat_json_parser
+  - ./crates/intl_flat_json_parser/npm/*
   - ./packages/*
   - ./tools

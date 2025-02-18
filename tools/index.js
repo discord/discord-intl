@@ -5,6 +5,7 @@ import { REPO_ROOT } from './src/constants.js';
 import utilCommands from './src/util-commands.js';
 import ciCommands from './src/ci/commands.js';
 import dbCommands from './src/db/commands.js';
+import jsonCommands from './src/json/commands.js';
 import ecosystemCommands from './src/ecosystem/commands.js';
 import { createJsPackageCommands } from './src/js-package.js';
 import { rustup } from './src/util/rustup.js';
@@ -17,6 +18,7 @@ cd(REPO_ROOT);
     .description('Internal tooling for managing the discord-intl repo and packages.')
     .addCommand(await ciCommands())
     .addCommand(await dbCommands())
+    .addCommand(await jsonCommands())
     .addCommand(await ecosystemCommands())
     .addCommand(await utilCommands())
     .addCommand(
