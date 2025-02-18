@@ -6,9 +6,9 @@ export interface Message {
   position: Position
 }
 
-export declare function parseJson(text: string): Array<Message>
+export declare function parseJson(text: string): Message[]
 
-export declare function parseJsonFile(filePath: string): Array<Message>
+export declare function parseJsonFile(filePath: string): Array<object>
 
 export interface Position {
   line: number
