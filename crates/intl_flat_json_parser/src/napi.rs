@@ -2,6 +2,9 @@ use crate::{JsonMessage, JsonPosition};
 
 use napi_derive::napi;
 
+// Use the mimalloc allocator explicitly when building the node addon.
+extern crate intl_allocator;
+
 #[napi(object)]
 pub struct Position {
     pub line: u32,

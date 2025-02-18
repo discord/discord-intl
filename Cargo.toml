@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/intl_allocator",
     "crates/intl_database_core",
     "crates/intl_database_exporter",
     "crates/intl_database_js_source",
@@ -19,6 +20,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+intl_allocator = { path = "./crates/intl_allocator" }
 intl_database_core = { path = "./crates/intl_database_core" }
 intl_database_exporter = { path = "./crates/intl_database_exporter" }
 intl_database_js_source = { path = "./crates/intl_database_js_source" }

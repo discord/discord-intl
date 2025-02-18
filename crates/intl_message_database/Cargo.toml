@@ -17,28 +17,21 @@ static_link = []
 [dependencies]
 anyhow = { workspace = true }
 ignore = { workspace = true }
+intl_allocator = { workspace = true }
 intl_database_core = { workspace = true }
 intl_database_exporter = { workspace = true }
 intl_database_js_source = { workspace = true }
 intl_database_json_source = { workspace = true }
 intl_database_service = { workspace = true }
 intl_database_types_generator = { workspace = true }
-intl_markdown = { workspace = true }
 intl_message_utils = { workspace = true }
 intl_validator = { workspace = true }
-keyless_json = { workspace = true }
-mimalloc = { version = "0.1", features = ["local_dynamic_tls"] }
 napi = { workspace = true }
 napi-derive = { workspace = true }
 num_cpus = "1"
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
-thiserror = { workspace = true }
 threadpool = "1.8.1"
-unescape_zero_copy = { workspace = true }
-ustr = { workspace = true }
-xxhash-rust = { workspace = true }
 
 [build-dependencies]
 napi-build = { workspace = true }

@@ -13,6 +13,7 @@ node_addon = []
 
 [dependencies]
 memchr = { workspace = true }
+intl_allocator = { workspace = true }
 unescape_zero_copy = { workspace = true }
 
 napi = { workspace = true }

@@ -735,6 +735,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "intl_allocator"
+version = "0.1.0"
+dependencies = [
+ "mimalloc",
+]
+
+[[package]]
 name = "intl_database_core"
 version = "0.1.0"
 dependencies = [
@@ -804,6 +811,7 @@ dependencies = [
 name = "intl_flat_json_parser"
 version = "0.1.0"
 dependencies = [
+ "intl_allocator",
  "memchr",
  "napi",
  "napi-build",
@@ -853,29 +861,22 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ignore",
+ "intl_allocator",
  "intl_database_core",
  "intl_database_exporter",
  "intl_database_js_source",
  "intl_database_json_source",
  "intl_database_service",
  "intl_database_types_generator",
- "intl_markdown",
  "intl_message_utils",
  "intl_validator",
- "keyless_json",
- "mimalloc",
  "napi",
  "napi-build",
  "napi-derive",
  "num_cpus",
  "rustc-hash 2.0.0",
  "serde",
- "serde_json",
- "thiserror 1.0.64",
  "threadpool",
- "unescape_zero_copy",
- "ustr",
- "xxhash-rust",
 ]
 
 [[package]]

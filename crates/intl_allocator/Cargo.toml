@@ -1,0 +1,8 @@
+[package]
+name = "intl_allocator"
+description = "Global allocator configuration for Discord's intl* crates"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mimalloc = { workspace = true }
