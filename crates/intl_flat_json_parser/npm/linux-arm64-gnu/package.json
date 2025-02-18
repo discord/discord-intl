@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-flat-json-parser-linux-arm64-gnu",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "os": [
     "linux"
   ],
