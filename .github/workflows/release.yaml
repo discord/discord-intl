@@ -47,7 +47,7 @@ jobs:
           - ['macos-latest', 'darwin-arm64']
     uses: ./.github/workflows/build-napi-platform-package.yaml
     with:
-      package: '@discord/intl-message-database'
+      package: intl-message-database
       crate: intl_message_database
       cli-name: db
       runner: ${{ matrix.target[0] }}
@@ -71,7 +71,7 @@ jobs:
           - [ 'macos-latest', 'darwin-arm64' ]
     uses: ./.github/workflows/build-napi-platform-package.yaml
     with:
-      package: '@discord/intl-flat-json-parser'
+      package: intl-flat-json-parser
       crate: intl_flat_json_parser
       cli-name: json
       runner: ${{ matrix.target[0] }}
