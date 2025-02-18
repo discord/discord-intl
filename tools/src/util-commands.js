@@ -59,10 +59,18 @@ export default async function () {
         }
 
         // Native node extension artifacts move to their platform specific directory.
-        const nativeExtensionMatch = basename.match(/^intl-message-database\.(.*)\.node$/);
-        if (nativeExtensionMatch != null) {
-          const platform = nativeExtensionMatch[1];
+        const dbExtensionMatch = basename.match(/^intl-message-database\.(.*)\.node$/);
+        if (dbExtensionMatch != null) {
+          const platform = dbExtensionMatch[1];
           const platformPackage = await pnpm.getPackage(`${NPM_PACKAGES.DATABASE}-${platform}`);
+          await moveTo(path.join(platformPackage.path, basename));
+          continue;
+        }
+        // Native node extension artifacts move to their platform specific directory.
+        const jsonExtensonMatch = basename.match(/^intl-flat-json-parser\.(.*)\.node$/);
+        if (jsonExtensonMatch != null) {
+          const platform = jsonExtensonMatch[1];
+          const platformPackage = await pnpm.getPackage(`${NPM_PACKAGES.JSON_PARSER}-${platform}`);
           await moveTo(path.join(platformPackage.path, basename));
           continue;
         }
