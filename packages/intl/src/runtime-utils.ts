@@ -72,12 +72,8 @@ export function makeMessagesProxy(loader: MessageLoader): Record<string, IntlMes
       return Reflect.ownKeys(self);
     },
     getOwnPropertyDescriptor(self, prop) {
-      return {
-        value: (self[prop] ||= makeBind(prop as string)),
-        configurable: true,
-        enumerable: true,
-        writable: false,
-      };
+      self[prop] ||= makeBind(prop as string);
+      return Reflect.getOwnPropertyDescriptor(self, prop);
     },
     get(self, prop) {
       if (prop === '$$typeof') {
