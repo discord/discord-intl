@@ -1,6 +1,6 @@
 use intl_database_core::{
     key_symbol, KeySymbol, MessageDefinitionSource, MessageSourceError, MessageSourceResult,
-    RawMessageDefinition, SourceFileKind, SourceFileMeta,
+    RawMessageDefinition, SourceFileKind, SourceFileMeta, DEFAULT_LOCALE,
 };
 use swc_common::sync::Lrc;
 use swc_common::SourceMap;
@@ -14,7 +14,7 @@ pub struct JsMessageSource;
 
 impl MessageDefinitionSource for JsMessageSource {
     fn get_default_locale(&self, _file_name: &str) -> KeySymbol {
-        key_symbol("en-US")
+        key_symbol(DEFAULT_LOCALE)
     }
 
     fn extract_definitions(
