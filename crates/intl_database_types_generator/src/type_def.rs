@@ -2,13 +2,12 @@ use crate::writer::{
     write_doc, AlphabeticSymbolMap, AlphabeticSymbolSet, TypeDocFormat, TypeDocWriter, WriteResult,
 };
 use intl_database_core::{
-    KeySymbol, KeySymbolSet, MessageVariableInstance, MessageVariableType, MessageVariables,
+    KeySymbol, MessageVariableInstance, MessageVariableType, MessageVariables,
 };
 
 pub struct TypeDef {
     pub name: KeySymbol,
     pub variables: MessageVariables,
-    pub spurious_variable_keys: KeySymbolSet,
 }
 
 impl TypeDef {
@@ -44,10 +43,7 @@ impl TypeDocFormat for TypeDef {
             // TODO: Do this once per variable rather than having to check every instance, since
             // builtin-ness is determined by the name, not the instance.
             let is_builtin = name.starts_with("$");
-            // TODO: These types shouldn't actually be optional, as they'll crash at runtime.
-            // Optionality is just a migration step.
-            let is_optional = self.spurious_variable_keys.contains(&name);
-            let undefinable = is_optional || is_builtin;
+            let undefinable = is_builtin;
             write_doc!(w, [&name, &undefinable.then_some("?"), ": "])?;
             let mut is_first_type = true;
             for ty in types {

@@ -57,10 +57,10 @@ impl TypeDocFormat for DocComment<'_> {
                 }
             }
             if has_spurious_variables {
-                write_doc!(w, ["\n\nSpurious variables from translations:"])?;
+                write_doc!(w, ["\n\nSpurious variables from translations:\n"])?;
                 for (variable, locales) in &self.spurious_variables {
                     let locales = locales.iter().map(|locale| ["`", &locale, "`"]);
-                    write_doc!(w, ["`", &variable, "` - "])?;
+                    write_doc!(w, ["  - `", &variable, "`: "])?;
                     let mut is_first = true;
                     for locale in locales {
                         write_doc!(w, [&(!is_first).then_some(", "), &locale])?;

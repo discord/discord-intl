@@ -112,15 +112,10 @@ impl<'a> IntlTypesGenerator<'a> {
         spurious_variables
     }
 
-    fn make_getter_type_def(
-        &self,
-        message: &Message,
-        spurious_variable_keys: KeySymbolSet,
-    ) -> TypeDef {
+    fn make_getter_type_def(&self, message: &Message) -> TypeDef {
         TypeDef {
             name: message.key(),
             variables: message.all_variables(),
-            spurious_variable_keys,
         }
     }
 
@@ -173,10 +168,7 @@ impl IntlDatabaseService for IntlTypesGenerator<'_> {
                 .expect("Expected all source file message keys to have values in the database");
 
             let spurious_variables = self.build_spurious_variables(message);
-            let type_def = self.make_getter_type_def(
-                message,
-                spurious_variables.keys().map(Clone::clone).collect(),
-            );
+            let type_def = self.make_getter_type_def(message);
             let doc_comment = self.make_doc_comment(message, known_locales, spurious_variables);
             let definition_position = message
                 .get_source_translation()
