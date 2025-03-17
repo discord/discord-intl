@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::{KeySymbol, MessageMeta, MessageValue, SourceFileKind, SourceFileMeta};
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum MessageSourceError {
     #[error("Failed to parse message {0} source: {1}")]
     ParseError(SourceFileKind, String),

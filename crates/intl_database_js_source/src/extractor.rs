@@ -291,8 +291,8 @@ impl Visit for MessageDefinitionsExtractor {
             } else {
                 // We've found the meta and determined it didn't have an
                 // initializer, so we don't need to continue iterating.
-                // TODO: Use this error.
-                drop(MessageSourceError::InvalidSourceFileMeta);
+                self.failed_definitions
+                    .push(MessageSourceError::InvalidSourceFileMeta);
                 break;
             }
         }
@@ -347,18 +347,18 @@ impl Visit for MessageDefinitionsExtractor {
 
 #[cfg(test)]
 mod tests {
-    use intl_database_core::key_symbol;
+    use intl_database_core::{key_symbol, MessageSourceError};
 
-    use super::parse_message_definitions_file;
+    use super::{extract_message_definitions, parse_message_definitions_file};
 
     #[test]
     fn test_parsing() {
-        let module = parse_message_definitions_file("testing.js", "const t = hello".into());
-        println!("{:#?}", module.expect("successful parse").1);
+        parse_message_definitions_file("testing.js", "const t = hello".into())
+            .expect("successful parse");
     }
 
     #[test]
-    fn test_template_string() {
+    fn test_parse_template_string() {
         let module = parse_message_definitions_file(
             "testing.js",
             &format!(
@@ -377,5 +377,45 @@ mod tests {
         .expect("failed to parse source code");
 
         let file_symbol = key_symbol("testing.js");
+    }
+
+    #[test]
+    fn test_extract_meta() {
+        let file_name = "testing.js";
+        let (source, module) = parse_message_definitions_file(
+            file_name,
+            r#"
+                export const meta = {
+                    translate: false,
+                    description: "Hello world",
+                };
+                "#,
+        )
+        .expect("failed to parse source code");
+
+        let extractor = extract_message_definitions(file_name, source, module);
+
+        assert!(extractor.failed_definitions.is_empty());
+        assert_eq!(false, extractor.root_meta.translate);
+        assert_eq!(Some("Hello world".into()), extractor.root_meta.description);
+    }
+
+    #[test]
+    fn test_extract_meta_without_initializer() {
+        let file_name = "testing.js";
+        let (source, module) = parse_message_definitions_file(
+            file_name,
+            r#"
+                export const meta;
+                "#,
+        )
+        .expect("failed to parse source code");
+
+        let extractor = extract_message_definitions(file_name, source, module);
+
+        assert_eq!(
+            vec![MessageSourceError::InvalidSourceFileMeta,],
+            extractor.failed_definitions
+        );
     }
 }
