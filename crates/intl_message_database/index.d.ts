@@ -120,7 +120,7 @@ export interface Message {
 
 export declare function parseJson(text: string): Message[]
 
-export declare function parseJsonFile(filePath: string): Array<object>
+export declare function parseJsonFile(filePath: string): Message[]
 
 export interface Position {
   line: number

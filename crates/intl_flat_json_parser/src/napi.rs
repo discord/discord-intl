@@ -1,5 +1,6 @@
 use crate::{JsonMessage, JsonPosition};
-use napi::{Env, JsObject, Property};
+use napi::bindgen_prelude::Array;
+use napi::{Env, Property};
 use napi_derive::napi;
 
 // Use the mimalloc allocator explicitly when building the node addon.
@@ -20,15 +21,12 @@ impl From<JsonPosition> for Position {
     }
 }
 
-fn collect_messages(
-    env: Env,
-    iterator: impl Iterator<Item = JsonMessage>,
-) -> napi::Result<Vec<JsObject>> {
+fn collect_messages(env: Env, iterator: impl Iterator<Item = JsonMessage>) -> napi::Result<Array> {
     // This is an arbitrary size hint that should be suitable for a lot of use
     // cases. While it may inadvertently allocate extra memory for some,
     // avoiding repeated re-allocations that we're pretty confident will happen
     // ends up saving a lot more time in the end.
-    let mut result = Vec::with_capacity(1024);
+    let mut result = env.create_array(1024)?;
     // NAPI does not have an API for creating multiple instances of the same
     // object structure, but we can get as close as possible by pre-defining
     // object properties and cloning them to avoid allocating extra space for
@@ -59,7 +57,7 @@ fn collect_messages(
             position_prop.clone().with_value(&position),
         ])?;
 
-        result.push(converted);
+        result.insert(converted)?;
     }
 
     Ok(result)
@@ -73,14 +71,13 @@ pub struct Message {
 }
 
 #[napi(ts_return_type = "Message[]")]
-pub fn parse_json(env: Env, text: String) -> napi::Result<Vec<JsObject>> {
+pub fn parse_json(env: Env, text: String) -> napi::Result<Array> {
     let messages = crate::parse_flat_translation_json(&text);
-    // Ok(messages.map(Message::from).collect())
     Ok(collect_messages(env, messages)?)
 }
 
-#[napi]
-pub fn parse_json_file(env: Env, file_path: String) -> napi::Result<Vec<JsObject>> {
+#[napi(ts_return_type = "Message[]")]
+pub fn parse_json_file(env: Env, file_path: String) -> napi::Result<Array> {
     let content = std::fs::read_to_string(&file_path)?;
     parse_json(env, content)
 }
