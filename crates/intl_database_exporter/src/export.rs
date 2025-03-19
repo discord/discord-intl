@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::PathBuf;
 
-use intl_database_core::{DEFAULT_LOCALE, KeySymbol, MessagesDatabase, SourceFile};
+use intl_database_core::{KeySymbol, MessagesDatabase, SourceFile, DEFAULT_LOCALE};
 use intl_database_service::IntlDatabaseService;
 use rustc_hash::FxHashMap;
 
@@ -57,7 +57,7 @@ impl IntlDatabaseService for ExportTranslations<'_> {
                     continue;
                 }
 
-                let path = file.meta().get_translations_path(&locale, None);
+                let path = file.meta().get_translations_path(&locale, None)?;
                 let values = result.entry(path).or_default();
                 for key in file.message_keys() {
                     let Some(message) = self.database.get_message(&key) else {

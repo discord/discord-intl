@@ -1,4 +1,3 @@
-use std::path;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -69,18 +68,21 @@ impl SourceFileMeta {
     /// Return an absolute, canonical path where translations for messages in this source file in
     /// the given `locale` should reside. If `extension` is given, it will be applied to the
     /// created path, otherwise the path will not have any extension.
-    pub fn get_translations_path(&self, locale: &str, extension: Option<&str>) -> PathBuf {
+    pub fn get_translations_path(
+        &self,
+        locale: &str,
+        extension: Option<&str>,
+    ) -> std::io::Result<PathBuf> {
         assert!(self.source_file_path.is_file() && self.source_file_path.parent().is_some());
         let source_folder = self.source_file_path.parent().unwrap();
         let path = source_folder
             .join(self.translations_path.as_path())
+            .canonicalize()?
             .join(locale);
 
-        let path = path::absolute(&path).unwrap_or(path);
-
         match extension {
-            Some(ext) => path.with_extension(ext),
-            None => path,
+            Some(ext) => Ok(path.with_extension(ext)),
+            None => Ok(path),
         }
     }
 }
@@ -137,4 +139,12 @@ impl From<&SourceFileMeta> for MessageMeta {
             description: None,
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_translations_path_returns_canonical_path() {}
 }
