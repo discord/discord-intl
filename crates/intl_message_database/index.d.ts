@@ -27,6 +27,13 @@ export declare class IntlMessagesDatabase {
   getSourceFileMessageValues(filePath: string): Record<string, IntlMessageValue | undefined>
 }
 
+export declare class Message {
+  key: string
+  value: string
+  line: number
+  col: number
+}
+
 export declare function hashMessageKey(key: string): string
 
 export declare const enum IntlCompiledMessageFormat {
@@ -112,18 +119,7 @@ export declare function isMessageDefinitionsFile(key: string): boolean
 
 export declare function isMessageTranslationsFile(key: string): boolean
 
-export interface Message {
-  key: string
-  value: string
-  position: Position
-}
-
 export declare function parseJson(text: string): Message[]
 
 export declare function parseJsonFile(filePath: string): Message[]
-
-export interface Position {
-  line: number
-  col: number
-}
 
