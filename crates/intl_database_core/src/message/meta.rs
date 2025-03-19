@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-
+use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// Meta information about how a _set_ of messages should be handled and processed. SourceFileMeta
 /// has the same attributes as [MessageMeta], and acts as the source of default values for it, but
@@ -65,8 +65,8 @@ impl SourceFileMeta {
         self
     }
 
-    /// Return an absolute, canonical path where translations for messages in this source file in
-    /// the given `locale` should reside. If `extension` is given, it will be applied to the
+    /// Return an absolute, canonicalized path where translations for messages in this source file
+    /// in the given `locale` should reside. If `extension` is given, it will be applied to the
     /// created path, otherwise the path will not have any extension.
     pub fn get_translations_path(
         &self,
@@ -77,8 +77,9 @@ impl SourceFileMeta {
         let source_folder = self.source_file_path.parent().unwrap();
         let path = source_folder
             .join(self.translations_path.as_path())
-            .canonicalize()?
-            .join(locale);
+            .join(locale)
+            .absolutize()?
+            .to_path_buf();
 
         match extension {
             Some(ext) => Ok(path.with_extension(ext)),
