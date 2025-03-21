@@ -47,6 +47,7 @@ pub enum MessageVariableType {
 /// time a variable appears in a message, even if it is a variable that has
 /// already been seen, a new MessageVariable is created.
 #[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MessageVariableInstance {
     /// The location in the message where this variable is used. Each instance
     /// of a variable in a string has its own struct, so each stores its own
@@ -57,7 +58,6 @@ pub struct MessageVariableInstance {
     /// rich text formatting tags like `$b` and `$link`, which are almost never
     /// intended for a user to provide and/or only represent formatting points,
     /// but can be given as an override regardless.
-    #[serde(rename = "isBuiltin")]
     pub is_builtin: bool,
     /// The specific kind of the variable, used for generating types.
     pub kind: MessageVariableType,

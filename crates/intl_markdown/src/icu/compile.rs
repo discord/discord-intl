@@ -57,6 +57,7 @@ impl<'a> FormatJsNode<'a> {
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FormatJsSingleNode<'a> {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub ty: Option<FormatJsElementType>,
@@ -81,7 +82,7 @@ pub struct FormatJsSingleNode<'a> {
     pub style: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<usize>,
-    #[serde(rename = "pluralType", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub plural_type: Option<IcuPluralKind>,
 }
 

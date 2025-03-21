@@ -57,7 +57,7 @@ impl IntlDatabaseService for ExportTranslations<'_> {
                     continue;
                 }
 
-                let path = file.meta().get_translations_path(&locale, None)?;
+                let path = file.meta().get_translations_file_path(&locale, None)?;
                 let values = result.entry(path).or_default();
                 for key in file.message_keys() {
                     let Some(message) = self.database.get_message(&key) else {

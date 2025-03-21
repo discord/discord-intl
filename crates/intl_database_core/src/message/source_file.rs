@@ -35,11 +35,10 @@ impl std::fmt::Display for SourceFileKind {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "type", rename = "definition")]
+#[serde(tag = "type", rename = "definition", rename_all = "camelCase")]
 pub struct DefinitionFile {
     file: String,
     meta: SourceFileMeta,
-    #[serde(rename = "messageKeys")]
     message_keys: KeySymbolSet,
 }
 
@@ -63,11 +62,10 @@ impl DefinitionFile {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "type", rename = "translation")]
+#[serde(tag = "type", rename = "translation", rename_all = "camelCase")]
 pub struct TranslationFile {
     file: String,
     locale: KeySymbol,
-    #[serde(rename = "messageKeys")]
     message_keys: KeySymbolSet,
 }
 

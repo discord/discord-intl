@@ -10,16 +10,15 @@ use crate::message::variables::MessageVariables;
 /// Any message that is defined through `defineMessage` will be a `Normal`
 /// message definition.
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Message {
     /// Original, plain text name of the message given in its definition.
     key: KeySymbol,
     /// Hashed version of the key, used everywhere for minification and obfuscation.
-    #[serde(rename = "hashedKey")]
     hashed_key: String,
     /// Map of all translations for this message, including the default.
     translations: KeySymbolMap<MessageValue>,
     /// The source definition information for this message (locale and location).
-    #[serde(rename = "sourceLocale")]
     source_locale: Option<KeySymbol>,
     /// Meta information about how to handle and process this message.
     meta: MessageMeta,

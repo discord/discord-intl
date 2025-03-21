@@ -7,11 +7,11 @@ use super::source_file::FilePosition;
 use super::variables::{collect_message_variables, MessageVariables};
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MessageValue {
     pub raw: String,
     pub parsed: Document,
     pub variables: Option<MessageVariables>,
-    #[serde(rename = "filePosition")]
     pub file_position: Option<FilePosition>,
 }
 
