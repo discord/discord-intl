@@ -5,7 +5,6 @@
     "target": "esnext",
     "moduleResolution": "bundler",
     // JSDoc type checking
-    "lib": [],
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,

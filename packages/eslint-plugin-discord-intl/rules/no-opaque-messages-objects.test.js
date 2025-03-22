@@ -1,4 +1,3 @@
-// enforce-foo-bar.test.js
 const { RuleTester } = require('eslint');
 const noOpaqueMessagesObjects = require('./no-opaque-messages-objects');
 

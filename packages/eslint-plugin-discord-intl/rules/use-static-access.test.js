@@ -1,4 +1,3 @@
-// enforce-foo-bar.test.js
 const { RuleTester } = require('eslint');
 const useStaticAccess = require('./use-static-access');
 

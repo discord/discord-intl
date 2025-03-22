@@ -6,6 +6,7 @@ module.exports = {
     'no-unicode-variable-names': require('./rules/native/no-unicode-variable-names'),
 
     'use-static-access': require('./rules/use-static-access'),
+    'no-duplicate-message-keys': require('./rules/no-duplicate-message-keys'),
     'no-opaque-messages-objects': require('./rules/no-opaque-messages-objects'),
   },
   configs: {
@@ -20,6 +21,7 @@ module.exports = {
 
         // JS rules
         '@discord/discord-intl/use-static-access': 'error',
+        '@discord/discord-intl/no-duplicate-message-keys': 'error',
         '@discord/discord-intl/no-opaque-messages-objects': 'error',
       },
     },
