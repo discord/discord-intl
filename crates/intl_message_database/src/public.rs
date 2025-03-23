@@ -48,7 +48,9 @@ pub fn filter_all_messages_files<A: AsRef<str>>(
     let mut result = vec![];
     for file in files {
         let file = file.as_ref();
-        if !is_message_definitions_file(file) && !is_message_translations_file(file) {
+        if is_compiled_messages_artifact(file)
+            || (!is_message_definitions_file(file) && !is_message_translations_file(file))
+        {
             continue;
         }
         let locale = get_locale_from_file_name(file, definition_locale_key);
@@ -343,6 +345,11 @@ pub fn hash_message_key(key: &str) -> String {
 #[inline(always)]
 pub fn is_message_definitions_file(key: &str) -> bool {
     intl_message_utils::is_message_definitions_file(key)
+}
+
+#[inline(always)]
+pub fn is_compiled_messages_artifact(key: &str) -> bool {
+    intl_message_utils::is_compiled_messages_artifact(key)
 }
 
 #[inline(always)]

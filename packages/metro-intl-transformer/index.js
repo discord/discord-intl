@@ -38,7 +38,7 @@ function transformToString({
     debug(`[${filename}] Processing as a definitions file`);
     const result = processDefinitionsFile(filename, src, { locale: sourceLocale });
     if (!result.succeeded) {
-      throw new Error('Intl processing error:' + result.errors[0]);
+      throw new Error('Intl processing error:' + result.errors[0].message);
     }
     const compiledSourcePath = filename.replace(
       /\.messages\.js$/,

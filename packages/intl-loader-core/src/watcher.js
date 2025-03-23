@@ -49,7 +49,7 @@ const DEFAULT_LOCALE = 'en-US';
  */
 async function watchMessagesFiles(
   watchedFolders,
-  { ignore = [], skipInitial = false, once = true } = {},
+  { ignore = [], skipInitial = false, once = true } = {}
 ) {
   debug('Pre-initializing database with all discoverable messages files');
   const files = findAllMessagesFiles(watchedFolders);
@@ -75,7 +75,7 @@ async function watchMessagesFiles(
 
   const ignoredPatterns = ignore.concat(ALWAYS_IGNORE_PATTERNS);
   const globs = watchedFolders.flatMap((folder) =>
-    MESSAGES_FILE_PATTERNS.map((pattern) => path.join(folder, pattern)),
+    MESSAGES_FILE_PATTERNS.map((pattern) => path.join(folder, pattern))
   );
 
   debug(`Initializing watch for patterns:\n- ${globs.join('\n- ')}`);
@@ -86,12 +86,15 @@ async function watchMessagesFiles(
   });
 
   watcher.on('all', (event, path) => {
+    const files = filterAllMessagesFiles([path]);
+    if (files.length === 0) return;
+
     // Process the file that changed first, then reprocess all of the queued files from previous
     // failures to hopefully get them to process successfully again.
-    const [result] = processAllMessagesFiles(filterAllMessagesFiles([path]));
+    const [result] = processAllMessagesFiles(files);
     const failed = result.errors.length > 0 ? [result.fileKey] : [];
     const secondResult = processAllMessagesFiles(
-      filterAllMessagesFiles([...reprocessQueue, ...failed]),
+      filterAllMessagesFiles([...reprocessQueue, ...failed])
     );
     // For any files that are still failing, keep them in the queue for next time.
     const secondFailures = secondResult
@@ -141,7 +144,7 @@ async function generateMessageTypes(watcher) {
  */
 async function precompileMessageDefinitionsFiles(
   watcher,
-  { assetExtension = 'json', precompileOptions = {} } = {},
+  { assetExtension = 'json', precompileOptions = {} } = {}
 ) {
   watcher.on('all', (_, filePath) => {
     const { format = IntlCompiledMessageFormat.KeylessJson, bundleSecrets = false } =
@@ -153,7 +156,7 @@ async function precompileMessageDefinitionsFiles(
       // Convert the file name from `.messages.js` to `.compiled.messages.jsona` for output.
       const outputPath = filePath.replace(
         /\.messages\.js$/,
-        `.compiled.messages.${assetExtension}`,
+        `.compiled.messages.${assetExtension}`
       );
       const result = processDefinitionsFile(filePath);
       if (!result.succeeded) {

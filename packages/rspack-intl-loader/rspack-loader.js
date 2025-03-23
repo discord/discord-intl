@@ -69,13 +69,19 @@ const intlLoader = function intlLoader(source) {
   debug(`[${sourcePath}] Processing intl messages file (forceTranslation=${forceTranslation})`);
 
   /**
+   * Report all errors quietly from the processing result, then fail the module compilation by
+   * throwing the first error directly.
+   *
    * @param {import('@discord/intl-loader-core/types').IntlProcessingError} result
    * @returns {never}
    */
   const failFromProcessingErrors = (result) => {
     debug(`[${sourcePath}] Failed to process definitions: %O`, result.errors);
-    for (const error of result.errors) {
+    for (const error of result.errors.slice(1)) {
       this.emitError(new Error(error.message));
+      // Add the file for the originating definition as a dependency so that this file
+      // recompiles when that one changes.
+      if (error.file != null && error.file !== sourcePath) this.addDependency(error.file);
     }
     throw new Error(result.errors[0].message);
   };
