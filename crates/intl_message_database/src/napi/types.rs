@@ -1,6 +1,5 @@
-use crate::public::MultiProcessingResult;
-use crate::sources::MessagesFileDescriptor;
-use intl_database_core::key_symbol;
+use crate::sources::{MessagesFileDescriptor, SourceFileInsertionData};
+use intl_database_core::{key_symbol, DatabaseError};
 use intl_database_exporter::CompiledMessageFormat;
 use intl_validator::MessageDiagnostic;
 use napi::{JsObject, JsString};
@@ -156,32 +155,48 @@ impl From<MessagesFileDescriptor> for IntlMessagesFileDescriptor {
 }
 
 #[napi(object)]
-pub struct IntlMultiProcessingFailure {
-    pub file: String,
-    pub error: String,
+pub struct IntlSourceFileError {
+    pub name: String,
+    pub key: Option<String>,
+    pub locale: Option<String>,
+    pub file: Option<String>,
+    pub line: Option<u32>,
+    pub col: Option<u32>,
+    pub message: String,
+}
+
+impl From<DatabaseError> for IntlSourceFileError {
+    fn from(value: DatabaseError) -> Self {
+        Self {
+            name: value.name(),
+            key: value.key().map(|s| s.to_string()),
+            locale: value.locale().map(|s| s.to_string()),
+            file: value.file().map(|s| s.to_string()),
+            line: value.line(),
+            col: value.col(),
+            message: value.to_string(),
+        }
+    }
 }
 
 #[napi(object)]
-pub struct IntlMultiProcessingResult {
-    pub processed: Vec<String>,
-    pub failed: Vec<IntlMultiProcessingFailure>,
+pub struct IntlSourceFileInsertionData {
+    pub file_key: String,
+    pub inserted_count: u32,
+    pub removed_count: u32,
+    pub errors: Vec<IntlSourceFileError>,
 }
 
-impl From<MultiProcessingResult> for IntlMultiProcessingResult {
-    fn from(value: MultiProcessingResult) -> Self {
-        IntlMultiProcessingResult {
-            processed: value
-                .processed
+impl From<SourceFileInsertionData> for IntlSourceFileInsertionData {
+    fn from(value: SourceFileInsertionData) -> Self {
+        IntlSourceFileInsertionData {
+            file_key: value.file_key.to_string(),
+            inserted_count: value.inserted_keys.len() as u32,
+            removed_count: value.removed_keys.len() as u32,
+            errors: value
+                .errors
                 .into_iter()
-                .map(|value| value.to_string())
-                .collect(),
-            failed: value
-                .failed
-                .into_iter()
-                .map(|(key, error)| IntlMultiProcessingFailure {
-                    file: key.to_string(),
-                    error: error.to_string(),
-                })
+                .map(IntlSourceFileError::from)
                 .collect(),
         }
     }

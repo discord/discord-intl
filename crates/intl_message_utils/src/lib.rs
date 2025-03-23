@@ -56,6 +56,10 @@ pub fn is_message_translations_file(file_name: &str) -> bool {
     file_name.ends_with(".messages.json") || file_name.ends_with(".messages.jsona")
 }
 
+pub fn is_compiled_messages_artifact(file_name: &str) -> bool {
+    file_name.contains(".compiled.messages.")
+}
+
 pub fn is_any_messages_file(file_name: &str) -> bool {
     // Split into <prefix> <second_extension> <last_extension>. A file is a messages file
     // if `last_extension` or `second_extension` is `messages`, meaning anything like `.messages.js`

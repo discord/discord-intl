@@ -30,7 +30,7 @@ const DEFAULT_LOCALE = 'en-US';
 
 /**
  * @typedef {{
- *   on(event: string, callback: (event: string, path: string) => void): void
+ *   on(event: string, callback: (event: string, path: string) => void): void,
  * }} BasicWatcher
  */
 
@@ -49,11 +49,15 @@ const DEFAULT_LOCALE = 'en-US';
  */
 async function watchMessagesFiles(
   watchedFolders,
-  { ignore = [], skipInitial = false, once = true } = {},
+  { ignore = [], skipInitial = false, once = true } = {}
 ) {
   debug('Pre-initializing database with all discoverable messages files');
   const files = findAllMessagesFiles(watchedFolders);
-  processAllMessagesFiles(files);
+  const result = processAllMessagesFiles(files);
+  const reprocessQueue = result
+    .filter((data) => data.errors.length > 0)
+    .map((data) => data.fileKey);
+
   if (once) {
     debug('Performing one-shot watch because `once` was true');
     // This is a weird hack around file watching just not working well on
@@ -71,7 +75,7 @@ async function watchMessagesFiles(
 
   const ignoredPatterns = ignore.concat(ALWAYS_IGNORE_PATTERNS);
   const globs = watchedFolders.flatMap((folder) =>
-    MESSAGES_FILE_PATTERNS.map((pattern) => path.join(folder, pattern)),
+    MESSAGES_FILE_PATTERNS.map((pattern) => path.join(folder, pattern))
   );
 
   debug(`Initializing watch for patterns:\n- ${globs.join('\n- ')}`);
@@ -80,8 +84,27 @@ async function watchMessagesFiles(
     ignoreInitial: skipInitial,
     persistent: !once,
   });
+
   watcher.on('all', (event, path) => {
-    processAllMessagesFiles(filterAllMessagesFiles([path]));
+    const files = filterAllMessagesFiles([path]);
+    if (files.length === 0) return;
+
+    // Process the file that changed first, then reprocess all of the queued files from previous
+    // failures to hopefully get them to process successfully again.
+    const [result] = processAllMessagesFiles(files);
+    const failed = result.errors.length > 0 ? [result.fileKey] : [];
+    const secondResult = processAllMessagesFiles(
+      filterAllMessagesFiles([...reprocessQueue, ...failed])
+    );
+    // For any files that are still failing, keep them in the queue for next time.
+    const secondFailures = secondResult
+      .filter((data) => data.errors.length > 0)
+      .map((data) => data.fileKey);
+    if (secondFailures.length > 0) {
+      debug('Failed to re-process files: %O. Next update will try again.', secondFailures);
+    }
+    reprocessQueue.splice(0, Infinity, ...secondFailures);
+
     debug(`watcher got event: ${event}, for path ${path}`);
   });
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGQUIT']) {
@@ -121,7 +144,7 @@ async function generateMessageTypes(watcher) {
  */
 async function precompileMessageDefinitionsFiles(
   watcher,
-  { assetExtension = 'json', precompileOptions = {} } = {},
+  { assetExtension = 'json', precompileOptions = {} } = {}
 ) {
   watcher.on('all', (_, filePath) => {
     const { format = IntlCompiledMessageFormat.KeylessJson, bundleSecrets = false } =
@@ -133,19 +156,20 @@ async function precompileMessageDefinitionsFiles(
       // Convert the file name from `.messages.js` to `.compiled.messages.jsona` for output.
       const outputPath = filePath.replace(
         /\.messages\.js$/,
-        `.compiled.messages.${assetExtension}`,
+        `.compiled.messages.${assetExtension}`
       );
       const result = processDefinitionsFile(filePath);
+      if (!result.succeeded) {
+        debug('[INTL Error] Failed to compile messages');
+        console.error(result.errors);
+        return;
+      }
+
       precompileFileForLocale(filePath, result.locale, undefined, {
         format,
         bundleSecrets,
       });
 
-      database.processDefinitionsFile(filePath);
-      database.precompile(filePath, DEFAULT_LOCALE, outputPath, {
-        format: IntlCompiledMessageFormat.KeylessJson,
-        bundleSecrets,
-      });
       debug(`Wrote definitions to: ${outputPath}`);
     } catch (e) {
       debug('[INTL Error] Failed to compile messages');

@@ -1,10 +1,10 @@
 pub use database::message::Message;
 pub use database::source::{
     MessageDefinitionSource, MessageSourceError, MessageSourceResult, MessageTranslationSource,
-    RawMessage, RawMessageDefinition, RawMessageTranslation, RawPosition,
+    RawMessage, RawMessageDefinition, RawMessageTranslation,
 };
 pub use database::symbol::{get_key_symbol, key_symbol, KeySymbol, KeySymbolMap, KeySymbolSet};
-pub use database::MessagesDatabase;
+pub use database::{DatabaseInsertStrategy, MessagesDatabase};
 pub use error::{DatabaseError, DatabaseResult};
 pub use message::meta::{MessageMeta, SourceFileMeta};
 pub use message::source_file::{

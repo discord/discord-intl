@@ -4,9 +4,9 @@ module.exports = {
     'no-repeated-plural-options': require('./rules/native/no-repeated-plural-options'),
     'no-trimmable-whitespace': require('./rules/native/no-trimmable-whitespace'),
     'no-unicode-variable-names': require('./rules/native/no-unicode-variable-names'),
+    'no-duplicate-message-keys': require('./rules/native/no-duplicate-message-keys'),
 
     'use-static-access': require('./rules/use-static-access'),
-    'no-duplicate-message-keys': require('./rules/no-duplicate-message-keys'),
     'no-opaque-messages-objects': require('./rules/no-opaque-messages-objects'),
   },
   configs: {

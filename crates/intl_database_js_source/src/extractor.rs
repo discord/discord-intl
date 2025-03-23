@@ -10,8 +10,8 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use unescape_zero_copy::unescape_default;
 
 use intl_database_core::{
-    MessageMeta, MessageSourceError, MessageSourceResult, RawMessageDefinition, RawPosition,
-    SourceFileMeta,
+    key_symbol, FilePosition, KeySymbol, MessageMeta, MessageSourceError, MessageSourceResult,
+    RawMessageDefinition, SourceFileMeta,
 };
 use intl_message_utils::RUNTIME_PACKAGE_NAME;
 
@@ -46,6 +46,7 @@ pub fn extract_message_definitions(
 
 /// A Visitor to extract message definitions from a source AST.
 pub struct MessageDefinitionsExtractor {
+    file_key: KeySymbol,
     pub message_definitions: Vec<RawMessageDefinition>,
     pub failed_definitions: Vec<MessageSourceError>,
     pub root_meta: SourceFileMeta,
@@ -56,6 +57,7 @@ pub struct MessageDefinitionsExtractor {
 impl MessageDefinitionsExtractor {
     fn new(source_file_path: &str, source_map: Lrc<SourceMap>) -> Self {
         MessageDefinitionsExtractor {
+            file_key: key_symbol(source_file_path),
             define_messages_id: None,
             message_definitions: vec![],
             failed_definitions: vec![],
@@ -150,10 +152,7 @@ impl MessageDefinitionsExtractor {
 
         Ok(RawMessageDefinition::new(
             key.into(),
-            RawPosition {
-                line: loc.line as u32,
-                col: loc.col.to_u32(),
-            },
+            FilePosition::new(self.file_key, loc.line as u32, loc.col.to_u32()),
             default_value,
             local_meta,
         ))
@@ -169,10 +168,7 @@ impl MessageDefinitionsExtractor {
         let loc = self.source_map.lookup_char_pos(pos);
         Ok(RawMessageDefinition::new(
             key.into(),
-            RawPosition {
-                line: loc.line as u32,
-                col: loc.col.to_u32(),
-            },
+            FilePosition::new(self.file_key, loc.line as u32, loc.col.to_u32()),
             self.apply_string_escapes(value),
             self.clone_meta(),
         ))

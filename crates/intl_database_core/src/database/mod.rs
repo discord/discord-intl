@@ -12,6 +12,28 @@ pub mod message;
 pub mod source;
 pub mod symbol;
 
+pub enum DatabaseInsertStrategy {
+    /// The insertion represents a source file being processed for the first time. No messages
+    /// defined in the file should exist in the database yet, and any duplicates are considered
+    /// errors that will be skipped and logged as failures.
+    NewSourceFile,
+    /// The insertion represents a source file that has already been processed and is now being
+    /// updated with new content. Messages are allowed to exist already, but only definitions
+    /// originating from the same source file will be overwritten. Keys with definitions in other
+    /// source files will still be skipped and logged as failures.
+    UpdateSourceFile,
+}
+
+impl DatabaseInsertStrategy {
+    #[inline]
+    pub fn allow_same_file_replacement(&self) -> bool {
+        match self {
+            DatabaseInsertStrategy::NewSourceFile => false,
+            DatabaseInsertStrategy::UpdateSourceFile => true,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct MessagesDatabase {
     pub messages: KeySymbolMap<Message>,
@@ -111,27 +133,37 @@ impl MessagesDatabase {
 
     //#region Definitions
 
-    /// Insert a new message definition into the database. If a Normal entry with the same key
-    /// already exists and `replace_existing` is `false`, this method will return an Error that the
-    /// message is already defined and cannot be replaced. However, if `replace_existing` is `true`
-    /// and the existing definition comes from the same source file, _or_ if the existing entry is
-    /// Undefined, this method will update and convert that entry to a Normal entry and return Ok.
+    /// Insert a new message definition into the database. If a definition with the same key already
+    /// exists and the given `strategy` does not allow replacement, this method will return an Error
+    /// that the message is already defined and cannot be replaced. Otherwise, as long as the
+    /// definition is from the same source file, or if no definition exists, this method will update
+    /// the message with the given definition.
+    ///
+    /// Currently, no strategy will allow a definition to replace another from a _different_ source
+    /// file. Such cases will _always_ return an error to be handled elsewhere.
     pub fn insert_definition(
         &mut self,
         name: &str,
         value: MessageValue,
         locale: KeySymbol,
         meta: MessageMeta,
-        replace_existing: bool,
+        strategy: DatabaseInsertStrategy,
     ) -> DatabaseResult<&Message> {
         let key = key_symbol(name);
         match self.messages.get_mut(&key) {
             Some(existing) => {
-                // Complete messages that already exist can not be re-added, since
-                // that would mean two definitions exist. Instead, they can be
-                // _updated_, for example when a definition file changes.
-                if existing.is_defined() && !replace_existing {
-                    return Err(DatabaseError::AlreadyDefined(key));
+                if existing.is_defined() {
+                    let definition = existing.definition();
+                    let old_file = definition.file_position.file;
+                    let new_file = value.file_position.file;
+
+                    if new_file != old_file || !strategy.allow_same_file_replacement() {
+                        return Err(DatabaseError::AlreadyDefined {
+                            name: key,
+                            existing: definition.clone(),
+                            replacement: value,
+                        });
+                    }
                 }
 
                 existing.set_definition(value, locale, meta);
@@ -170,22 +202,31 @@ impl MessagesDatabase {
         key: KeySymbol,
         locale: KeySymbol,
         value: MessageValue,
-        replace_existing: bool,
+        strategy: DatabaseInsertStrategy,
     ) -> DatabaseResult<&Message> {
         match self.messages.get_mut(&key) {
             // If the key has an existing message at all, it just gets a new
             // translation entry in the map. The type of the entry does not
             // change here.
-            Some(message) => {
-                if message.translations().contains_key(&locale) && !replace_existing {
-                    return Err(DatabaseError::TranslationAlreadySet(key, locale));
+            Some(existing) => {
+                if let Some(translation) = existing.translations().get(&locale) {
+                    let old_file = translation.file_position.file;
+                    let new_file = value.file_position.file;
+                    if new_file != old_file || !strategy.allow_same_file_replacement() {
+                        return Err(DatabaseError::TranslationAlreadySet {
+                            name: key,
+                            locale,
+                            existing: translation.clone(),
+                            replacement: value,
+                        });
+                    }
                 }
 
                 self.known_locales.insert(locale);
-                message.set_translation(locale, value);
+                existing.set_translation(locale, value);
             }
-            // If it doesn't already exist, add a new Undefined message to hold
-            // the translation until a definition is found.
+            // If it doesn't already exist, add a new message to hold the translation until a
+            // definition is found.
             _ => {
                 // Otherwise this is an entirely new message that gets created.
                 let message = Message::from_translation(key, locale, value);

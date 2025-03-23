@@ -5,7 +5,7 @@
 //! casting to and from the caller types and then call one of these functions. Any implementation
 //! of multiple calls should become a new function here rather than in the wrapper, unless it is
 //! language-specific to the host (like constructing a host object for object-oriented languages).
-use crate::sources::{get_locale_from_file_name, MessagesFileDescriptor};
+use crate::sources::{get_locale_from_file_name, MessagesFileDescriptor, SourceFileInsertionData};
 use crate::threading::run_in_thread_pool;
 use intl_database_core::{
     get_key_symbol, key_symbol, DatabaseError, DatabaseResult, KeySymbol, Message, MessageValue,
@@ -48,7 +48,9 @@ pub fn filter_all_messages_files<A: AsRef<str>>(
     let mut result = vec![];
     for file in files {
         let file = file.as_ref();
-        if !is_message_definitions_file(file) && !is_message_translations_file(file) {
+        if is_compiled_messages_artifact(file)
+            || (!is_message_definitions_file(file) && !is_message_translations_file(file))
+        {
             continue;
         }
         let locale = get_locale_from_file_name(file, definition_locale_key);
@@ -60,27 +62,6 @@ pub fn filter_all_messages_files<A: AsRef<str>>(
     result
 }
 
-pub struct MultiProcessingResult {
-    pub processed: Vec<KeySymbol>,
-    pub failed: Vec<(KeySymbol, DatabaseError)>,
-}
-
-impl From<Vec<(KeySymbol, DatabaseResult<KeySymbol>)>> for MultiProcessingResult {
-    fn from(value: Vec<(KeySymbol, DatabaseResult<KeySymbol>)>) -> Self {
-        let mut processed = Vec::with_capacity(value.len());
-        let mut failed = Vec::with_capacity(4);
-
-        for (file, result) in value {
-            processed.push(file);
-            if let Err(error) = result {
-                failed.push((file, error));
-            }
-        }
-
-        Self { processed, failed }
-    }
-}
-
 /// Given a list of directories, scan their entire contents to find all messages files (both
 /// definitions _and_ translations), then process their content into the database.
 ///
@@ -89,7 +70,7 @@ impl From<Vec<(KeySymbol, DatabaseResult<KeySymbol>)>> for MultiProcessingResult
 pub fn process_all_messages_files(
     database: &mut MessagesDatabase,
     files: impl Iterator<Item = MessagesFileDescriptor> + ExactSizeIterator,
-) -> anyhow::Result<MultiProcessingResult> {
+) -> anyhow::Result<Vec<SourceFileInsertionData>> {
     let results = run_in_thread_pool(
         files,
         |descriptor| {
@@ -99,6 +80,7 @@ pub fn process_all_messages_files(
                 file_path.display()
             ));
             let file_path = key_symbol(&file_path.to_string_lossy());
+            let data = SourceFileInsertionData::new(file_path, locale);
 
             let (definitions, translations) = if is_message_definitions_file(&file_path) {
                 match crate::sources::extract_definitions_from_file(file_path, &content) {
@@ -116,30 +98,34 @@ pub fn process_all_messages_files(
                 .map(|translations| translations.collect::<Vec<RawMessageTranslation>>());
                 (None, Some(translations))
             };
-            (locale, file_path, definitions, translations)
+            (data, definitions, translations)
         },
-        |(locale, file_path, definitions, translations)| {
-            let result = if let Some((source_meta, definitions)) = definitions {
-                crate::sources::insert_definitions(
+        |(mut data, definitions, translations)| {
+            if let Some((source_meta, definitions)) = definitions {
+                return crate::sources::insert_definitions(
                     database,
-                    file_path,
-                    locale,
+                    data,
                     source_meta,
                     definitions.into_iter(),
-                )
-            } else if let Some(translations) = translations {
-                translations.and_then(|translations| {
-                    crate::sources::insert_translations(
+                );
+            }
+            if let Some(translations) = translations {
+                return match translations {
+                    Ok(translations) => crate::sources::insert_translations(
                         database,
-                        file_path,
-                        locale,
+                        data,
                         translations.into_iter(),
-                    )
-                })
-            } else {
-                Err(DatabaseError::NoExtractableValues(file_path.to_string()))
+                    ),
+                    Err(error) => {
+                        data.add_error(error);
+                        data
+                    }
+                };
             };
-            (file_path, result)
+            data.add_error(DatabaseError::NoExtractableValues(
+                data.file_key.to_string(),
+            ));
+            data
         },
     )?;
     Ok(results.into())
@@ -149,9 +135,11 @@ pub fn process_definitions_file(
     database: &mut MessagesDatabase,
     file_path: &str,
     locale: Option<&str>,
-) -> anyhow::Result<KeySymbol> {
+) -> anyhow::Result<SourceFileInsertionData> {
     let content = std::fs::read_to_string(&file_path)?;
-    process_definitions_file_content(database, file_path, &content, locale)
+    Ok(process_definitions_file_content(
+        database, file_path, &content, locale,
+    ))
 }
 
 pub fn process_definitions_file_content(
@@ -159,20 +147,19 @@ pub fn process_definitions_file_content(
     file_path: &str,
     content: &str,
     locale: Option<&str>,
-) -> anyhow::Result<KeySymbol> {
-    let source_file = crate::sources::process_definitions_file(
+) -> SourceFileInsertionData {
+    crate::sources::process_definitions_file(
         database,
         &file_path,
         &content,
         locale.as_ref().map_or(DEFAULT_LOCALE, |locale| &locale),
-    )?;
-    Ok(source_file)
+    )
 }
 
 pub fn process_all_translation_files(
     database: &mut MessagesDatabase,
     locale_map: HashMap<String, String>,
-) -> anyhow::Result<MultiProcessingResult> {
+) -> anyhow::Result<Vec<SourceFileInsertionData>> {
     let results = run_in_thread_pool(
         locale_map.into_iter(),
         |(locale, file_path)| {
@@ -186,17 +173,16 @@ pub fn process_all_translation_files(
             )
         },
         |(locale, file_path, translations)| {
-            (
-                file_path,
-                translations.and_then(|translations| {
-                    crate::sources::insert_translations(
-                        database,
-                        file_path,
-                        locale,
-                        translations.into_iter(),
-                    )
-                }),
-            )
+            let mut data = SourceFileInsertionData::new(file_path, locale);
+            match translations {
+                Ok(translations) => {
+                    crate::sources::insert_translations(database, data, translations.into_iter())
+                }
+                Err(error) => {
+                    data.add_error(error);
+                    data
+                }
+            }
         },
     )?;
     Ok(results.into())
@@ -206,9 +192,11 @@ pub fn process_translation_file(
     database: &mut MessagesDatabase,
     file_path: &str,
     locale: &str,
-) -> anyhow::Result<KeySymbol> {
+) -> anyhow::Result<SourceFileInsertionData> {
     let content = std::fs::read_to_string(&file_path)?;
-    process_translation_file_content(database, file_path, &locale, &content)
+    Ok(process_translation_file_content(
+        database, file_path, &locale, &content,
+    ))
 }
 
 pub fn process_translation_file_content(
@@ -216,10 +204,8 @@ pub fn process_translation_file_content(
     file_path: &str,
     locale: &str,
     content: &str,
-) -> anyhow::Result<KeySymbol> {
-    let source_file =
-        crate::sources::process_translations_file(database, &file_path, &locale, &content)?;
-    Ok(source_file)
+) -> SourceFileInsertionData {
+    crate::sources::process_translations_file(database, &file_path, &locale, &content)
 }
 
 pub fn get_known_locales(database: &MessagesDatabase) -> Vec<KeySymbol> {
@@ -359,6 +345,11 @@ pub fn hash_message_key(key: &str) -> String {
 #[inline(always)]
 pub fn is_message_definitions_file(key: &str) -> bool {
     intl_message_utils::is_message_definitions_file(key)
+}
+
+#[inline(always)]
+pub fn is_compiled_messages_artifact(key: &str) -> bool {
+    intl_message_utils::is_compiled_messages_artifact(key)
 }
 
 #[inline(always)]

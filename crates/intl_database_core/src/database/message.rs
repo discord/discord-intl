@@ -106,6 +106,15 @@ impl Message {
         self.source_locale.is_some()
     }
 
+    /// Return a direct reference to the definition of this message.
+    ///
+    /// Panics if there is no entry for the source locale of the message. Use [Self::is_defined] to
+    /// check for the definition before calling this method.
+    pub fn definition(&self) -> &MessageValue {
+        self.get_source_translation()
+            .expect("Message should be defined when calling `.definition()`")
+    }
+
     /// Return the translation entry for the default locale for this message.
     pub fn get_source_translation(&self) -> Option<&MessageValue> {
         self.source_locale

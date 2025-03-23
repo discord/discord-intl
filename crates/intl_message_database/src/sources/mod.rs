@@ -1,7 +1,7 @@
 use ignore::WalkBuilder;
 use intl_database_core::{
-    key_symbol, DatabaseError, DatabaseResult, DefinitionFile, FilePosition, KeySymbol,
-    KeySymbolSet, MessageDefinitionSource, MessageTranslationSource, MessagesDatabase, RawMessage,
+    key_symbol, DatabaseError, DatabaseInsertStrategy, DatabaseResult, DefinitionFile, KeySymbol,
+    KeySymbolSet, MessageDefinitionSource, MessageTranslationSource, MessagesDatabase,
     RawMessageDefinition, RawMessageTranslation, SourceFile, SourceFileMeta, TranslationFile,
 };
 use intl_database_js_source::JsMessageSource;
@@ -9,11 +9,9 @@ use intl_database_json_source::JsonMessageSource;
 use intl_message_utils::{is_any_messages_file, is_message_translations_file};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
-use std::iter::FusedIterator;
 use std::path::PathBuf;
 
-struct SourceFileKeyTrackingIterator<T: RawMessage, I: Iterator<Item = T>> {
-    iterator: I,
+struct SourceFileKeyTracker {
     inserted_keys: KeySymbolSet,
     /// Keys that used to exist in the file but are not found on this iteration are _removed_,
     /// meaning they will have their entry in the database taken out, and won't be considered
@@ -23,35 +21,55 @@ struct SourceFileKeyTrackingIterator<T: RawMessage, I: Iterator<Item = T>> {
     removed_keys: KeySymbolSet,
 }
 
-impl<T: RawMessage, I: Iterator<Item = T>> SourceFileKeyTrackingIterator<T, I> {
-    fn new(existing_keys: KeySymbolSet, iterator: I) -> Self {
+impl SourceFileKeyTracker {
+    fn new(existing_keys: KeySymbolSet) -> Self {
         Self {
-            iterator,
             inserted_keys: KeySymbolSet::default(),
             removed_keys: existing_keys,
         }
     }
-}
 
-impl<T: RawMessage, I: Iterator<Item = T>> Iterator for &mut SourceFileKeyTrackingIterator<T, I> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let Some(message) = self.iterator.next() else {
-            return None;
-        };
-
-        let key = message.name();
-        self.removed_keys.remove(&key);
+    fn track(&mut self, key: KeySymbol) {
         self.inserted_keys.insert(key);
-        Some(message)
+        self.removed_keys.remove(&key);
+    }
+
+    fn contains(&self, key: &KeySymbol) -> bool {
+        self.inserted_keys.contains(key)
     }
 }
 
-impl<T: RawMessage, I: Iterator<Item = T>> FusedIterator
-    for &mut SourceFileKeyTrackingIterator<T, I>
-{
+#[derive(Default, Debug)]
+pub struct SourceFileInsertionData {
+    pub file_key: KeySymbol,
+    pub locale_key: KeySymbol,
+    pub errors: Vec<DatabaseError>,
+    pub inserted_keys: KeySymbolSet,
+    pub removed_keys: KeySymbolSet,
 }
+
+impl SourceFileInsertionData {
+    pub(crate) fn new(file_key: KeySymbol, locale_key: KeySymbol) -> Self {
+        Self {
+            file_key,
+            locale_key,
+            errors: vec![],
+            inserted_keys: KeySymbolSet::default(),
+            removed_keys: KeySymbolSet::default(),
+        }
+    }
+
+    pub(crate) fn add_error(&mut self, error: DatabaseError) {
+        self.errors.push(error);
+    }
+
+    fn take_from_key_tracker(&mut self, tracker: SourceFileKeyTracker) {
+        self.inserted_keys = tracker.inserted_keys;
+        self.removed_keys = tracker.removed_keys;
+    }
+}
+
+pub type SourceFileInsertionResult = DatabaseResult<SourceFileInsertionData>;
 
 fn get_definition_source_from_file_name(file_name: &str) -> Option<impl MessageDefinitionSource> {
     if file_name.ends_with(".js") {
@@ -141,11 +159,17 @@ pub fn process_definitions_file(
     file_name: &str,
     content: &str,
     locale: &str,
-) -> DatabaseResult<KeySymbol> {
+) -> SourceFileInsertionData {
     let file_key = key_symbol(file_name);
     let locale_key = key_symbol(locale);
-    let (file_meta, definitions) = extract_definitions_from_file(file_key, content)?;
-    insert_definitions(db, file_key, locale_key, file_meta, definitions)
+    let mut data = SourceFileInsertionData::new(file_key, locale_key);
+    match extract_definitions_from_file(file_key, content) {
+        Ok((file_meta, definitions)) => insert_definitions(db, data, file_meta, definitions),
+        Err(error) => {
+            data.add_error(error);
+            data
+        }
+    }
 }
 
 pub fn extract_definitions_from_file(
@@ -165,37 +189,56 @@ pub fn extract_definitions_from_file(
 
 pub fn insert_definitions(
     db: &mut MessagesDatabase,
-    file_key: KeySymbol,
-    locale_key: KeySymbol,
+    mut data: SourceFileInsertionData,
     source_file_meta: SourceFileMeta,
     definitions: impl Iterator<Item = RawMessageDefinition>,
-) -> DatabaseResult<KeySymbol> {
+) -> SourceFileInsertionData {
     let source_file = db.get_or_create_source_file(
-        file_key,
+        data.file_key,
         SourceFile::Definition(DefinitionFile::new(
-            file_key.to_string(),
+            data.file_key.to_string(),
             source_file_meta,
             KeySymbolSet::default(),
         )),
     );
-    let mut iterator =
-        SourceFileKeyTrackingIterator::new(source_file.message_keys().clone(), definitions);
-    for definition in &mut iterator {
-        let position = FilePosition {
-            file: file_key,
-            line: definition.position.line,
-            col: definition.position.col,
-        };
-        let value = definition.value.with_file_position(position);
-        db.insert_definition(&definition.name, value, locale_key, definition.meta, true)?;
+    let mut tracker = SourceFileKeyTracker::new(source_file.message_keys().clone());
+    for definition in definitions {
+        if tracker.contains(&definition.name) {
+            let existing = db
+                .get_message(&definition.name)
+                .map(|message| message.definition())
+                .expect("Source File repeats message but previous value did not exist");
+            data.add_error(DatabaseError::AlreadyDefined {
+                name: definition.name,
+                existing: existing.clone(),
+                replacement: definition.value,
+            });
+            continue;
+        }
+        let insertion_result = db.insert_definition(
+            &definition.name,
+            definition.value,
+            data.locale_key,
+            definition.meta,
+            DatabaseInsertStrategy::UpdateSourceFile,
+        );
+        if let Err(error) = insertion_result {
+            data.add_error(error);
+        }
+
+        tracker.track(definition.name);
     }
 
-    db.set_source_file_keys(file_key, iterator.inserted_keys)?;
-    for key in iterator.removed_keys {
-        db.remove_definition(key);
+    data.take_from_key_tracker(tracker);
+    match db.set_source_file_keys(data.file_key, data.inserted_keys.clone()) {
+        Err(error) => data.add_error(error),
+        Ok(_) => {}
+    }
+    for key in &data.removed_keys {
+        db.remove_definition(*key);
     }
 
-    Ok(file_key)
+    data
 }
 
 pub fn process_translations_file(
@@ -203,11 +246,17 @@ pub fn process_translations_file(
     file_name: &str,
     locale: &str,
     content: &str,
-) -> DatabaseResult<KeySymbol> {
+) -> SourceFileInsertionData {
     let file_key = key_symbol(file_name);
     let locale_key = key_symbol(&locale);
-    let translations = extract_translations_from_file(file_key, content)?;
-    insert_translations(db, file_key, locale_key, translations)
+    let mut data = SourceFileInsertionData::new(file_key, locale_key);
+    match extract_translations_from_file(file_key, content) {
+        Ok(translations) => insert_translations(db, data, translations),
+        Err(error) => {
+            data.add_error(error);
+            data
+        }
+    }
 }
 
 pub fn extract_translations_from_file(
@@ -223,35 +272,53 @@ pub fn extract_translations_from_file(
 
 pub fn insert_translations(
     db: &mut MessagesDatabase,
-    file_key: KeySymbol,
-    locale_key: KeySymbol,
+    mut data: SourceFileInsertionData,
     translations: impl Iterator<Item = RawMessageTranslation>,
-) -> DatabaseResult<KeySymbol> {
+) -> SourceFileInsertionData {
     let source_file = db.get_or_create_source_file(
-        file_key,
+        data.file_key,
         SourceFile::Translation(TranslationFile::new(
-            file_key.to_string(),
-            locale_key,
+            data.file_key.to_string(),
+            data.locale_key,
             KeySymbolSet::default(),
         )),
     );
 
-    let mut iterator =
-        SourceFileKeyTrackingIterator::new(source_file.message_keys().clone(), translations);
-    for translation in &mut iterator {
-        let position = FilePosition {
-            file: file_key,
-            line: translation.position.line,
-            col: translation.position.col,
-        };
-        let value = translation.value.with_file_position(position);
-        db.insert_translation(translation.name, locale_key, value, true)?;
+    let mut tracker = SourceFileKeyTracker::new(source_file.message_keys().clone());
+    for translation in translations {
+        if tracker.contains(&translation.name) {
+            let existing = db
+                .get_message(&translation.name)
+                .and_then(|message| message.translations().get(&data.locale_key))
+                .expect("Source File repeats message but previous value did not exist");
+            data.add_error(DatabaseError::TranslationAlreadySet {
+                name: translation.name,
+                locale: data.locale_key,
+                existing: existing.clone(),
+                replacement: translation.value,
+            });
+            continue;
+        }
+        tracker.track(translation.name);
+        let insertion_result = db.insert_translation(
+            translation.name,
+            data.locale_key,
+            translation.value,
+            DatabaseInsertStrategy::UpdateSourceFile,
+        );
+        if let Err(error) = insertion_result {
+            data.add_error(error);
+        }
     }
 
-    for key in iterator.removed_keys {
-        db.remove_translation(key, locale_key);
+    data.take_from_key_tracker(tracker);
+    match db.set_source_file_keys(data.file_key, data.inserted_keys.clone()) {
+        Err(error) => data.add_error(error),
+        Ok(_) => {}
+    }
+    for key in &data.removed_keys {
+        db.remove_translation(*key, data.locale_key);
     }
 
-    db.set_source_file_keys(file_key, iterator.inserted_keys)?;
-    Ok(file_key)
+    data
 }

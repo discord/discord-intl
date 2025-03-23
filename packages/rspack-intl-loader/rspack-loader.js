@@ -68,9 +68,28 @@ const intlLoader = function intlLoader(source) {
 
   debug(`[${sourcePath}] Processing intl messages file (forceTranslation=${forceTranslation})`);
 
+  /**
+   * Report all errors quietly from the processing result, then fail the module compilation by
+   * throwing the first error directly.
+   *
+   * @param {import('@discord/intl-loader-core/types').IntlProcessingError} result
+   * @returns {never}
+   */
+  const failFromProcessingErrors = (result) => {
+    debug(`[${sourcePath}] Failed to process definitions: %O`, result.errors);
+    for (const error of result.errors.slice(1)) {
+      this.emitError(new Error(error.message));
+      // Add the file for the originating definition as a dependency so that this file
+      // recompiles when that one changes.
+      if (error.file != null && error.file !== sourcePath) this.addDependency(error.file);
+    }
+    throw new Error(result.errors[0].message);
+  };
+
   if (isMessageDefinitionsFile(sourcePath) && !forceTranslation) {
     debug(`[${sourcePath}] Determined to be a definitions file`);
     const result = processDefinitionsFile(sourcePath, source, { locale: sourceLocale });
+    if (!result.succeeded) failFromProcessingErrors(result);
 
     // Ensure that rspack knows to watch all of the translations files, even though they aren't
     // directly imported from a source. Without this, even though the compiled loader references the
@@ -111,7 +130,9 @@ const intlLoader = function intlLoader(source) {
     const locale = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
     if (isMessageTranslationsFile(sourcePath)) {
       debug(`[${sourcePath}] Determined to be a translations file`);
-      processTranslationsFile(sourcePath, source, { locale });
+      const result = processTranslationsFile(sourcePath, source, { locale });
+      if (!result.succeeded) failFromProcessingErrors(result);
+
       // Translations file content is affected by the content of the definitions file (e.g., the
       // `secret` meta value), so it can only be cached safely by adding a loader dependency on the
       // definitions file.

@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{KeySymbol, MessageMeta, MessageValue, SourceFileKind, SourceFileMeta};
+use crate::{FilePosition, KeySymbol, MessageMeta, MessageValue, SourceFileKind, SourceFileMeta};
 
 #[derive(Debug, Error, PartialEq)]
 pub enum MessageSourceError {
@@ -24,42 +24,26 @@ pub type MessageSourceResult<T> = Result<T, MessageSourceError>;
 
 pub trait RawMessage {
     fn name(&self) -> KeySymbol;
-}
-
-#[derive(Default, Debug)]
-pub struct RawPosition {
-    pub line: u32,
-    pub col: u32,
-}
-
-impl RawPosition {
-    pub fn new(line: u32, col: u32) -> Self {
-        Self { line, col }
-    }
+    fn position(&self) -> &FilePosition;
+    fn take_value(self) -> MessageValue;
 }
 
 #[derive(Debug)]
 pub struct RawMessageDefinition {
     pub name: KeySymbol,
     pub value: MessageValue,
-    pub position: RawPosition,
     pub meta: MessageMeta,
 }
 
 impl RawMessageDefinition {
     pub fn new<V: AsRef<str>>(
         name: KeySymbol,
-        position: RawPosition,
+        position: FilePosition,
         value: V,
         meta: MessageMeta,
     ) -> Self {
-        let value = MessageValue::from_raw(value.as_ref());
-        Self {
-            name,
-            value,
-            position,
-            meta,
-        }
+        let value = MessageValue::from_raw(value.as_ref(), position);
+        Self { name, value, meta }
     }
 }
 
@@ -67,29 +51,39 @@ impl RawMessage for RawMessageDefinition {
     fn name(&self) -> KeySymbol {
         self.name
     }
+
+    fn position(&self) -> &FilePosition {
+        &self.value.file_position
+    }
+
+    fn take_value(self) -> MessageValue {
+        self.value
+    }
 }
 
 #[derive(Debug)]
 pub struct RawMessageTranslation {
     pub name: KeySymbol,
-    pub position: RawPosition,
     pub value: MessageValue,
 }
 
 impl RawMessageTranslation {
-    pub fn new<V: AsRef<str>>(name: KeySymbol, position: RawPosition, value: V) -> Self {
-        let value = MessageValue::from_raw(value.as_ref());
-        Self {
-            name,
-            position,
-            value,
-        }
+    pub fn new<V: AsRef<str>>(name: KeySymbol, position: FilePosition, value: V) -> Self {
+        let value = MessageValue::from_raw(value.as_ref(), position);
+        Self { name, value }
     }
 }
 
 impl RawMessage for RawMessageTranslation {
     fn name(&self) -> KeySymbol {
         self.name
+    }
+    fn position(&self) -> &FilePosition {
+        &self.value.file_position
+    }
+
+    fn take_value(self) -> MessageValue {
+        self.value
     }
 }
 

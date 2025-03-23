@@ -1,4 +1,4 @@
-use std::fmt::Formatter;
+use std::fmt::{Display, Formatter};
 
 use serde::Serialize;
 
@@ -17,6 +17,18 @@ pub struct FilePosition {
     /// jumping to definitions.
     pub line: u32,
     pub col: u32,
+}
+
+impl FilePosition {
+    pub fn new(file: KeySymbol, line: u32, col: u32) -> Self {
+        Self { file, line, col }
+    }
+}
+
+impl Display for FilePosition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}:{}", self.file, self.line, self.col)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]

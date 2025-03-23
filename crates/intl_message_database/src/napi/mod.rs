@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 use crate::napi::types::{
     IntlDiagnostic, IntlMessageBundlerOptions, IntlMessagesFileDescriptor,
-    IntlMultiProcessingResult,
+    IntlSourceFileInsertionData,
 };
 use crate::public;
 use crate::sources::MessagesFileDescriptor;
@@ -69,12 +69,15 @@ impl IntlMessagesDatabase {
     pub fn process_all_messages_files(
         &mut self,
         directories: Vec<IntlMessagesFileDescriptor>,
-    ) -> anyhow::Result<IntlMultiProcessingResult> {
+    ) -> anyhow::Result<Vec<IntlSourceFileInsertionData>> {
         let sources = public::process_all_messages_files(
             &mut self.database,
             directories.iter().map(MessagesFileDescriptor::from),
         )?;
-        Ok(sources.into())
+        Ok(sources
+            .into_iter()
+            .map(IntlSourceFileInsertionData::from)
+            .collect())
     }
 
     #[napi]
@@ -82,13 +85,13 @@ impl IntlMessagesDatabase {
         &mut self,
         file_path: String,
         locale: Option<String>,
-    ) -> anyhow::Result<String> {
-        let source_file = public::process_definitions_file(
+    ) -> anyhow::Result<IntlSourceFileInsertionData> {
+        let result = public::process_definitions_file(
             &mut self.database,
             &file_path,
             locale.as_ref().map(String::as_str),
         )?;
-        Ok(source_file.to_string())
+        Ok(result.into())
     }
 
     #[napi]
@@ -97,23 +100,26 @@ impl IntlMessagesDatabase {
         file_path: String,
         content: String,
         locale: Option<String>,
-    ) -> anyhow::Result<String> {
-        let source_file = public::process_definitions_file_content(
+    ) -> IntlSourceFileInsertionData {
+        public::process_definitions_file_content(
             &mut self.database,
             &file_path,
             &content,
             locale.as_ref().map(String::as_str),
-        )?;
-        Ok(source_file.to_string())
+        )
+        .into()
     }
 
     #[napi]
     pub fn process_all_translation_files(
         &mut self,
         locale_map: HashMap<String, String>,
-    ) -> anyhow::Result<IntlMultiProcessingResult> {
+    ) -> anyhow::Result<Vec<IntlSourceFileInsertionData>> {
         let result = public::process_all_translation_files(&mut self.database, locale_map)?;
-        Ok(result.into())
+        Ok(result
+            .into_iter()
+            .map(IntlSourceFileInsertionData::from)
+            .collect())
     }
 
     #[napi]
@@ -121,10 +127,9 @@ impl IntlMessagesDatabase {
         &mut self,
         file_path: String,
         locale: String,
-    ) -> anyhow::Result<String> {
-        let source_file =
-            public::process_translation_file(&mut self.database, &file_path, &locale)?;
-        Ok(source_file.to_string())
+    ) -> anyhow::Result<IntlSourceFileInsertionData> {
+        let result = public::process_translation_file(&mut self.database, &file_path, &locale)?;
+        Ok(result.into())
     }
 
     #[napi]
@@ -133,14 +138,9 @@ impl IntlMessagesDatabase {
         file_path: String,
         locale: String,
         content: String,
-    ) -> anyhow::Result<String> {
-        let source_file = public::process_translation_file_content(
-            &mut self.database,
-            &file_path,
-            &locale,
-            &content,
-        )?;
-        Ok(source_file.to_string())
+    ) -> IntlSourceFileInsertionData {
+        public::process_translation_file_content(&mut self.database, &file_path, &locale, &content)
+            .into()
     }
 
     #[napi]

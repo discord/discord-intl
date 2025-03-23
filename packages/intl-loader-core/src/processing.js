@@ -7,6 +7,13 @@ const { database } = require('./database');
 const { findAllTranslationFiles, getLocaleFromTranslationsFileName } = require('./util');
 
 /**
+ * @import {
+ *   IntlMessagesFileDescriptor,
+ *   IntlSourceFileInsertionData,
+ *   ProcessDefinitionsResult,
+ *   ProcessTranslationsResult
+ * } from '../types';
+ *
  * @typedef {{
  *   format?: IntlCompiledMessageFormat,
  *   bundleSecrets?: boolean,
@@ -63,7 +70,6 @@ function findAllDefinitionsFilesForTranslations(filePath) {
   for (const file of sourceFiles) {
     const source = database.getSourceFile(file);
     if (source.type === 'definition' && source.meta.translationsPath === expectedTranslationsPath) {
-      console.log(file, source.meta);
       relevantPaths.push(source.file);
     }
   }
@@ -89,7 +95,7 @@ function findAllMessagesFiles(directories, defaultLocale = 'en-US') {
  *
  * @param {string[]} files
  * @param {string} defaultLocale
- * @returns {import('../types').IntlMessagesFileDescriptor[]}
+ * @returns {IntlMessagesFileDescriptor[]}
  */
 function filterAllMessagesFiles(files, defaultLocale = 'en-US') {
   return database.filterAllMessagesFiles(files, defaultLocale);
@@ -97,14 +103,15 @@ function filterAllMessagesFiles(files, defaultLocale = 'en-US') {
 
 /**
  * Iterate the given `files`, processing each one's content into the database. Processing is done
- * in parallel using native acceleration, and returns the list of all file names that were used.
+ * in parallel using native acceleration, and returns an object describing all of the changes that
+ * were processed.
  *
  * Note that this method _only_ operates by reading file contents from the system, it is not
  * possible to supply preloaded content through a Buffer in the same way as `processDefinitionsFile`
  * with a `sourceContent` argument.
  *
- * @param {import('../types').IntlMessagesFileDescriptor[]} files
- * @returns {import('../types').IntlMultiProcessingResult}
+ * @param {IntlMessagesFileDescriptor[]} files
+ * @returns {IntlSourceFileInsertionData[]}
  */
 function processAllMessagesFiles(files) {
   return database.processAllMessagesFiles(files);
@@ -117,7 +124,7 @@ function processAllMessagesFiles(files) {
  *   processTranslations?: boolean,
  *   locale?: string
  * }=} options
- * @returns {import('../types').ProcessDefinitionsResult}
+ * @returns {ProcessDefinitionsResult}
  */
 function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   const {
@@ -127,10 +134,15 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   } = options;
   debug(`[${sourcePath}] Processing definitions with locale "${locale}"`);
 
+  /** @type {IntlSourceFileInsertionData} */
+  let result;
   if (sourceContent != null) {
-    database.processDefinitionsFileContent(sourcePath, sourceContent, locale);
+    result = database.processDefinitionsFileContent(sourcePath, sourceContent, locale);
   } else {
-    database.processDefinitionsFile(sourcePath, locale);
+    result = database.processDefinitionsFile(sourcePath, locale);
+  }
+  if (result.errors.length > 0) {
+    return { succeeded: false, errors: result.errors };
   }
 
   const sourceFile = database.getSourceFile(sourcePath);
@@ -151,10 +163,15 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
 
   if (processTranslations) {
     const translationsResult = database.processAllTranslationFiles(translationsLocaleMap);
+    const allErrors = translationsResult.flatMap((result) => result.errors);
+    if (allErrors.length > 0) {
+      return { succeeded: false, errors: allErrors };
+    }
     debug('[${sourcePath}] Finished processing all translations: %O', translationsResult);
   }
 
   return {
+    succeeded: true,
     sourceFile,
     locale,
     messageKeys,
@@ -170,14 +187,20 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
  * @param {{
  *   locale?: string,
  * }=} options
- * @returns {import('../types').ProcessTranslationsResult}
+ * @returns {ProcessTranslationsResult}
  */
 function processTranslationsFile(sourcePath, sourceContent, options = {}) {
   const { locale = getLocaleFromTranslationsFileName(sourcePath) } = options;
+
+  /** @type {IntlSourceFileInsertionData} */
+  let result;
   if (sourceContent) {
-    database.processTranslationFileContent(sourcePath, locale, sourceContent);
+    result = database.processTranslationFileContent(sourcePath, locale, sourceContent);
   } else {
-    database.processTranslationFile(sourcePath, locale);
+    result = database.processTranslationFile(sourcePath, locale);
+  }
+  if (result.errors.length > 0) {
+    return { succeeded: false, errors: result.errors };
   }
 
   const sourceFile = database.getSourceFile(sourcePath);
@@ -189,6 +212,7 @@ function processTranslationsFile(sourcePath, sourceContent, options = {}) {
   }
 
   return {
+    succeeded: true,
     sourceFile,
     locale,
     messageKeys: database.getSourceFileKeyMap(sourcePath),
