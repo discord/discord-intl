@@ -4,12 +4,12 @@ export declare class IntlMessagesDatabase {
   constructor()
   findAllMessagesFiles(directories: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
   filterAllMessagesFiles(files: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
-  processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>): IntlMultiProcessingResult
-  processDefinitionsFile(filePath: string, locale?: string | undefined | null): string
-  processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): string
-  processAllTranslationFiles(localeMap: Record<string, string>): IntlMultiProcessingResult
-  processTranslationFile(filePath: string, locale: string): string
-  processTranslationFileContent(filePath: string, locale: string, content: string): string
+  processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>): Array<IntlSourceFileInsertionData>
+  processDefinitionsFile(filePath: string, locale?: string | undefined | null): IntlSourceFileInsertionData
+  processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): IntlSourceFileInsertionData
+  processAllTranslationFiles(localeMap: Record<string, string>): Array<IntlSourceFileInsertionData>
+  processTranslationFile(filePath: string, locale: string): IntlSourceFileInsertionData
+  processTranslationFileContent(filePath: string, locale: string, content: string): IntlSourceFileInsertionData
   getKnownLocales(): Array<string>
   getSourceFile(filePath: string): IntlSourceFile
   getAllSourceFilePaths(): Array<string>
@@ -89,22 +89,25 @@ export interface IntlMessageValue {
   filePosition: object
 }
 
-export interface IntlMultiProcessingFailure {
-  file: string
-  error: string
-}
-
-export interface IntlMultiProcessingResult {
-  processed: Array<string>
-  failed: Array<IntlMultiProcessingFailure>
-}
-
 export interface IntlSourceFile {
   type: string
   file: string
   locale?: string
   messageKeys: Array<string>
   meta: IntlSourceFileMeta
+}
+
+export interface IntlSourceFileError {
+  key?: string
+  locale?: string
+  message: string
+}
+
+export interface IntlSourceFileInsertionData {
+  fileKey: string
+  insertedCount: number
+  removedCount: number
+  errors: Array<IntlSourceFileError>
 }
 
 export interface IntlSourceFileMeta {

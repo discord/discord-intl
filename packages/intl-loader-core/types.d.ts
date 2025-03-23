@@ -1,4 +1,4 @@
-import { IntlSourceFile } from '@discord/intl-message-database';
+import { IntlSourceFile, IntlSourceFileError } from '@discord/intl-message-database';
 
 export type * from '@discord/intl-message-database';
 
@@ -72,11 +72,17 @@ export interface MessageDefinitionsTransformerOptions {
   bindMode?: 'proxy' | 'literal';
 }
 
-/**
- * The result of calling `processDefinitionsFile`, including the created source file, locale map,
- * and more.
- */
-export interface ProcessDefinitionsResult {
+export interface IntlProcessingError {
+  succeeded: false;
+  errors: IntlSourceFileError[];
+}
+
+export interface ProcessDefinitionsSuccess {
+  /**
+   * Whether the processing was successful as a whole. If any part of the process contained errors,
+   * including processing translations alongside the definitions file, this will be set to `false`.
+   */
+  succeeded: true;
   /**
    * Direct source file from the database that was created or updated by this process.
    */
@@ -108,10 +114,13 @@ export interface ProcessDefinitionsResult {
 }
 
 /**
- * The result of calling `processTranslationsFile`, including the created source file, locale map,
+ * The result of calling `processDefinitionsFile`, including the created source file, locale map,
  * and more.
  */
-export interface ProcessTranslationsResult {
+export type ProcessDefinitionsResult = ProcessDefinitionsSuccess | IntlProcessingError;
+
+export interface ProcessTranslationsSuccess {
+  succeeded: true;
   /**
    * Direct source file from the database that was created or updated by this process.
    */
@@ -128,3 +137,9 @@ export interface ProcessTranslationsResult {
    */
   locale: string;
 }
+
+/**
+ * The result of calling `processTranslationsFile`, including the created source file, locale map,
+ * and more.
+ */
+export type ProcessTranslationsResult = ProcessTranslationsSuccess | IntlProcessingError;

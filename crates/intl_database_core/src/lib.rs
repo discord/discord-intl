@@ -4,7 +4,7 @@ pub use database::source::{
     RawMessage, RawMessageDefinition, RawMessageTranslation, RawPosition,
 };
 pub use database::symbol::{get_key_symbol, key_symbol, KeySymbol, KeySymbolMap, KeySymbolSet};
-pub use database::MessagesDatabase;
+pub use database::{DatabaseInsertStrategy, MessagesDatabase};
 pub use error::{DatabaseError, DatabaseResult};
 pub use message::meta::{MessageMeta, SourceFileMeta};
 pub use message::source_file::{

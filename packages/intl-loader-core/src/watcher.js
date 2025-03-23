@@ -30,7 +30,7 @@ const DEFAULT_LOCALE = 'en-US';
 
 /**
  * @typedef {{
- *   on(event: string, callback: (event: string, path: string) => void): void
+ *   on(event: string, callback: (event: string, path: string) => void): void,
  * }} BasicWatcher
  */
 
@@ -53,7 +53,11 @@ async function watchMessagesFiles(
 ) {
   debug('Pre-initializing database with all discoverable messages files');
   const files = findAllMessagesFiles(watchedFolders);
-  processAllMessagesFiles(files);
+  const result = processAllMessagesFiles(files);
+  const reprocessQueue = result
+    .filter((data) => data.errors.length > 0)
+    .map((data) => data.fileKey);
+
   if (once) {
     debug('Performing one-shot watch because `once` was true');
     // This is a weird hack around file watching just not working well on
@@ -80,8 +84,24 @@ async function watchMessagesFiles(
     ignoreInitial: skipInitial,
     persistent: !once,
   });
+
   watcher.on('all', (event, path) => {
-    processAllMessagesFiles(filterAllMessagesFiles([path]));
+    // Process the file that changed first, then reprocess all of the queued files from previous
+    // failures to hopefully get them to process successfully again.
+    const [result] = processAllMessagesFiles(filterAllMessagesFiles([path]));
+    const failed = result.errors.length > 0 ? [result.fileKey] : [];
+    const secondResult = processAllMessagesFiles(
+      filterAllMessagesFiles([...reprocessQueue, ...failed]),
+    );
+    // For any files that are still failing, keep them in the queue for next time.
+    const secondFailures = secondResult
+      .filter((data) => data.errors.length > 0)
+      .map((data) => data.fileKey);
+    if (secondFailures.length > 0) {
+      debug('Failed to re-process files: %O. Next update will try again.', secondFailures);
+    }
+    reprocessQueue.splice(0, Infinity, ...secondFailures);
+
     debug(`watcher got event: ${event}, for path ${path}`);
   });
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGQUIT']) {
@@ -136,16 +156,17 @@ async function precompileMessageDefinitionsFiles(
         `.compiled.messages.${assetExtension}`,
       );
       const result = processDefinitionsFile(filePath);
+      if (!result.succeeded) {
+        debug('[INTL Error] Failed to compile messages');
+        console.error(result.errors);
+        return;
+      }
+
       precompileFileForLocale(filePath, result.locale, undefined, {
         format,
         bundleSecrets,
       });
 
-      database.processDefinitionsFile(filePath);
-      database.precompile(filePath, DEFAULT_LOCALE, outputPath, {
-        format: IntlCompiledMessageFormat.KeylessJson,
-        bundleSecrets,
-      });
       debug(`Wrote definitions to: ${outputPath}`);
     } catch (e) {
       debug('[INTL Error] Failed to compile messages');

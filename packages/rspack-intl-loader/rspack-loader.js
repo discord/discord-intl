@@ -71,6 +71,12 @@ const intlLoader = function intlLoader(source) {
   if (isMessageDefinitionsFile(sourcePath) && !forceTranslation) {
     debug(`[${sourcePath}] Determined to be a definitions file`);
     const result = processDefinitionsFile(sourcePath, source, { locale: sourceLocale });
+    if (!result.succeeded) {
+      for (const error of result.errors) {
+        this.emitError(new Error(error.message));
+      }
+      return '';
+    }
 
     // Ensure that rspack knows to watch all of the translations files, even though they aren't
     // directly imported from a source. Without this, even though the compiled loader references the
@@ -111,7 +117,14 @@ const intlLoader = function intlLoader(source) {
     const locale = forceTranslation ? 'en-US' : getLocaleFromTranslationsFileName(sourcePath);
     if (isMessageTranslationsFile(sourcePath)) {
       debug(`[${sourcePath}] Determined to be a translations file`);
-      processTranslationsFile(sourcePath, source, { locale });
+      const result = processTranslationsFile(sourcePath, source, { locale });
+      if (!result.succeeded) {
+        for (const error of result.errors) {
+          this.emitError(new Error(error.message));
+        }
+        return '';
+      }
+
       // Translations file content is affected by the content of the definitions file (e.g., the
       // `secret` meta value), so it can only be cached safely by adding a loader dependency on the
       // definitions file.

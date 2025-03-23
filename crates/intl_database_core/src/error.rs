@@ -16,6 +16,8 @@ pub enum DatabaseError {
     AlreadyDefined(KeySymbol),
     #[error("{0} already has a translation in the locale {1} and cannot be set again")]
     TranslationAlreadySet(KeySymbol, KeySymbol),
+    #[error("Ambiguous operation occurred for key {0}: {1}")]
+    AmbiguousOperation(KeySymbol, String),
 
     // Database errors
     #[error("Expected source file {file_name} to be a {expected} but found {found}")]
@@ -32,6 +34,28 @@ pub enum DatabaseError {
     ValueNotInterned(String),
     #[error("Source file {0} is not a known source file in the database")]
     UnknownSourceFile(KeySymbol),
+}
+
+impl DatabaseError {
+    /// Returns the message key this error applies to, if relevant.
+    pub fn key(&self) -> Option<KeySymbol> {
+        match self {
+            DatabaseError::AlreadyDefined(key) => Some(*key),
+            DatabaseError::TranslationAlreadySet(key, _) => Some(*key),
+            DatabaseError::AmbiguousOperation(key, _) => Some(*key),
+            DatabaseError::SymbolNotFound(key) => Some(*key),
+            _ => None,
+        }
+    }
+
+    /// Returns the locale that this error applies to, if relevant.
+    pub fn locale(&self) -> Option<KeySymbol> {
+        match self {
+            DatabaseError::AlreadyDefined(_) => None,
+            DatabaseError::TranslationAlreadySet(_, locale) => Some(*locale),
+            _ => None,
+        }
+    }
 }
 
 pub type DatabaseResult<T> = Result<T, DatabaseError>;
