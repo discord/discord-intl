@@ -156,16 +156,24 @@ impl From<MessagesFileDescriptor> for IntlMessagesFileDescriptor {
 
 #[napi(object)]
 pub struct IntlSourceFileError {
+    pub name: String,
     pub key: Option<String>,
     pub locale: Option<String>,
+    pub file: Option<String>,
+    pub line: Option<u32>,
+    pub col: Option<u32>,
     pub message: String,
 }
 
 impl From<DatabaseError> for IntlSourceFileError {
     fn from(value: DatabaseError) -> Self {
         Self {
+            name: value.name(),
             key: value.key().map(|s| s.to_string()),
             locale: value.locale().map(|s| s.to_string()),
+            file: value.file().map(|s| s.to_string()),
+            line: value.line(),
+            col: value.col(),
             message: value.to_string(),
         }
     }

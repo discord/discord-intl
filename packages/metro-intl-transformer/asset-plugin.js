@@ -138,7 +138,7 @@ async function transformAsset(assetData) {
     debug('Initializing database with all messages files within watch folders: %O', watchFolders);
     const result = processAllMessagesFiles(findAllMessagesFiles(watchFolders));
     debug('Finished processing all discovered messages files: %O', result);
-    hasInitializedAllDefinitions = true;
+    hasInitializedAllDefinitions = result.flatMap((result) => result.errors).length === 0;
   }
 
   const filename = assetData.files[0] ?? '';
@@ -171,6 +171,10 @@ async function transformAsset(assetData) {
   debug(`[${filename}] ${metroConfig.transformer?.publicPath}`);
 
   const result = processTranslationsFile(filename);
+  if (!result.succeeded) {
+    throw new Error('Intl processing error:' + result.errors[0]);
+  }
+
   debug(`[${filename}] precompiling file`);
   precompileFileForLocale(filename, result.locale, outputFile, {
     format,

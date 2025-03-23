@@ -4,7 +4,6 @@ use crate::error::{DatabaseError, DatabaseResult};
 use crate::message::meta::MessageMeta;
 use crate::message::source_file::SourceFile;
 use crate::message::value::MessageValue;
-use crate::FilePosition;
 
 use self::message::Message;
 use self::symbol::{get_key_symbol, key_symbol, KeySymbol, KeySymbolMap, KeySymbolSet};
@@ -154,27 +153,16 @@ impl MessagesDatabase {
         match self.messages.get_mut(&key) {
             Some(existing) => {
                 if existing.is_defined() {
-                    // TODO(faulty): FilePosition should probably not be an Option.
-                    let Some(FilePosition { file: old_file, .. }) =
-                        existing.definition().file_position
-                    else {
-                        return Err(DatabaseError::AmbiguousOperation(
-                            key,
-                            format!(
-                                "Definition for {key} exists but does not reference a source file"
-                            ),
-                        ));
-                    };
-
-                    let Some(FilePosition { file: new_file, .. }) = value.file_position else {
-                        return Err(DatabaseError::AmbiguousOperation(
-                            key,
-                            format!("New definition for {key} does not reference a source file"),
-                        ));
-                    };
+                    let definition = existing.definition();
+                    let old_file = definition.file_position.file;
+                    let new_file = value.file_position.file;
 
                     if new_file != old_file || !strategy.allow_same_file_replacement() {
-                        return Err(DatabaseError::AlreadyDefined(key));
+                        return Err(DatabaseError::AlreadyDefined {
+                            name: key,
+                            existing: definition.clone(),
+                            replacement: value,
+                        });
                     }
                 }
 
@@ -222,26 +210,15 @@ impl MessagesDatabase {
             // change here.
             Some(existing) => {
                 if let Some(translation) = existing.translations().get(&locale) {
-                    // TODO(faulty): FilePosition should probably not be an Option.
-                    let Some(FilePosition { file: old_file, .. }) = translation.file_position
-                    else {
-                        return Err(DatabaseError::AmbiguousOperation(
-                            key,
-                            format!(
-                                "Translation for {key} exists but does not reference a source file"
-                            ),
-                        ));
-                    };
-
-                    let Some(FilePosition { file: new_file, .. }) = value.file_position else {
-                        return Err(DatabaseError::AmbiguousOperation(
-                            key,
-                            format!("New translation for {key} does not reference a source file"),
-                        ));
-                    };
-
+                    let old_file = translation.file_position.file;
+                    let new_file = value.file_position.file;
                     if new_file != old_file || !strategy.allow_same_file_replacement() {
-                        return Err(DatabaseError::TranslationAlreadySet(key, locale));
+                        return Err(DatabaseError::TranslationAlreadySet {
+                            name: key,
+                            locale,
+                            existing: translation.clone(),
+                            replacement: value,
+                        });
                     }
                 }
 

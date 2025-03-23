@@ -172,7 +172,7 @@ impl IntlDatabaseService for IntlTypesGenerator<'_> {
             let doc_comment = self.make_doc_comment(message, known_locales, spurious_variables);
             let definition_position = message
                 .get_source_translation()
-                .and_then(|definition| definition.file_position);
+                .map(|definition| definition.file_position);
 
             // Ordering is important here. `self.output` tracks the line and column position in the
             // written output, and we want to know that number precisely when adding the source map

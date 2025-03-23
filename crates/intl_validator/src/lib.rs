@@ -34,7 +34,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
     for (locale, translation) in message.translations() {
         diagnostics.extend_from_value_diagnostics(
             validate_message_value(translation),
-            translation.file_position.unwrap(),
+            translation.file_position,
             *locale,
         );
         if *locale == source_locale {
@@ -51,7 +51,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
             {
                 diagnostics.add(MessageDiagnostic {
                         key: message.key(),
-                        file_position: translation.file_position.unwrap(),
+                        file_position: translation.file_position,
                         locale: locale.clone(),
                         name: DiagnosticName::NoExtraTranslationVariables,
                         severity: DiagnosticSeverity::Warning,
@@ -69,7 +69,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
                 if source_has_variables {
                     diagnostics.add(MessageDiagnostic {
                         key: message.key(),
-                        file_position: translation.file_position.unwrap(),
+                        file_position: translation.file_position,
                         locale: locale.clone(),
                         name: DiagnosticName::NoMissingSourceVariables,
                         severity: DiagnosticSeverity::Warning,

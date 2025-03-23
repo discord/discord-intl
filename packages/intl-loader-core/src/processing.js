@@ -70,7 +70,6 @@ function findAllDefinitionsFilesForTranslations(filePath) {
   for (const file of sourceFiles) {
     const source = database.getSourceFile(file);
     if (source.type === 'definition' && source.meta.translationsPath === expectedTranslationsPath) {
-      console.log(file, source.meta);
       relevantPaths.push(source.file);
     }
   }

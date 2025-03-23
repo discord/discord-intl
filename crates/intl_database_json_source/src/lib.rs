@@ -1,6 +1,6 @@
 use intl_database_core::{
-    key_symbol, KeySymbol, MessageSourceResult, MessageTranslationSource, RawMessageTranslation,
-    RawPosition,
+    key_symbol, FilePosition, KeySymbol, MessageSourceResult, MessageTranslationSource,
+    RawMessageTranslation,
 };
 use intl_flat_json_parser::parse_flat_translation_json;
 
@@ -13,14 +13,14 @@ impl MessageTranslationSource for JsonMessageSource {
 
     fn extract_translations(
         self,
-        _file_name: KeySymbol,
+        file_name: KeySymbol,
         content: &str,
     ) -> MessageSourceResult<impl Iterator<Item = RawMessageTranslation>> {
         let iter = parse_flat_translation_json(&content);
-        Ok(iter.map(|item| {
+        Ok(iter.map(move |item| {
             RawMessageTranslation::new(
                 key_symbol(&item.key),
-                RawPosition::new(item.position.line, item.position.col),
+                FilePosition::new(file_name, item.position.line, item.position.col),
                 item.value,
             )
         }))

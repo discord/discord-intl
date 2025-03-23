@@ -98,8 +98,12 @@ export interface IntlSourceFile {
 }
 
 export interface IntlSourceFileError {
+  name: string
   key?: string
   locale?: string
+  file?: string
+  line?: number
+  col?: number
   message: string
 }
 
