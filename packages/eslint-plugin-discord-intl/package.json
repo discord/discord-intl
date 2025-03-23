@@ -1,6 +1,6 @@
 {
   "name": "@discord/eslint-plugin-discord-intl",
-  "version": "0.21.1",
+  "version": "0.22.0-rc.0",
   "license": "MIT",
   "type": "commonjs",
   "description": "ESLint plugin for validating and linting messages and translations using @discord/intl",
