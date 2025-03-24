@@ -3,6 +3,7 @@ const {
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
   IntlCompiledMessageFormat,
+  IntlDatabaseInsertStrategy,
 } = require('@discord/intl-message-database');
 
 const { database } = require('./src/database');
@@ -24,6 +25,9 @@ module.exports = {
   // @ts-expect-error This is a const enum, which TypeScript doesn't like letting you export, even
   // though it's a tangible object that can be accessed just fine from normal JS.
   IntlCompiledMessageFormat,
+  // @ts-expect-error This is a const enum, which TypeScript doesn't like letting you export, even
+  // though it's a tangible object that can be accessed just fine from normal JS.
+  IntlDatabaseInsertStrategy,
   MessageDefinitionsTransformer,
   database,
   findAllTranslationFiles,

@@ -159,12 +159,15 @@ pub fn process_definitions_file(
     file_name: &str,
     content: &str,
     locale: &str,
+    strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
     let file_key = key_symbol(file_name);
     let locale_key = key_symbol(locale);
     let mut data = SourceFileInsertionData::new(file_key, locale_key);
     match extract_definitions_from_file(file_key, content) {
-        Ok((file_meta, definitions)) => insert_definitions(db, data, file_meta, definitions),
+        Ok((file_meta, definitions)) => {
+            insert_definitions(db, data, file_meta, definitions, strategy)
+        }
         Err(error) => {
             data.add_error(error);
             data
@@ -192,6 +195,7 @@ pub fn insert_definitions(
     mut data: SourceFileInsertionData,
     source_file_meta: SourceFileMeta,
     definitions: impl Iterator<Item = RawMessageDefinition>,
+    strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
     let source_file = db.get_or_create_source_file(
         data.file_key,
@@ -220,7 +224,7 @@ pub fn insert_definitions(
             definition.value,
             data.locale_key,
             definition.meta,
-            DatabaseInsertStrategy::UpdateSourceFile,
+            strategy,
         );
         if let Err(error) = insertion_result {
             data.add_error(error);
@@ -246,12 +250,13 @@ pub fn process_translations_file(
     file_name: &str,
     locale: &str,
     content: &str,
+    strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
     let file_key = key_symbol(file_name);
     let locale_key = key_symbol(&locale);
     let mut data = SourceFileInsertionData::new(file_key, locale_key);
     match extract_translations_from_file(file_key, content) {
-        Ok(translations) => insert_translations(db, data, translations),
+        Ok(translations) => insert_translations(db, data, translations, strategy),
         Err(error) => {
             data.add_error(error);
             data
@@ -274,6 +279,7 @@ pub fn insert_translations(
     db: &mut MessagesDatabase,
     mut data: SourceFileInsertionData,
     translations: impl Iterator<Item = RawMessageTranslation>,
+    strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
     let source_file = db.get_or_create_source_file(
         data.file_key,
@@ -304,7 +310,7 @@ pub fn insert_translations(
             translation.name,
             data.locale_key,
             translation.value,
-            DatabaseInsertStrategy::UpdateSourceFile,
+            strategy,
         );
         if let Err(error) = insertion_result {
             data.add_error(error);

@@ -27,6 +27,11 @@ module.exports = {
     const forceTranslation = filePath === '?forceTranslation';
     if (isMessageDefinitionsFile(filePath) && !forceTranslation) {
       const result = processDefinitionsFile(filePath, source, { processTranslations: false });
+      if (!result.succeeded) {
+        throw new Error(
+          `Failed to process intl messages file ${filePath}: ` + result.errors[0].message,
+        );
+      }
 
       const sourceMessages = /** @type {Buffer} */ (
         precompileFileForLocale(filePath, result.locale, undefined, precompileOptions)

@@ -8,8 +8,9 @@
 use crate::sources::{get_locale_from_file_name, MessagesFileDescriptor, SourceFileInsertionData};
 use crate::threading::run_in_thread_pool;
 use intl_database_core::{
-    get_key_symbol, key_symbol, DatabaseError, DatabaseResult, KeySymbol, Message, MessageValue,
-    MessagesDatabase, RawMessageDefinition, RawMessageTranslation, SourceFile, DEFAULT_LOCALE,
+    get_key_symbol, key_symbol, DatabaseError, DatabaseInsertStrategy, DatabaseResult, KeySymbol,
+    Message, MessageValue, MessagesDatabase, RawMessageDefinition, RawMessageTranslation,
+    SourceFile, DEFAULT_LOCALE,
 };
 use intl_database_exporter::{ExportTranslations, IntlMessageBundler, IntlMessageBundlerOptions};
 use intl_database_service::IntlDatabaseService;
@@ -70,6 +71,7 @@ pub fn filter_all_messages_files<A: AsRef<str>>(
 pub fn process_all_messages_files(
     database: &mut MessagesDatabase,
     files: impl Iterator<Item = MessagesFileDescriptor> + ExactSizeIterator,
+    strategy: DatabaseInsertStrategy,
 ) -> anyhow::Result<Vec<SourceFileInsertionData>> {
     let results = run_in_thread_pool(
         files,
@@ -107,6 +109,7 @@ pub fn process_all_messages_files(
                     data,
                     source_meta,
                     definitions.into_iter(),
+                    strategy,
                 );
             }
             if let Some(translations) = translations {
@@ -115,6 +118,7 @@ pub fn process_all_messages_files(
                         database,
                         data,
                         translations.into_iter(),
+                        strategy,
                     ),
                     Err(error) => {
                         data.add_error(error);
@@ -135,10 +139,11 @@ pub fn process_definitions_file(
     database: &mut MessagesDatabase,
     file_path: &str,
     locale: Option<&str>,
+    strategy: DatabaseInsertStrategy,
 ) -> anyhow::Result<SourceFileInsertionData> {
     let content = std::fs::read_to_string(&file_path)?;
     Ok(process_definitions_file_content(
-        database, file_path, &content, locale,
+        database, file_path, &content, locale, strategy,
     ))
 }
 
@@ -147,18 +152,21 @@ pub fn process_definitions_file_content(
     file_path: &str,
     content: &str,
     locale: Option<&str>,
+    strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
     crate::sources::process_definitions_file(
         database,
         &file_path,
         &content,
         locale.as_ref().map_or(DEFAULT_LOCALE, |locale| &locale),
+        strategy,
     )
 }
 
 pub fn process_all_translation_files(
     database: &mut MessagesDatabase,
     locale_map: HashMap<String, String>,
+    strategy: DatabaseInsertStrategy,
 ) -> anyhow::Result<Vec<SourceFileInsertionData>> {
     let results = run_in_thread_pool(
         locale_map.into_iter(),
@@ -175,9 +183,12 @@ pub fn process_all_translation_files(
         |(locale, file_path, translations)| {
             let mut data = SourceFileInsertionData::new(file_path, locale);
             match translations {
-                Ok(translations) => {
-                    crate::sources::insert_translations(database, data, translations.into_iter())
-                }
+                Ok(translations) => crate::sources::insert_translations(
+                    database,
+                    data,
+                    translations.into_iter(),
+                    strategy,
+                ),
                 Err(error) => {
                     data.add_error(error);
                     data
@@ -192,10 +203,11 @@ pub fn process_translation_file(
     database: &mut MessagesDatabase,
     file_path: &str,
     locale: &str,
+    strategy: DatabaseInsertStrategy,
 ) -> anyhow::Result<SourceFileInsertionData> {
     let content = std::fs::read_to_string(&file_path)?;
     Ok(process_translation_file_content(
-        database, file_path, &locale, &content,
+        database, file_path, &locale, &content, strategy,
     ))
 }
 
@@ -204,8 +216,9 @@ pub fn process_translation_file_content(
     file_path: &str,
     locale: &str,
     content: &str,
+    strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
-    crate::sources::process_translations_file(database, &file_path, &locale, &content)
+    crate::sources::process_translations_file(database, &file_path, &locale, &content, strategy)
 }
 
 pub fn get_known_locales(database: &MessagesDatabase) -> Vec<KeySymbol> {

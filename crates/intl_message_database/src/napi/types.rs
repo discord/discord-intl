@@ -1,5 +1,5 @@
 use crate::sources::{MessagesFileDescriptor, SourceFileInsertionData};
-use intl_database_core::{key_symbol, DatabaseError};
+use intl_database_core::{key_symbol, DatabaseError, DatabaseInsertStrategy};
 use intl_database_exporter::CompiledMessageFormat;
 use intl_validator::MessageDiagnostic;
 use napi::{JsObject, JsString};
@@ -198,6 +198,33 @@ impl From<SourceFileInsertionData> for IntlSourceFileInsertionData {
                 .into_iter()
                 .map(IntlSourceFileError::from)
                 .collect(),
+        }
+    }
+}
+
+#[napi]
+pub enum IntlDatabaseInsertStrategy {
+    Create,
+    Update,
+    Replace,
+}
+
+impl From<DatabaseInsertStrategy> for IntlDatabaseInsertStrategy {
+    fn from(value: DatabaseInsertStrategy) -> Self {
+        match value {
+            DatabaseInsertStrategy::NewSourceFile => IntlDatabaseInsertStrategy::Create,
+            DatabaseInsertStrategy::UpdateSourceFile => IntlDatabaseInsertStrategy::Update,
+            DatabaseInsertStrategy::ReplaceExisting => IntlDatabaseInsertStrategy::Replace,
+        }
+    }
+}
+
+impl From<IntlDatabaseInsertStrategy> for DatabaseInsertStrategy {
+    fn from(value: IntlDatabaseInsertStrategy) -> Self {
+        match value {
+            IntlDatabaseInsertStrategy::Create => DatabaseInsertStrategy::NewSourceFile,
+            IntlDatabaseInsertStrategy::Update => DatabaseInsertStrategy::UpdateSourceFile,
+            IntlDatabaseInsertStrategy::Replace => DatabaseInsertStrategy::ReplaceExisting,
         }
     }
 }

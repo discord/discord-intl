@@ -4,12 +4,12 @@ export declare class IntlMessagesDatabase {
   constructor()
   findAllMessagesFiles(directories: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
   filterAllMessagesFiles(files: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
-  processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>): Array<IntlSourceFileInsertionData>
-  processDefinitionsFile(filePath: string, locale?: string | undefined | null): IntlSourceFileInsertionData
-  processDefinitionsFileContent(filePath: string, content: string, locale?: string | undefined | null): IntlSourceFileInsertionData
-  processAllTranslationFiles(localeMap: Record<string, string>): Array<IntlSourceFileInsertionData>
-  processTranslationFile(filePath: string, locale: string): IntlSourceFileInsertionData
-  processTranslationFileContent(filePath: string, locale: string, content: string): IntlSourceFileInsertionData
+  processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>, strategy: IntlDatabaseInsertStrategy): Array<IntlSourceFileInsertionData>
+  processDefinitionsFile(filePath: string, locale: string | undefined | null, strategy: IntlDatabaseInsertStrategy): IntlSourceFileInsertionData
+  processDefinitionsFileContent(filePath: string, content: string, locale: string | undefined | null, strategy: IntlDatabaseInsertStrategy): IntlSourceFileInsertionData
+  processAllTranslationFiles(localeMap: Record<string, string>, strategy: IntlDatabaseInsertStrategy): Array<IntlSourceFileInsertionData>
+  processTranslationFile(filePath: string, locale: string, strategy: IntlDatabaseInsertStrategy): IntlSourceFileInsertionData
+  processTranslationFileContent(filePath: string, locale: string, content: string, strategy: IntlDatabaseInsertStrategy): IntlSourceFileInsertionData
   getKnownLocales(): Array<string>
   getSourceFile(filePath: string): IntlSourceFile
   getAllSourceFilePaths(): Array<string>
@@ -39,6 +39,12 @@ export declare function hashMessageKey(key: string): string
 export declare const enum IntlCompiledMessageFormat {
   Json = 0,
   KeylessJson = 1
+}
+
+export declare const enum IntlDatabaseInsertStrategy {
+  Create = 0,
+  Update = 1,
+  Replace = 2
 }
 
 export interface IntlDiagnostic {

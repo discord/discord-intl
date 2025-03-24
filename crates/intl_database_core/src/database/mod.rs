@@ -12,6 +12,7 @@ pub mod message;
 pub mod source;
 pub mod symbol;
 
+#[derive(Copy, Clone)]
 pub enum DatabaseInsertStrategy {
     /// The insertion represents a source file being processed for the first time. No messages
     /// defined in the file should exist in the database yet, and any duplicates are considered
@@ -22,14 +23,39 @@ pub enum DatabaseInsertStrategy {
     /// originating from the same source file will be overwritten. Keys with definitions in other
     /// source files will still be skipped and logged as failures.
     UpdateSourceFile,
+    /// The insertion represents an update that should overwrite any existing value, regardless of
+    /// which source file it originates from. This is best used for importing new translations from
+    /// a remote source like a translation vendor, where the updates come from external files and
+    /// need to be applied and then re-written to the existing source files.
+    ReplaceExisting,
 }
 
 impl DatabaseInsertStrategy {
     #[inline]
-    pub fn allow_same_file_replacement(&self) -> bool {
+    pub fn allows_same_file_replacement(&self) -> bool {
         match self {
             DatabaseInsertStrategy::NewSourceFile => false,
             DatabaseInsertStrategy::UpdateSourceFile => true,
+            DatabaseInsertStrategy::ReplaceExisting => true,
+        }
+    }
+
+    #[inline]
+    pub fn allows_any_replacement(&self) -> bool {
+        match self {
+            DatabaseInsertStrategy::NewSourceFile => false,
+            DatabaseInsertStrategy::UpdateSourceFile => false,
+            DatabaseInsertStrategy::ReplaceExisting => true,
+        }
+    }
+
+    /// Returns true if the strategy allows replacing a value from `old_file`
+    /// with a value from `new_file`.
+    pub fn can_replace(&self, old_file: KeySymbol, new_file: KeySymbol) -> bool {
+        if old_file == new_file {
+            self.allows_same_file_replacement()
+        } else {
+            self.allows_any_replacement()
         }
     }
 }
@@ -157,7 +183,7 @@ impl MessagesDatabase {
                     let old_file = definition.file_position.file;
                     let new_file = value.file_position.file;
 
-                    if new_file != old_file || !strategy.allow_same_file_replacement() {
+                    if !strategy.can_replace(old_file, new_file) {
                         return Err(DatabaseError::AlreadyDefined {
                             name: key,
                             existing: definition.clone(),
@@ -212,7 +238,7 @@ impl MessagesDatabase {
                 if let Some(translation) = existing.translations().get(&locale) {
                     let old_file = translation.file_position.file;
                     let new_file = value.file_position.file;
-                    if new_file != old_file || !strategy.allow_same_file_replacement() {
+                    if !strategy.can_replace(old_file, new_file) {
                         return Err(DatabaseError::TranslationAlreadySet {
                             name: key,
                             locale,

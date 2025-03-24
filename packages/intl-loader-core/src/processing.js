@@ -1,7 +1,10 @@
 const path = require('node:path');
 
 const debug = require('debug')('intl:loader-core');
-const { IntlCompiledMessageFormat } = require('@discord/intl-message-database');
+const {
+  IntlCompiledMessageFormat,
+  IntlDatabaseInsertStrategy,
+} = require('@discord/intl-message-database');
 
 const { database } = require('./database');
 const { findAllTranslationFiles, getLocaleFromTranslationsFileName } = require('./util');
@@ -111,10 +114,11 @@ function filterAllMessagesFiles(files, defaultLocale = 'en-US') {
  * with a `sourceContent` argument.
  *
  * @param {IntlMessagesFileDescriptor[]} files
+ * @param {IntlDatabaseInsertStrategy} [strategy]
  * @returns {IntlSourceFileInsertionData[]}
  */
-function processAllMessagesFiles(files) {
-  return database.processAllMessagesFiles(files);
+function processAllMessagesFiles(files, strategy = IntlDatabaseInsertStrategy.Update) {
+  return database.processAllMessagesFiles(files, strategy);
 }
 
 /**
@@ -123,6 +127,7 @@ function processAllMessagesFiles(files) {
  * @param {{
  *   processTranslations?: boolean,
  *   locale?: string
+ *   strategy?: IntlDatabaseInsertStrategy
  * }=} options
  * @returns {ProcessDefinitionsResult}
  */
@@ -131,15 +136,16 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
     processTranslations = false,
     // TODO: Make this more configurable/automatically determined.
     locale = 'en-US',
+    strategy = IntlDatabaseInsertStrategy.Update,
   } = options;
   debug(`[${sourcePath}] Processing definitions with locale "${locale}"`);
 
   /** @type {IntlSourceFileInsertionData} */
   let result;
   if (sourceContent != null) {
-    result = database.processDefinitionsFileContent(sourcePath, sourceContent, locale);
+    result = database.processDefinitionsFileContent(sourcePath, sourceContent, locale, strategy);
   } else {
-    result = database.processDefinitionsFile(sourcePath, locale);
+    result = database.processDefinitionsFile(sourcePath, locale, strategy);
   }
   if (result.errors.length > 0) {
     return { succeeded: false, errors: result.errors };
@@ -162,7 +168,7 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
   );
 
   if (processTranslations) {
-    const translationsResult = database.processAllTranslationFiles(translationsLocaleMap);
+    const translationsResult = database.processAllTranslationFiles(translationsLocaleMap, strategy);
     const allErrors = translationsResult.flatMap((result) => result.errors);
     if (allErrors.length > 0) {
       return { succeeded: false, errors: allErrors };
@@ -186,18 +192,22 @@ function processDefinitionsFile(sourcePath, sourceContent, options = {}) {
  * @param {string=} sourceContent
  * @param {{
  *   locale?: string,
+ *   strategy?: IntlDatabaseInsertStrategy
  * }=} options
  * @returns {ProcessTranslationsResult}
  */
 function processTranslationsFile(sourcePath, sourceContent, options = {}) {
-  const { locale = getLocaleFromTranslationsFileName(sourcePath) } = options;
+  const {
+    locale = getLocaleFromTranslationsFileName(sourcePath),
+    strategy = IntlDatabaseInsertStrategy.Update,
+  } = options;
 
   /** @type {IntlSourceFileInsertionData} */
   let result;
   if (sourceContent) {
-    result = database.processTranslationFileContent(sourcePath, locale, sourceContent);
+    result = database.processTranslationFileContent(sourcePath, locale, sourceContent, strategy);
   } else {
-    result = database.processTranslationFile(sourcePath, locale);
+    result = database.processTranslationFile(sourcePath, locale, strategy);
   }
   if (result.errors.length > 0) {
     return { succeeded: false, errors: result.errors };

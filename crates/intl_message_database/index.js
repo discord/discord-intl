@@ -78,6 +78,7 @@ const {
   isMessageTranslationsFile,
   IntlMessagesDatabase,
   IntlCompiledMessageFormat,
+  IntlDatabaseInsertStrategy,
 } = nativeBinding;
 
 module.exports = {
@@ -86,4 +87,5 @@ module.exports = {
   isMessageTranslationsFile,
   IntlMessagesDatabase,
   IntlCompiledMessageFormat,
+  IntlDatabaseInsertStrategy,
 };

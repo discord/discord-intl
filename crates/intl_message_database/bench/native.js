@@ -1,7 +1,11 @@
 /* eslint-disable no-console */
 // @ts-check
 
-const { IntlMessagesDatabase, IntlCompiledMessageFormat } = require('..');
+const {
+  IntlMessagesDatabase,
+  IntlCompiledMessageFormat,
+  IntlDatabaseInsertStrategy,
+} = require('..');
 const fs = require('node:fs');
 const path = require('node:path');
 const util = require('node:util');
@@ -25,7 +29,7 @@ const SOURCE_FILES = [
 bench('processing', () => {
   let p = './data/input';
   let files = database.findAllMessagesFiles([p], 'en-US');
-  database.processAllMessagesFiles(files);
+  database.processAllMessagesFiles(files, IntlDatabaseInsertStrategy.Create);
 });
 
 const sourceFile = database.getSourceFile(SOURCE_FILES[0]);

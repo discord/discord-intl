@@ -10,8 +10,8 @@ use napi_derive::napi;
 use std::collections::HashMap;
 
 use crate::napi::types::{
-    IntlDiagnostic, IntlMessageBundlerOptions, IntlMessagesFileDescriptor,
-    IntlSourceFileInsertionData,
+    IntlDatabaseInsertStrategy, IntlDiagnostic, IntlMessageBundlerOptions,
+    IntlMessagesFileDescriptor, IntlSourceFileInsertionData,
 };
 use crate::public;
 use crate::sources::MessagesFileDescriptor;
@@ -69,10 +69,12 @@ impl IntlMessagesDatabase {
     pub fn process_all_messages_files(
         &mut self,
         directories: Vec<IntlMessagesFileDescriptor>,
+        strategy: IntlDatabaseInsertStrategy,
     ) -> anyhow::Result<Vec<IntlSourceFileInsertionData>> {
         let sources = public::process_all_messages_files(
             &mut self.database,
             directories.iter().map(MessagesFileDescriptor::from),
+            strategy.into(),
         )?;
         Ok(sources
             .into_iter()
@@ -85,11 +87,13 @@ impl IntlMessagesDatabase {
         &mut self,
         file_path: String,
         locale: Option<String>,
+        strategy: IntlDatabaseInsertStrategy,
     ) -> anyhow::Result<IntlSourceFileInsertionData> {
         let result = public::process_definitions_file(
             &mut self.database,
             &file_path,
             locale.as_ref().map(String::as_str),
+            strategy.into(),
         )?;
         Ok(result.into())
     }
@@ -100,12 +104,14 @@ impl IntlMessagesDatabase {
         file_path: String,
         content: String,
         locale: Option<String>,
+        strategy: IntlDatabaseInsertStrategy,
     ) -> IntlSourceFileInsertionData {
         public::process_definitions_file_content(
             &mut self.database,
             &file_path,
             &content,
             locale.as_ref().map(String::as_str),
+            strategy.into(),
         )
         .into()
     }
@@ -114,8 +120,10 @@ impl IntlMessagesDatabase {
     pub fn process_all_translation_files(
         &mut self,
         locale_map: HashMap<String, String>,
+        strategy: IntlDatabaseInsertStrategy,
     ) -> anyhow::Result<Vec<IntlSourceFileInsertionData>> {
-        let result = public::process_all_translation_files(&mut self.database, locale_map)?;
+        let result =
+            public::process_all_translation_files(&mut self.database, locale_map, strategy.into())?;
         Ok(result
             .into_iter()
             .map(IntlSourceFileInsertionData::from)
@@ -127,8 +135,14 @@ impl IntlMessagesDatabase {
         &mut self,
         file_path: String,
         locale: String,
+        strategy: IntlDatabaseInsertStrategy,
     ) -> anyhow::Result<IntlSourceFileInsertionData> {
-        let result = public::process_translation_file(&mut self.database, &file_path, &locale)?;
+        let result = public::process_translation_file(
+            &mut self.database,
+            &file_path,
+            &locale,
+            strategy.into(),
+        )?;
         Ok(result.into())
     }
 
@@ -138,9 +152,16 @@ impl IntlMessagesDatabase {
         file_path: String,
         locale: String,
         content: String,
+        strategy: IntlDatabaseInsertStrategy,
     ) -> IntlSourceFileInsertionData {
-        public::process_translation_file_content(&mut self.database, &file_path, &locale, &content)
-            .into()
+        public::process_translation_file_content(
+            &mut self.database,
+            &file_path,
+            &locale,
+            &content,
+            strategy.into(),
+        )
+        .into()
     }
 
     #[napi]
