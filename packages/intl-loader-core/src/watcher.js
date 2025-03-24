@@ -164,7 +164,7 @@ async function precompileMessageDefinitionsFiles(
         return;
       }
 
-      precompileFileForLocale(filePath, result.locale, undefined, {
+      precompileFileForLocale(filePath, result.locale, outputPath, {
         format,
         bundleSecrets,
       });
