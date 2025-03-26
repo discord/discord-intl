@@ -26,13 +26,18 @@ fn collect_messages(env: Env, iterator: impl Iterator<Item = JsonMessage>) -> na
     // avoiding repeated re-allocations that we're pretty confident will happen
     // ends up saving a lot more time in the end.
     let mut result = env.create_array(1024)?;
+    let mut index = 0;
     for message in iterator {
-        result.insert(Message {
-            key: message.key.to_string(),
-            value: message.value.to_string(),
-            line: message.position.line,
-            col: message.position.col,
-        })?;
+        result.set(
+            index,
+            Message {
+                key: message.key.to_string(),
+                value: message.value.to_string(),
+                line: message.position.line,
+                col: message.position.col,
+            },
+        )?;
+        index += 1;
     }
 
     Ok(result)
