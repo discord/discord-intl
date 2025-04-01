@@ -195,7 +195,7 @@ export class MessageLoader {
 
     // If the message couldn't be found in either the requested nor the default locale, then
     // nothing can be done.
-    const errorKey = this._debugKeyMap != null ? `"${this._debugKeyMap[key]}" (${key})` : undefined;
+    const errorKey = this._debugKeyMap != null ? `"${this._debugKeyMap[key]}" (${key})` : key;
     const requestedLocale =
       this._localeFileMap != null ? `${locale} (${this._localeFileMap[locale]})` : locale;
     const defaultLocale =
