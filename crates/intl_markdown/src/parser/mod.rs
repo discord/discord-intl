@@ -456,7 +456,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "{username unblocked";
+        let content = "¯\\\\_(ツ)_/¯";
         let mut parser = ICUMarkdownParser::new(content, true);
         let source = parser.source.clone();
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());

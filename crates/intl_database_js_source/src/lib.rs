@@ -9,6 +9,7 @@ use swc_core::ecma::ast::Module;
 use crate::extractor::{extract_message_definitions, parse_message_definitions_file};
 
 mod extractor;
+mod unescape;
 
 pub struct JsMessageSource;
 
