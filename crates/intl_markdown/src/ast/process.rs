@@ -4,7 +4,6 @@ use crate::ast::{CodeBlockKind, HeadingKind, IcuPluralKind, LinkDestination, Lin
 use crate::html_entities::get_html_entity;
 use crate::token::{SourceText, Token};
 use crate::tree_builder::{cst, TokenSpan};
-use crate::util::unescape_cow;
 use crate::{ast, SyntaxKind};
 
 use super::util::unescape;
@@ -341,17 +340,16 @@ pub fn process_inline_token(
     }
 
     let has_trailing_newline = token.has_trailing_newline();
-    let text = get_text_with_replaced_references(context, &token);
-    let mut unescaped = unescape_cow(&text);
+    let mut text = get_text_with_replaced_references(context, &token);
     // If there's a trailing newline, we have to copy and append the buffer no matter what.
     let result = if include_trailing_trivia && has_trailing_newline {
-        unescaped.to_mut().push_str("\n");
-        unescaped.to_string()
+        text.to_mut().push_str("\n");
+        text.to_string()
     } else {
         if include_trailing_trivia {
-            unescaped.to_mut().push_str(&token.trailing_trivia_text());
+            text.to_mut().push_str(&token.trailing_trivia_text());
         }
-        unescaped.to_string()
+        text.to_string()
     };
     ast::InlineContent::Text(result)
 }
