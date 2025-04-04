@@ -64,6 +64,8 @@ fn autolinks(input: &str, output: &str) {
 #[test_case("[foo](/bar\\* \"ti\\*tle\")", "<p><a href=\"/bar*\" title=\"ti*tle\">foo</a></p>"; "example_22")]
 // #[test_case("[foo]\n\n[foo]: /bar\\* \"ti\\*tle\"", "<p><a href=\"/bar*\" title=\"ti*tle\">foo</a></p>"; "example_23")]
 #[test_case("``` foo\\+bar\nfoo\n```", "<pre><code class=\"language-foo+bar\">foo\n</code></pre>"; "example_24")]
+#[test_case("Appends ¯\\\\_(ツ)_/¯ to your message.", "<p>Appends ¯\\_(ツ)_/¯ to your message.</p>"; "shrug_command")]
+#[test_case("Appends ¯\\\\\\_(ツ)_/¯ to your message.", "<p>Appends ¯\\_(ツ)_/¯ to your message.</p>"; "shrug_command_2")]
 fn backslash_escapes(input: &str, output: &str) {
     run_spec_test(input, output);
 }

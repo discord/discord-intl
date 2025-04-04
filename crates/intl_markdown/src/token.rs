@@ -400,7 +400,11 @@ impl Token {
     }
 
     pub fn text(&self) -> &str {
-        &self.source[self.range_usize()]
+        if self.flags.is_escaped() {
+            &self.source[(self.range.start + 1) as usize..self.range.end as usize]
+        } else {
+            &self.source[self.range_usize()]
+        }
     }
 
     pub fn range(&self) -> TextSpan {

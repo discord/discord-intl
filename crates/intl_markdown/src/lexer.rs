@@ -532,13 +532,14 @@ impl<'source> Lexer<'source> {
     /// valid escape sequences, or `text` if the next character would not create
     /// a valid escape.
     fn consume_escaped(&mut self) -> SyntaxKind {
-        self.state.last_token_was_escape = true;
-        self.current_flags.insert(TokenFlags::IS_ESCAPED);
         self.advance();
 
         if self.is_eof() {
             return SyntaxKind::TEXT;
         }
+
+        self.state.last_token_was_escape = true;
+        self.current_flags.insert(TokenFlags::IS_ESCAPED);
 
         match self.current() {
             // Escaped backticks are treated specially when discovering code
