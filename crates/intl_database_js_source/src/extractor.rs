@@ -1,4 +1,4 @@
-use std::borrow::{Borrow, Cow};
+use std::borrow::Borrow;
 use swc_common::source_map::SmallPos;
 use swc_common::sync::Lrc;
 use swc_common::{BytePos, FileName, SourceMap, Spanned};
@@ -8,17 +8,11 @@ use swc_core::ecma::ast::{
 use swc_core::ecma::parser::{lexer::Lexer, PResult, Parser, StringInput, Syntax};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use crate::unescape::js_escape_handler;
 use intl_database_core::{
     key_symbol, FilePosition, KeySymbol, MessageMeta, MessageSourceError, MessageSourceResult,
     RawMessageDefinition, SourceFileMeta,
 };
 use intl_message_utils::RUNTIME_PACKAGE_NAME;
-
-/// Apply literal escape sequences like `\n` from the string value.
-fn apply_string_escapes(value: &str) -> Cow<str> {
-    unescape_zero_copy::unescape(js_escape_handler, value).unwrap_or(Cow::from(value))
-}
 
 pub fn parse_message_definitions_file(
     file_name: &str,
@@ -174,7 +168,7 @@ impl MessageDefinitionsExtractor {
         Ok(RawMessageDefinition::new(
             key.into(),
             FilePosition::new(self.file_key, loc.line as u32, loc.col.to_u32()),
-            apply_string_escapes(value),
+            value,
             self.clone_meta(),
         ))
     }
@@ -258,7 +252,7 @@ impl MessageDefinitionsExtractor {
     /// is returned. Any other expression will return None.
     fn parse_string_value(&self, expr: &Expr) -> Option<String> {
         match expr.as_lit() {
-            Some(Lit::Str(string)) => Some(apply_string_escapes(&string.value).to_string()),
+            Some(Lit::Str(string)) => Some(string.value.to_string()),
             _ => None,
         }
     }
@@ -362,15 +356,12 @@ mod tests {
         import {{defineMessages}} from '{}';
 
         export default defineMessages({{
+            HALF: '\_ foo',
             ONE_ESCAPE: '\\_ foo',
             ONE_HALF: '\\\_ bar',
             TWO_ESCAPE: '\\\\_ two',
             TWO_HALF: '\\\\\_ half',
-            THREE_ESCAPE: '\\\\\\_ baz',
-            THREE_HALF: '\\\\\\\_ aaa',
-            FOUR_ESCAPE: '\\\\\\\\_ four',
-            FOUR_HALF: '\\\\\\\\\_ bbb',
-            UNICODE: '\ƒ',
+            UNICODE: '\ƒ\xff',
         }});
         "#,
                 intl_message_utils::RUNTIME_PACKAGE_NAME
@@ -381,15 +372,12 @@ mod tests {
         let extractor = extract_message_definitions("testing.js", map, module);
         for message in extractor.message_definitions {
             let expected = match message.name.as_str() {
-                "ONE_ESCAPE" => "_ foo",
-                "ONE_HALF" => "_ bar",
-                "TWO_ESCAPE" => "\\_ two",
-                "TWO_HALF" => "\\_ half",
-                "THREE_ESCAPE" => "\\_ baz",
-                "THREE_HALF" => "\\_ aaa",
-                "FOUR_ESCAPE" => "\\\\_ four",
-                "FOUR_HALF" => "\\\\_ bbb",
-                "UNICODE" => "ƒ",
+                "HALF" => "_ foo",
+                "ONE_ESCAPE" => "\\_ foo",
+                "ONE_HALF" => "\\_ bar",
+                "TWO_ESCAPE" => "\\\\_ two",
+                "TWO_HALF" => "\\\\_ half",
+                "UNICODE" => "ƒÿ",
                 _ => unreachable!(),
             };
 
