@@ -1,4 +1,4 @@
-use std::borrow::{Borrow, Cow};
+use std::borrow::Borrow;
 use swc_common::source_map::SmallPos;
 use swc_common::sync::Lrc;
 use swc_common::{BytePos, FileName, SourceMap, Spanned};
@@ -7,7 +7,6 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::parser::{lexer::Lexer, PResult, Parser, StringInput, Syntax};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-use unescape_zero_copy::unescape_default;
 
 use intl_database_core::{
     key_symbol, FilePosition, KeySymbol, MessageMeta, MessageSourceError, MessageSourceResult,
@@ -169,7 +168,7 @@ impl MessageDefinitionsExtractor {
         Ok(RawMessageDefinition::new(
             key.into(),
             FilePosition::new(self.file_key, loc.line as u32, loc.col.to_u32()),
-            self.apply_string_escapes(value),
+            value,
             self.clone_meta(),
         ))
     }
@@ -253,14 +252,9 @@ impl MessageDefinitionsExtractor {
     /// is returned. Any other expression will return None.
     fn parse_string_value(&self, expr: &Expr) -> Option<String> {
         match expr.as_lit() {
-            Some(Lit::Str(string)) => Some(self.apply_string_escapes(&string.value).to_string()),
+            Some(Lit::Str(string)) => Some(string.value.to_string()),
             _ => None,
         }
-    }
-
-    /// Apply literal escape sequences like `\n` from the string value.
-    fn apply_string_escapes<'a>(&self, value: &'a str) -> Cow<'a, str> {
-        unescape_default(value).unwrap_or(Cow::from(value))
     }
 }
 
@@ -343,7 +337,7 @@ impl Visit for MessageDefinitionsExtractor {
 
 #[cfg(test)]
 mod tests {
-    use intl_database_core::{key_symbol, MessageSourceError};
+    use intl_database_core::MessageSourceError;
 
     use super::{extract_message_definitions, parse_message_definitions_file};
 
@@ -354,8 +348,46 @@ mod tests {
     }
 
     #[test]
+    fn test_slash_escapes() {
+        let (map, module) = parse_message_definitions_file(
+            "testing.js",
+            &format!(
+                r#"
+        import {{defineMessages}} from '{}';
+
+        export default defineMessages({{
+            HALF: '\_ foo',
+            ONE_ESCAPE: '\\_ foo',
+            ONE_HALF: '\\\_ bar',
+            TWO_ESCAPE: '\\\\_ two',
+            TWO_HALF: '\\\\\_ half',
+            UNICODE: '\ƒ\xff',
+        }});
+        "#,
+                intl_message_utils::RUNTIME_PACKAGE_NAME
+            ),
+        )
+        .expect("successful parse");
+
+        let extractor = extract_message_definitions("testing.js", map, module);
+        for message in extractor.message_definitions {
+            let expected = match message.name.as_str() {
+                "HALF" => "_ foo",
+                "ONE_ESCAPE" => "\\_ foo",
+                "ONE_HALF" => "\\_ bar",
+                "TWO_ESCAPE" => "\\\\_ two",
+                "TWO_HALF" => "\\\\_ half",
+                "UNICODE" => "ƒÿ",
+                _ => unreachable!(),
+            };
+
+            assert_eq!(message.value.raw, expected);
+        }
+    }
+
+    #[test]
     fn test_parse_template_string() {
-        let module = parse_message_definitions_file(
+        parse_message_definitions_file(
             "testing.js",
             &format!(
                 r#"
@@ -371,8 +403,6 @@ mod tests {
             ),
         )
         .expect("failed to parse source code");
-
-        let file_symbol = key_symbol("testing.js");
     }
 
     #[test]
