@@ -194,6 +194,19 @@ impl IntlMessagesDatabase {
         Ok(env.to_js_value(&hashes)?)
     }
 
+    #[napi]
+    /// Return file paths for all definitions files with a translations path meta value that would
+    /// include the given `translationPath`. This can be used to add reverse dependencies, and
+    /// safely cache translations files with appropriate change detection.
+    pub fn get_definitions_files_for_translations_path(
+        &self,
+        translations_path: String,
+    ) -> anyhow::Result<Vec<String>> {
+        let paths =
+            public::get_definitions_files_for_translations_path(&self.database, &translations_path);
+        Ok(paths.into_iter().map(|path| path.to_string()).collect())
+    }
+
     #[napi(ts_return_type = "IntlMessage")]
     pub fn get_message(&self, env: Env, key: String) -> anyhow::Result<JsUnknown> {
         let definition = public::get_message(&self.database, &key)?;

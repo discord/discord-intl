@@ -68,15 +68,7 @@ function buildTranslationsLocaleMap(sourcePath, sourceFile, translationsPath) {
  */
 function findAllDefinitionsFilesForTranslations(filePath) {
   const expectedTranslationsPath = path.dirname(filePath);
-  const sourceFiles = database.getAllSourceFilePaths();
-  const relevantPaths = [];
-  for (const file of sourceFiles) {
-    const source = database.getSourceFile(file);
-    if (source.type === 'definition' && source.meta.translationsPath === expectedTranslationsPath) {
-      relevantPaths.push(source.file);
-    }
-  }
-  return relevantPaths;
+  return database.getDefinitionsFilesForTranslationsPath(expectedTranslationsPath);
 }
 
 /**

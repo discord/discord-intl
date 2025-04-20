@@ -266,6 +266,30 @@ pub fn get_source_file_key_map(
     Ok(hashes)
 }
 
+/// Return file paths for all definitions files with a translations path meta value that would
+/// include the given `translationPath`. This can be used to add reverse dependencies, and
+/// safely cache translations files with appropriate change detection.
+pub fn get_definitions_files_for_translations_path(
+    database: &MessagesDatabase,
+    translations_path: &str,
+) -> Vec<KeySymbol> {
+    let expected_path = PathBuf::from(translations_path);
+    // Very cheap to allocate initially, and saves repeated allocations that
+    // are very likely to be hit.
+    let mut result = Vec::with_capacity(8);
+    for (path, file) in &database.sources {
+        match file {
+            SourceFile::Translation(_) => continue,
+            SourceFile::Definition(definition) => {
+                if definition.meta().translations_path == expected_path {
+                    result.push(*path)
+                }
+            }
+        }
+    }
+    result
+}
+
 pub fn get_message<'a>(database: &'a MessagesDatabase, key: &str) -> anyhow::Result<&'a Message> {
     let definition = database
         .get_message(&key)

@@ -18,6 +18,12 @@ export declare class IntlMessagesDatabase {
    * map is the hashed name and the value is the original.
    */
   getSourceFileKeyMap(filePath: string): Record<string, string>
+  /**
+   * Return file paths for all definitions files with a translations path meta value that would
+   * include the given `translationPath`. This can be used to add reverse dependencies, and
+   * safely cache translations files with appropriate change detection.
+   */
+  getDefinitionsFilesForTranslationsPath(translationsPath: string): Array<string>
   getMessage(key: string): IntlMessage
   generateTypes(sourceFilePath: string, outputFilePath: string): void
   precompile(filePath: string, locale: string, outputPath: string, options?: IntlMessageBundlerOptions | undefined | null): void
@@ -25,13 +31,6 @@ export declare class IntlMessagesDatabase {
   validateMessages(): Array<IntlDiagnostic>
   exportTranslations(fileExtension?: string | undefined | null): Array<string>
   getSourceFileMessageValues(filePath: string): Record<string, IntlMessageValue | undefined>
-}
-
-export declare class Message {
-  key: string
-  value: string
-  line: number
-  col: number
 }
 
 export declare function hashMessageKey(key: string): string
@@ -131,8 +130,4 @@ export interface IntlSourceFileMeta {
 export declare function isMessageDefinitionsFile(key: string): boolean
 
 export declare function isMessageTranslationsFile(key: string): boolean
-
-export declare function parseJson(text: string): Message[]
-
-export declare function parseJsonFile(filePath: string): Message[]
 

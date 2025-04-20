@@ -26,8 +26,8 @@
     "url": "https://github.com/discord/discord-intl"
   },
   "scripts": {
-    "build": "tsc && cp types.d.ts types/",
-    "build:release": "tsc && cp types.d.ts types/",
+    "build": "tsc && mkdir types && cp types.d.ts types/",
+    "build:release": "tsc && mkdir types && cp types.d.ts types/",
     "prepublishOnly": "pnpm build:release"
   },
   "dependencies": {
