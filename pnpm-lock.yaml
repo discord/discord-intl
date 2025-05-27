@@ -230,6 +230,10 @@ importers:
       '@discord/intl-loader-core':
         specifier: workspace:*
         version: link:../intl-loader-core
+    devDependencies:
+      '@jest/types':
+        specifier: ^29.6.3
+        version: 29.6.3
 
   packages/metro-intl-transformer:
     dependencies:
@@ -3075,7 +3079,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 20.12.7
+      '@types/node': 22.0.0
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -4457,7 +4461,7 @@ snapshots:
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 22.0.0
+      '@types/node': 20.12.7
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1

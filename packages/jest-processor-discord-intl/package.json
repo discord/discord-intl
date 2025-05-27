@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "@discord/intl-loader-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@jest/types": "^29.6.3"
   }
 }
