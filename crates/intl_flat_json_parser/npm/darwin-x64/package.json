@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-flat-json-parser-darwin-x64",
-  "version": "0.23.1",
+  "version": "0.23.2",
   "os": [
     "darwin"
   ],
