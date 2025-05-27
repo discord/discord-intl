@@ -480,6 +480,9 @@ mod test {
         println!("AST:\n----\n{:#?}\n", ast);
 
         let output = format_ast(&ast);
-        println!("Output: {:?}", output.unwrap());
+        println!("Output: {}", output.unwrap());
+
+        let json = keyless_json::to_string(&ast);
+        println!("JSON: {}", json.unwrap());
     }
 }

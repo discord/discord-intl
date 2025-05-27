@@ -359,21 +359,17 @@ fn get_text_with_replaced_references<'a>(
     token: &'a Token,
 ) -> Cow<'a, str> {
     match token.kind() {
-        SyntaxKind::DEC_CHAR_REF => {
-            return Cow::from(process_char_ref(
-                context,
-                &token.text()[2..token.text().len() - 1],
-                10,
-            ))
-        }
-        SyntaxKind::HEX_CHAR_REF => {
-            return Cow::from(process_char_ref(
-                context,
-                &token.text()[3..token.text().len() - 1],
-                16,
-            ))
-        }
-        SyntaxKind::HTML_ENTITY => return process_html_entity(context, token).into(),
+        SyntaxKind::DEC_CHAR_REF => Cow::from(process_char_ref(
+            context,
+            &token.text()[2..token.text().len() - 1],
+            10,
+        )),
+        SyntaxKind::HEX_CHAR_REF => Cow::from(process_char_ref(
+            context,
+            &token.text()[3..token.text().len() - 1],
+            16,
+        )),
+        SyntaxKind::HTML_ENTITY => process_html_entity(context, token).into(),
         _ => Cow::from(token.text()),
     }
 }

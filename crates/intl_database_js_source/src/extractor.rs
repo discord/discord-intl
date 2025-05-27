@@ -90,7 +90,14 @@ impl MessageDefinitionsExtractor {
                 //     SOME_STRING: `"this" is valid, isn't it?`
                 // We want to support that syntax, but we can't allow templates
                 // that have embedded expressions or multiple elements.
-                let string_value = template.quasis.get(0).map(|expr| &expr.raw);
+                let string_value = template.quasis.get(0).map(|expr| {
+                    // https://github.com/swc-project/swc/pull/10232#issuecomment-2739376647
+                    // I would think we want `raw` here, but it turns out that the template
+                    // literal represents escaped newlines as _double escaped_ text, meaning
+                    // `\n` turns into '\\n', but we don't want the extra escape, so we use
+                    // the cooked version instead.
+                    expr.cooked.as_ref().unwrap_or(&expr.raw)
+                });
                 let is_static = template.quasis.len() == 1 && template.exprs.len() == 0;
 
                 match string_value {
@@ -339,7 +346,25 @@ impl Visit for MessageDefinitionsExtractor {
 mod tests {
     use intl_database_core::MessageSourceError;
 
-    use super::{extract_message_definitions, parse_message_definitions_file};
+    use super::{
+        extract_message_definitions, parse_message_definitions_file, MessageDefinitionsExtractor,
+    };
+
+    fn extract_test_messages(source: &str) -> MessageDefinitionsExtractor {
+        let (map, module) = parse_message_definitions_file(
+            "testing.js",
+            &format!(
+                r#"
+        import {{defineMessages}} from '{}';
+
+        export default defineMessages({{{source}}})
+        "#,
+                intl_message_utils::RUNTIME_PACKAGE_NAME
+            ),
+        )
+        .expect("successful parse of message definitions");
+        extract_message_definitions("testing.js", map, module)
+    }
 
     #[test]
     fn test_parsing() {
@@ -349,27 +374,17 @@ mod tests {
 
     #[test]
     fn test_slash_escapes() {
-        let (map, module) = parse_message_definitions_file(
-            "testing.js",
-            &format!(
-                r#"
-        import {{defineMessages}} from '{}';
-
-        export default defineMessages({{
+        let extractor = extract_test_messages(
+            r#"
             HALF: '\_ foo',
             ONE_ESCAPE: '\\_ foo',
             ONE_HALF: '\\\_ bar',
             TWO_ESCAPE: '\\\\_ two',
             TWO_HALF: '\\\\\_ half',
-            UNICODE: '\ƒ\xff',
-        }});
+            UNICODE: '\ƒ\xff'
         "#,
-                intl_message_utils::RUNTIME_PACKAGE_NAME
-            ),
-        )
-        .expect("successful parse");
+        );
 
-        let extractor = extract_message_definitions("testing.js", map, module);
         for message in extractor.message_definitions {
             let expected = match message.name.as_str() {
                 "HALF" => "_ foo",
@@ -382,6 +397,51 @@ mod tests {
             };
 
             assert_eq!(message.value.raw, expected);
+        }
+    }
+
+    #[test]
+    fn test_escaped_newlines() {
+        let extractor = extract_test_messages(
+            r#"
+                SINGLE_NEWLINE: 'this is a\nmulti-line string',
+                DOUBLE_NEWLINE: 'this is a\n\nmulti-paragraph string'
+            "#,
+        );
+
+        for message in extractor.message_definitions {
+            let expected = match message.name.as_str() {
+                "SINGLE_NEWLINE" => "this is a\nmulti-line string",
+                "DOUBLE_NEWLINE" => "this is a\n\nmulti-paragraph string",
+                _ => unreachable!(),
+            };
+
+            assert_eq!(message.value.raw, expected);
+            println!("{}", message.value.raw);
+        }
+    }
+
+    #[test]
+    fn test_template_literal_escapes() {
+        // SWC Issue: https://github.com/swc-project/swc/issues/637
+        // Depsite being "fixed" the behavior doesn't seem to actually be
+        // correct (`\n` still creates '\\n' when parsed).
+        let extractor = extract_test_messages(
+            r#"
+                REGULAR: 'this is a\nmulti-line string',
+                TEMPLATE: `this is a\nmulti-line string`
+            "#,
+        );
+
+        for message in extractor.message_definitions {
+            let expected = match message.name.as_str() {
+                "REGULAR" => "this is a\nmulti-line string",
+                "TEMPLATE" => "this is a\nmulti-line string",
+                _ => unreachable!(),
+            };
+
+            assert_eq!(message.value.raw, expected);
+            println!("{}", message.value.raw);
         }
     }
 
