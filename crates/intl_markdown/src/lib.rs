@@ -14,6 +14,7 @@ pub use tree_builder::cst::Document as CstDocument;
 pub mod ast;
 mod block_parser;
 mod byte_lookup;
+mod cjk;
 mod delimiter;
 mod event;
 mod html_entities;

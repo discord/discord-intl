@@ -1,12 +1,50 @@
 use std::ops::Range;
 
+use super::ICUMarkdownParser;
+use crate::cjk::is_cjk_codepoint;
 use crate::delimiter::Delimiter;
 use crate::parser::emphasis::process_emphasis;
-use crate::{delimiter::EmphasisDelimiter, event::Event, SyntaxKind};
+use crate::token::TextSpan;
+use crate::{cjk, delimiter::EmphasisDelimiter, event::Event, SyntaxKind};
 
-use super::ICUMarkdownParser;
+/// Returns the two chars preceding `first` and two chars following `last` in
+/// the source text. If the spans are at the bounds of the text, this will
+/// return [`None`] for the characters in those positions instead.
+fn get_surrounding_chars(
+    p: &mut ICUMarkdownParser,
+    first: TextSpan,
+    last: TextSpan,
+) -> [Option<char>; 3] {
+    let mut result: [Option<char>; 3] = [None; 3];
+    if let Some(mut preceding) = p.source.get(..first.start as usize).map(|i| i.chars()) {
+        result[1] = preceding.next_back();
+        result[0] = preceding.next_back();
+    }
+    if let Some(mut following) = p.source.get(last.end as usize..).map(|i| i.chars()) {
+        result[2] = following.next();
+    }
+    result
+}
 
-/// Consume a sequence of contiguous delimiter tokens of the same kind to
+fn is_preceding_cjk(prev2: Option<char>, prev: Option<char>) -> bool {
+    let Some(prev) = prev else {
+        return false;
+    };
+
+    if let Some(prev2) = prev2 {
+        is_cjk_codepoint(
+            prev2,
+            // If `prev2` is a quote, check if `prev` is a variation selector to
+            // make it right-justified.
+            // https://github.com/tats-u/markdown-cjk-friendly/blob/aa749152266ed889be41a8de40802659ec35758d/packages/markdown-it-cjk-friendly/src/index.ts#L350-L352
+            prev as u32 == 0xfe01 && cjk::is_cjk_quotemark(prev2),
+        )
+    } else {
+        is_cjk_codepoint(prev, cjk::is_ivs_codepoint(prev))
+    }
+}
+
+/// Consume a sequence of contiguous delimiter tokens with the same kind to
 /// create a new Delimiter stack entry with the kind and number of tokens
 /// consumed. This will also collate the bounds of whether the run can start
 /// and/or end emphasis.
@@ -26,13 +64,16 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
     // are consumed, so once one is consumed, the following ones shift into
     // their place.
     let first_flags = p.current_flags();
+    let first_span = p.lexer.current_byte_span();
 
     let index = p.buffer_index() + 1;
     let mut last_flags = first_flags;
+    let mut last_span = first_span.clone();
     let mut count = 0;
 
     while p.current() == kind {
         last_flags = p.current_flags();
+        last_span = p.lexer.current_byte_span();
         count += 1;
 
         // Wrap each token with a Start and Finish event that the Delimiter will
@@ -42,40 +83,75 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
         p.push_event(Event::Finish(SyntaxKind::TOMBSTONE));
     }
 
+    // Using the expanded spec from:
+    // https://github.com/tats-u/markdown-cjk-friendly/blob/main/specification.md
+
+    let [mut prev2, prev_raw, next] = get_surrounding_chars(p, first_span, last_span);
+    let mut prev = prev_raw;
+    // "Sequences" in this spec say that if `prev` is a non-emoji general use variation selector,
+    // then it's effectively transparent and `prev2` becomes the important character.
+    // https://github.com/tats-u/markdown-cjk-friendly/blob/aa749152266ed889be41a8de40802659ec35758d/packages/markdown-it-cjk-friendly/src/index.ts#L401-L406
+    if prev.map_or(false, cjk::is_non_emoji_general_use_variation_selector) {
+        // If prev2 is whitespace or the start of the text, it's not meaningful.
+        if !prev2.map_or(true, char::is_whitespace) {
+            prev = prev2
+        }
+    } else {
+        // If the previous character isn't a variation selector, then the value
+        // preceding that also isn't usable.
+        prev2 = None;
+    }
+
+    let has_preceding_cjk = is_preceding_cjk(prev2, prev_raw);
+    let has_following_cjk = next.map_or(false, |c| is_cjk_codepoint(c, false));
+    let has_preceding_punctuation = prev.map_or(false, cjk::is_punctuation);
+    let has_following_punctuation = last_flags.has_following_punctuation();
+    let has_preceding_non_cjk_punctuation = has_preceding_punctuation && !has_preceding_cjk;
+    let has_following_non_cjk_punctuation = has_following_punctuation && !has_following_cjk;
+
+    let has_preceding_whitespace = first_flags.has_preceding_whitespace();
+    let has_following_whitespace = last_flags.has_following_whitespace();
+
     // Underscores are not able to create intra-word emphasis, meaning strings
-    // like `foo_bar_` do not crete emphasis, but `foo*bar*` does.
+    // like `foo_bar_` do not create emphasis, but `foo*bar*` does.
     if kind == SyntaxKind::UNDER {
-        if !first_flags.has_preceding_whitespace()
-            && !first_flags.has_preceding_punctuation()
-            && !last_flags.has_following_punctuation()
-            && !last_flags.has_following_whitespace()
+        if !has_preceding_whitespace
+            && !has_preceding_punctuation
+            && !has_following_punctuation
+            && !has_following_whitespace
         {
             return None;
         }
     }
 
-    let is_right_flanking = // Right-flanking definition:
-        // 1. Not preceded by whitespace AND
-        !first_flags.has_preceding_whitespace()
-            // 2. Either:
-            && (
-            // - not preceded by a punctuation. OR
-            // (CJK extension: preceding CJK punctuation is allowed)
-            (!first_flags.has_preceding_punctuation() || first_flags.has_preceding_cjk_punctuation())
-                // - preceded by punctuation but followed by whitespace or punctuation
-                // (CJK extension: following CJK characters are allowed)
-                || (last_flags.has_following_whitespace() || last_flags.has_following_punctuation() || last_flags.has_following_cjk())
+    // Right-flanking definition:
+    // 1) not preceded by Unicode whitespace AND
+    let is_right_flanking = !has_preceding_whitespace
+        // 2. Either:
+        && (
+            // 2a) not preceded by a non-CJK punctuation sequence. OR
+            !has_preceding_non_cjk_punctuation ||
+                // 2b) preceded by a non-CJK punctuation character and followed by
+                //   2bα: Unicode whitespace
+                //   2bβ: a non-CJK punctuation character
+                //   2bγ: a CJK character.
+                has_following_whitespace || has_following_non_cjk_punctuation || has_following_cjk
         );
 
     // Left-flanking definition
     // 1. Not followed by whitespace AND
-    let is_left_flanking = !last_flags.has_following_whitespace()
+    let is_left_flanking = !has_following_whitespace
         // 2. Either:
         && (
-        // - not followed by a punctuation. OR
-        !last_flags.has_following_punctuation()
-            // - followed by punctuation but preceded by whitespace or punctuation.
-            || (first_flags.has_preceding_whitespace() || first_flags.has_preceding_punctuation())
+        // 2a) not followed by a non-CJK punctuation character. OR
+        !has_following_non_cjk_punctuation
+            // 2b) followed by a non-CJK punctuation character and preceded by
+            //   2bα: Unicode whitespace
+            //   2bβ: a non-CJK punctuation sequence
+            //   2bγ: a CJK character
+            //   2bδ: an Ideographic Variation Selector
+            //   2bε: a CJK sequence
+            || has_preceding_whitespace || has_preceding_non_cjk_punctuation || has_preceding_cjk
     );
 
     // Using the determined flanking and context flags and the `kind` of the
@@ -85,13 +161,13 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
         // a left-flanking delimiter run and either (a) not part of a
         // right-flanking delimiter run or (b) part of a right-flanking
         // delimiter run preceded by a Unicode punctuation character.
-        SyntaxKind::UNDER => is_left_flanking || first_flags.has_preceding_punctuation(),
+        SyntaxKind::UNDER => is_left_flanking && (!is_right_flanking || has_preceding_punctuation),
         SyntaxKind::STAR => is_left_flanking,
         _ => false,
     };
 
     let can_close_emphasis = match kind {
-        SyntaxKind::UNDER => is_right_flanking || last_flags.has_following_punctuation(),
+        SyntaxKind::UNDER => is_right_flanking && (!is_left_flanking || has_following_punctuation),
         SyntaxKind::STAR => is_right_flanking,
         _ => false,
     };

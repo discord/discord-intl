@@ -35,11 +35,8 @@ bench('processing', () => {
 const sourceFile = database.getSourceFile(SOURCE_FILES[0]);
 
 bench('get a message', () => {
-  console.log(
-    util.inspect(database.getMessage(sourceFile.messageKeys[0]), {
-      depth: null,
-    }),
-  );
+  const message = database.getMessage(sourceFile.messageKeys[0]);
+  // console.log(util.inspect(message, { depth: null }));
 });
 
 bench('get source file', () => {
@@ -53,12 +50,9 @@ bench('export translations', () => {
 
 bench('validate', () => {
   const validations = database.validateMessages();
-  console.log(
-    util.inspect(
-      validations.filter((d) => d.severity === 'error'),
-      { depth: null },
-    ),
-  );
+  const errors = validations.filter((d) => d.severity === 'error');
+  console.log(errors.length, ' error diagnostics');
+  // console.log(util.inspect(errors, { depth: null }));
 });
 
 bench('generate types', () => {

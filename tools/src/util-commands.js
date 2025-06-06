@@ -1,16 +1,29 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { $ } from 'zx';
 
 import { Argument, Command } from 'commander';
 
-import { NPM_PACKAGES } from './constants.js';
+import { CRATES, NPM_PACKAGES } from './constants.js';
 import { NAPI_TARGET_MAP } from './napi.js';
 import { pnpm } from './pnpm.js';
 
 export default async function () {
   const group = new Command('util').description(
-    'Random utilities for inspecting or querying things',
+    'Random utilities for generating, inspecting, and querying things',
   );
+
+  group
+    .command('gen-cjk-ranges')
+    .description(
+      'Generate CJK range bounds for intl_markdown based on the current Unicode standard',
+    )
+    .action(async () => {
+      await $({
+        cwd: CRATES.INTL_MARKDOWN,
+        stdio: ['inherit', 'inherit', 'ignore'],
+      })`node --experimental-strip-types ./scripts/cjk-ranges.ts -l rust`;
+    });
 
   group
     .command('package-triple')

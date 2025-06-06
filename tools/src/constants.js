@@ -16,3 +16,7 @@ export const NPM_PACKAGES = {
   DATABASE: '@discord/intl-message-database',
   JSON_PARSER: '@discord/intl-flat-json-parser',
 };
+
+export const CRATES = {
+  INTL_MARKDOWN: path.join(REPO_ROOT, 'crates', 'intl_markdown'),
+};

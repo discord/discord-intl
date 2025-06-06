@@ -16,6 +16,7 @@ generate_ascii_lookup_table!(
 ///
 /// Inline whitespace in this context _is not_ considered significant, but
 /// vertical whitespace _is_ significant.
+#[inline(always)]
 pub(crate) fn byte_is_significant_punctuation(byte: u8) -> bool {
     SIGNIFICANT_PUNCTUATION_BYTES[byte as usize] != 0
 }

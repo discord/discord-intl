@@ -19,12 +19,6 @@ bitflags! {
         // Only used for some delimiters currently. `ESCAPED` kinds will also
         // always have this set.
         const IS_ESCAPED = 1 << 6;
-
-        // Extension for support delimiters around CJK script characters.
-        // https://talk.commonmark.org/t/emphasis-and-east-asian-text/2491/5
-        // https://github.com/commonmark/cmark/pull/208
-        const HAS_PRECEDING_CJK_PUNCTUATION = 1 << 5;
-        const HAS_FOLLOWING_CJK = 1 << 6;
     }
 }
 
@@ -44,13 +38,6 @@ impl TokenFlags {
 
     pub fn is_escaped(&self) -> bool {
         self.contains(TokenFlags::IS_ESCAPED)
-    }
-
-    pub fn has_preceding_cjk_punctuation(&self) -> bool {
-        self.contains(TokenFlags::HAS_PRECEDING_CJK_PUNCTUATION)
-    }
-    pub fn has_following_cjk(&self) -> bool {
-        self.contains(TokenFlags::HAS_FOLLOWING_CJK)
     }
 }
 
