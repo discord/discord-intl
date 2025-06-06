@@ -104,7 +104,18 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
 
     let has_preceding_cjk = is_preceding_cjk(prev2, prev_raw);
     let has_following_cjk = next.map_or(false, |c| is_cjk_codepoint(c, false));
-    let has_preceding_punctuation = prev.map_or(false, cjk::is_punctuation);
+    let has_preceding_punctuation = prev.map_or(false, cjk::is_punctuation)
+        // NOTE(faulty): This is a little strange, but for cases of unicode art
+        // messages like `¯\\_(ツ)_/¯`, we don't want the underscores to end up
+        // turning into emphasis on the face, but by Markdown's rules, that's
+        // exactly what should happen. To get around this, we're making a small
+        // exception that `\` is not considered a punctuation character in the
+        // context of emphasis delimiters. This check works because the only
+        // other meaning of a `\` would be to escape the delimiter mark itself,
+        // which gives the same effect as just disallowing `\` as punctuation
+        // anyway. All CommonMark tests still pass with this in place, so it's
+        // clearly not a common nor meaningful semantic that needs to exist.
+        && !prev.is_some_and(|p| p == '\\');
     let has_following_punctuation = last_flags.has_following_punctuation();
     let has_preceding_non_cjk_punctuation = has_preceding_punctuation && !has_preceding_cjk;
     let has_following_non_cjk_punctuation = has_following_punctuation && !has_following_cjk;
