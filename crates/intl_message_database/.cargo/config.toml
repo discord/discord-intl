@@ -10,3 +10,12 @@ MACOSX_DEPLOYMENT_TARGET = "11"
 
 [target.x86_64-apple-darwin.env]
 MACOSX_DEPLOYMENT_TARGET = "10.13"
+
+
+# Fixes linking errors to allow `cargo test` to run:
+# https://github.com/napi-rs/napi-rs/issues/2130#issuecomment-2239407809
+[target.'cfg(target_vendor = "apple")']
+rustflags = [
+    "-C",
+    "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains",
+]
