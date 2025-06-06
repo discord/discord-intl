@@ -101,23 +101,7 @@ jobs:
 
   lint-rust:
     name: Lint Rust crates
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Build Env
-        uses: ./.github/actions/setup-build-env
-        with:
-          runner: ubuntu-latest
-          target: 'linux-x64-gnu'
-
-      - name: cargo-fmt
-        run: |
-          cargo-fmt --all --check
-
-      - name: Run Cargo test
-        run: |
-          cargo test
+    uses: ./.github/workflows/lint-rust.yaml
 
   release:
     name: Release and Publish
