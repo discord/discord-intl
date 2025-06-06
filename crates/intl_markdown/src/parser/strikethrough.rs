@@ -1,6 +1,6 @@
-use crate::{ICUMarkdownParser, SyntaxKind};
 use crate::delimiter::{Delimiter, StrikethroughDelimiter};
 use crate::parser::emphasis::{complete_emphasis_and_content_marker_pairs, EmphasisMatchResult};
+use crate::{ICUMarkdownParser, SyntaxKind};
 
 /// Consume a sequence of contiguous delimiter tokens of the same kind to
 /// create a new Delimiter stack entry with the kind and number of tokens

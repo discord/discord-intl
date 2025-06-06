@@ -1,8 +1,8 @@
 use std::ops::Range;
 
-use crate::{delimiter::Delimiter, event::MarkerSpan, SyntaxKind};
 use crate::delimiter::AnyDelimiter;
 use crate::parser::strikethrough::match_strikethrough;
+use crate::{delimiter::Delimiter, event::MarkerSpan, SyntaxKind};
 
 use super::ICUMarkdownParser;
 

@@ -770,4 +770,3 @@ fn textual_content(input: &str, output: &str) {
 fn thematic_breaks(input: &str, output: &str) {
     run_spec_test(input, output);
 }
-

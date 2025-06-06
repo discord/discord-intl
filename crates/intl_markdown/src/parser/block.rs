@@ -1,6 +1,6 @@
 use crate::{lexer::LexContext, SyntaxKind};
 
-use super::{ICUMarkdownParser, inline::parse_inline};
+use super::{inline::parse_inline, ICUMarkdownParser};
 
 /// Parse a block element of the given kind. Rules for how the content of the
 /// block is parsed are applied first, then all of the contained content is

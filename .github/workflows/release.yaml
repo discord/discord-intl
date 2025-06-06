@@ -18,7 +18,7 @@ on:
       fail-fast:
         required: false
         type: boolean
-        default: false
+        default: true
         description: 'Fail fast?'
 
 permissions:
@@ -82,7 +82,7 @@ jobs:
     name: Build @discord/swc-intl-message-transformer
     uses: ./.github/workflows/build-swc-intl-message-transformer.yaml
 
-  lint:
+  lint-js:
     name: Lint JS package builds
     runs-on: ubuntu-latest
     steps:
@@ -99,10 +99,31 @@ jobs:
         run: |
           pnpm --filter \!"swc*" -r build
 
+  lint-rust:
+    name: Lint Rust crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Build Env
+        uses: ./.github/actions/setup-build-env
+        with:
+          runner: ubuntu-latest
+          target: 'linux-x64-gnu'
+
+      - name: cargo-fmt
+        run: |
+          cargo-fmt --all --check
+
+      - name: Run Cargo test
+        run: |
+          cargo test
+
   release:
     name: Release and Publish
     needs:
-      - lint
+      - lint-js
+      - lint-rust
       - build-db
       - build-json-parser
       - build-swc

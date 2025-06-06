@@ -2,8 +2,8 @@ use intl_markdown_macros::ReadFromEvents;
 
 use crate::event::{Event, EventBuffer};
 use crate::syntax::SyntaxKind;
-use crate::token::{SourceText, Token};
 use crate::token::TriviaList;
+use crate::token::{SourceText, Token};
 use crate::tree_builder::{ReadFromEventBuf, TokenSpan};
 
 //#region Boilerplate

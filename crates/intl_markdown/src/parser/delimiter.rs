@@ -103,6 +103,7 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
     }
 
     let has_preceding_cjk = is_preceding_cjk(prev2, prev_raw);
+
     let has_following_cjk = next.map_or(false, |c| is_cjk_codepoint(c, false));
     let has_preceding_punctuation = prev.map_or(false, cjk::is_punctuation)
         // NOTE(faulty): This is a little strange, but for cases of unicode art

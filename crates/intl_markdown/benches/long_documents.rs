@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 
-use intl_markdown::{Document, format_ast, ICUMarkdownParser, process_cst_to_ast};
+use intl_markdown::{format_ast, process_cst_to_ast, Document, ICUMarkdownParser};
 
 fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
     let mut parser = ICUMarkdownParser::new(content, include_blocks);

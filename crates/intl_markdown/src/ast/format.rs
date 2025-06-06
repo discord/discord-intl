@@ -3,8 +3,8 @@ use std::fmt::Write;
 use crate::ast::{
     BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
     IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect,
-    IcuTime, IcuVariable, InlineContent, Link, LinkKind, Paragraph, Strikethrough, Strong,
-    LinkDestination,
+    IcuTime, IcuVariable, InlineContent, Link, LinkDestination, LinkKind, Paragraph, Strikethrough,
+    Strong,
 };
 
 use super::util::{escape_body_text, escape_href, format_plain_text};

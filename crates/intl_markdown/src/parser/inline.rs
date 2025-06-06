@@ -1,15 +1,15 @@
-use crate::{lexer::LexContext, SyntaxKind};
 use crate::parser::link::parse_hook_open;
 use crate::parser::strikethrough::parse_strikethrough_delimiter_run;
+use crate::{lexer::LexContext, SyntaxKind};
 
 use super::{
     code_span::parse_code_span,
     delimiter::parse_delimiter_run,
     emphasis::process_emphasis,
     icu::parse_icu,
-    ICUMarkdownParser,
     link::{parse_image_open, parse_link_like_close, parse_link_open},
     text::parse_plain_text,
+    ICUMarkdownParser,
 };
 
 /// Parse any series of inline content. This function should _only_ be called from a block context

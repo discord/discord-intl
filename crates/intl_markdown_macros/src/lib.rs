@@ -3,8 +3,8 @@ use proc_macro::TokenStream;
 use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::{format_ident, quote_spanned};
-use syn::{Data, DataEnum, DataStruct, DeriveInput, LitByteStr, parse_macro_input, Token, Type};
 use syn::parse::{Parse, ParseStream};
+use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, LitByteStr, Token, Type};
 
 #[proc_macro_derive(ReadFromEvents)]
 pub fn derive_read_from_events(input: TokenStream) -> TokenStream {

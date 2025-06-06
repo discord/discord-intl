@@ -65,7 +65,11 @@ mod icu_formatjs_types {
     );
     ast_test!(keyword_as_name, "{time, number}", r#"[[2,"time"]]"#);
 
-    ast_test!(unclosed_argument, "{username unclosed", r#"["{username unclosed"]"#);
+    ast_test!(
+        unclosed_argument,
+        "{username unclosed",
+        r#"["{username unclosed"]"#
+    );
 }
 
 mod icu_markdown_types {

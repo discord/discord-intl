@@ -1,4 +1,4 @@
-use criterion::{Criterion, criterion_group, criterion_main, Throughput};
+use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 
 use intl_markdown::parse_intl_message;
 

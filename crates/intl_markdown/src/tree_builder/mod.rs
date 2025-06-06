@@ -1,7 +1,7 @@
 use crate::{
     event::{Event, EventBuffer},
-    SyntaxKind,
     token::Token,
+    SyntaxKind,
 };
 
 pub mod cst;
