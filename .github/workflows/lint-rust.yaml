@@ -3,6 +3,7 @@ name: Lint Rust crates
 on:
   - push
   - pull_request
+  - workflow_call
 
 jobs:
   lint-rust:
