@@ -7,15 +7,15 @@ on:
 jobs:
   lint-rust:
     name: Lint Rust crates
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
         with:
-          runner: ubuntu-latest
-          target: 'linux-x64-gnu'
+          runner: macos-latest
+          target: 'darwin-arm64'
 
       - name: cargo-fmt
         run: |
