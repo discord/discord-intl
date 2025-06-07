@@ -145,5 +145,5 @@ mod icu_in_headings {
 mod icu_escapes {
     use crate::harness::icu_string_test;
 
-    icu_string_test!(icu_escapes, "'{  variable  }", "'{  variable  }");
+    icu_string_test!(icu_escapes, "\\{  variable  }", "{  variable  }");
 }

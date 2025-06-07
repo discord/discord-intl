@@ -190,12 +190,7 @@ impl<'source> Lexer<'source> {
             b'-' => self.consume_byte(SyntaxKind::MINUS),
             b'#' => self.consume_byte(SyntaxKind::HASH),
             b':' => self.consume_byte(SyntaxKind::COLON),
-            b'\'' => match self.peek() {
-                // `'{` is an escaped ICU block, meaning it has no semantic
-                // meaning and is treated as plain text.
-                Some(b'{' | b'}') => self.consume_plain_text(merge_whitespace_in_text),
-                _ => self.consume_byte(SyntaxKind::QUOTE),
-            },
+            b'\'' => self.consume_byte(SyntaxKind::QUOTE),
             b'"' => self.consume_byte(SyntaxKind::DOUBLE_QUOTE),
             b'&' => self.consume_char_reference(),
             _ => self.consume_plain_text(merge_whitespace_in_text),
@@ -731,18 +726,6 @@ impl<'source> Lexer<'source> {
 
             let current = self.current();
             if byte_is_significant_punctuation(current) {
-                // ICU uses single quote characters as escapes for the control
-                // characters. There are a few characters that can be escaped that
-                // we don't actually care about, like `'#`, since that doesn't have
-                // an effect on the markdown parsing anyway. All that we care about
-                // is the brace characters that enter and exit ICU contexts so that
-                // we can track literal state.
-                if current == b'\'' && matches!(self.peek(), Some(b'{' | b'}')) {
-                    // Skip past these chars and continue the loop.
-                    self.advance_n_bytes(2);
-                    continue;
-                }
-
                 break;
             }
 
@@ -844,15 +827,6 @@ impl<'source> Lexer<'source> {
         let mut open_brace_count = 0;
         loop {
             match self.current() {
-                // Apostrophes count as quoting characters in ICU syntax, so anything within them
-                // will be treated as a string until the second apostrophe closes it, even opening
-                // and closing braces.
-                // NOTE: This does _not_ deal with "escaped escapes", but that's fine for now.
-                b'\'' => {
-                    while !self.is_eof() && self.current() != b'\'' {
-                        self.advance()
-                    }
-                }
                 b'}' if open_brace_count == 0 => break,
                 b'}' => {
                     open_brace_count -= 1;

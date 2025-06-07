@@ -622,11 +622,6 @@ fn create_lines(text: &str) -> VecDeque<Line> {
                     newline_index = Some(index);
                     break;
                 }
-                // ICU segment matching. If a line contains an open brace, then the icu context
-                // depth increases. For every closing brace, it decreases. ICU also uses `'` to
-                // escape brace characters, so if we see one and the following character is a brace,
-                // it will not affect the current balance.
-                b'\'' if matches!(line_bytes.get(index + 1), Some(b'{' | b'}')) => index += 1,
                 b'{' => icu_brace_balance += 1,
                 b'}' => icu_brace_balance = icu_brace_balance.saturating_sub(1),
                 _ => has_found_content = true,
