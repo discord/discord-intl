@@ -1,24 +1,84 @@
-use intl_markdown_macros::generate_ascii_lookup_table;
+use intl_markdown_macros::generate_byte_lookup_table;
 
-generate_ascii_lookup_table!(
+generate_byte_lookup_table!(
     SIGNIFICANT_PUNCTUATION_BYTES,
-    b"\n\x0C\r!\"$&'()*:<>[\\]_`{}~#"
+    ByteType,
+    PUNCT => b"!\"$&'()*:<>[\\]_`{}~#",
+    INLINE_SPACE => b" \t",
+    LINE => b"\n\r\x0c",
 );
 
-/// Returns true if the given byte represents a significant character that
-/// could become a new type of token. This effectively just includes
-/// punctuation and newline characters.
-///
-/// Note that these are only the characters that are significant when they
-/// interrupt textual content. For example, a `-` could become a MINUS token,
-/// but within a word it can never be significant, e.g. the dash in `two-part`
-/// is not significant.
-///
-/// Inline whitespace in this context _is not_ considered significant, but
-/// vertical whitespace _is_ significant.
-#[inline(always)]
-pub(crate) fn byte_is_significant_punctuation(byte: u8) -> bool {
-    SIGNIFICANT_PUNCTUATION_BYTES[byte as usize] != 0
+pub(crate) mod simd {
+    use crate::byte_lookup::{ByteType, SIGNIFICANT_PUNCTUATION_BYTES};
+    use lazy_static::lazy_static;
+    use std::simd::num::SimdUint;
+    use std::simd::prelude::*;
+    use std::simd::{Mask, Simd};
+
+    const LANES: usize = 16;
+    lazy_static! {
+        static ref PUNCT: Simd<u8, LANES> = Simd::splat(ByteType::PUNCT as u8);
+        static ref INLINE_SPACE: Simd<u8, LANES> = Simd::splat(ByteType::INLINE_SPACE as u8);
+        static ref LINE: Simd<u8, LANES> = Simd::splat(ByteType::LINE as u8);
+        static ref EMPTY: Simd<u8, LANES> = Simd::splat(ByteType::LINE as u8);
+        static ref ENABLE_MASK: Mask<isize, LANES> = Mask::from_array([true; LANES]);
+        static ref EMPTY_MASK: Mask<i8, LANES> = Mask::from_array([false; LANES]);
+    }
+
+    #[inline(always)]
+    pub(crate) fn scan_for_significant_bytes(text: &[u8], merge_inner_whitespace: bool) -> usize {
+        if text.len() < LANES {
+            return 0;
+        }
+
+        let mut offset = 0;
+        let chunk_count = text.len() / LANES;
+        for _ in 0..chunk_count {
+            // The chunk of text to analyze in the vector
+            let chunk_bytes: Simd<u8, LANES> = Simd::load_or(
+                &text[offset..std::cmp::min(text.len(), offset + LANES)],
+                *PUNCT,
+            );
+            // Get the [ByteType] value of each byte in the vector
+            let source = Simd::splat(SIGNIFICANT_PUNCTUATION_BYTES.as_ptr())
+                .wrapping_add(chunk_bytes.cast::<usize>());
+
+            let gathered = unsafe { Simd::gather_select_ptr(source, *ENABLE_MASK, *EMPTY) };
+            let punct_mask = gathered.simd_eq(*PUNCT);
+            let line_mask = gathered.simd_eq(*LINE);
+            let space_mask = gathered.simd_eq(*INLINE_SPACE);
+
+            let punct_index = punct_mask.first_set().unwrap_or(usize::MAX);
+            let line_index = line_mask.first_set().unwrap_or(usize::MAX);
+            let space_index = if merge_inner_whitespace
+                && punct_index == usize::MAX
+                && line_index == usize::MAX
+            {
+                // If the last character isn't a space and there are no other significant bytes in
+                // the text, then we can "skip" this space as insignificant.
+                if !space_mask.test(LANES - 1) {
+                    usize::MAX
+                } else {
+                    space_mask.first_set().unwrap_or(usize::MAX)
+                }
+            } else {
+                space_mask.first_set().unwrap_or(usize::MAX)
+            };
+
+            let found = std::cmp::min(punct_index, std::cmp::min(line_index, space_index));
+            if found < usize::MAX {
+                return offset + found;
+            }
+
+            offset += LANES;
+        }
+
+        std::cmp::min(text.len(), offset)
+    }
+}
+
+pub(crate) fn get_byte_type(byte: u8) -> ByteType {
+    ByteType::from(SIGNIFICANT_PUNCTUATION_BYTES[byte as usize])
 }
 
 // Learned from: https://nullprogram.com/blog/2017/10/06/

@@ -1,8 +1,8 @@
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
 
 use crate::byte_lookup::{
-    byte_is_significant_punctuation, char_length_from_byte, is_unicode_identifier_continue,
-    is_unicode_identifier_start,
+    self, char_length_from_byte, get_byte_type, is_unicode_identifier_continue,
+    is_unicode_identifier_start, ByteType,
 };
 use crate::token::{TextIndex, TextSpan};
 
@@ -172,7 +172,7 @@ impl<'source> Lexer<'source> {
             b'\0' => self.consume_byte(SyntaxKind::EOF),
             b'\r' | b'\n' => self.consume_line_ending(),
             b'\\' => self.consume_escaped(),
-            c if c.is_ascii_whitespace() => self.consume_whitespace(LexContext::Regular),
+            b'\t' | b'\x0C' | b' ' => self.consume_whitespace(LexContext::Regular),
 
             b'[' => self.consume_byte(SyntaxKind::LSQUARE),
             b']' => self.consume_byte(SyntaxKind::RSQUARE),
@@ -181,11 +181,8 @@ impl<'source> Lexer<'source> {
             b'<' => self.consume_byte(SyntaxKind::LANGLE),
             b'>' => self.consume_byte(SyntaxKind::RANGLE),
             b'{' => self.consume_byte(SyntaxKind::LCURLY),
-            b'}' => self.consume_maybe_icu_unsafe_rcurly(),
-            b'*' | b'_' | b'~' => self.consume_delimiter(),
             b'`' => self.consume_byte(SyntaxKind::BACKTICK),
             b'$' => self.consume_byte(SyntaxKind::DOLLAR),
-            b'!' => self.consume_maybe_icu_unsafe_lcurly(),
             b'=' => self.consume_byte(SyntaxKind::EQUAL),
             b'-' => self.consume_byte(SyntaxKind::MINUS),
             b'#' => self.consume_byte(SyntaxKind::HASH),
@@ -193,6 +190,9 @@ impl<'source> Lexer<'source> {
             b'\'' => self.consume_byte(SyntaxKind::QUOTE),
             b'"' => self.consume_byte(SyntaxKind::DOUBLE_QUOTE),
             b'&' => self.consume_char_reference(),
+            b'}' => self.consume_maybe_icu_unsafe_rcurly(),
+            b'!' => self.consume_maybe_icu_unsafe_lcurly(),
+            b'*' | b'_' | b'~' => self.consume_delimiter(),
             _ => self.consume_plain_text(merge_whitespace_in_text),
         }
     }
@@ -232,6 +232,7 @@ impl<'source> Lexer<'source> {
     /// Consume any number of contiguous ascii whitespace characters _other_ than
     /// newlines.
     fn consume_whitespace(&mut self, context: LexContext) -> SyntaxKind {
+        let next_bound = self.get_next_bound();
         let started_on_newline = self.state.last_was_newline;
         // Only allow regular whitespace to become leading whitespace in the
         // regular lexing context. In other contexts, leading whitespace can have
@@ -243,7 +244,7 @@ impl<'source> Lexer<'source> {
         };
 
         while self.current().is_ascii_whitespace()
-            && !(self.is_at_block_bound() || self.current() == b'\n')
+            && !(!self.is_within_bound(next_bound) || self.current() == b'\n')
         {
             self.advance();
             if self.is_eof() {
@@ -473,9 +474,20 @@ impl<'source> Lexer<'source> {
 
     //#region Block Bounds
 
+    #[inline(always)]
+    fn get_next_bound(&self) -> usize {
+        self.block_bounds
+            .get(self.state.block_bound_index)
+            .map_or(self.text.len(), |bound| *bound.position())
+    }
+
+    fn is_within_bound(&self, bound: usize) -> bool {
+        self.position < bound
+    }
+
     /// Returns true if the current position in the input matches the position
     /// of the next block bound in the stack.
-    #[inline]
+    #[inline(always)]
     fn is_at_block_bound(&self) -> bool {
         match self.block_bounds.get(self.state.block_bound_index) {
             Some(bound) => self.position == *bound.position(),
@@ -497,7 +509,7 @@ impl<'source> Lexer<'source> {
             _ => unreachable!(),
         };
 
-        return self.current_kind;
+        self.current_kind
     }
 
     /// Return the current block boundary that the lexer is in. This method
@@ -719,64 +731,47 @@ impl<'source> Lexer<'source> {
     /// speculation and to provide an easy integration point for tooling that
     /// cares about line wrapping or vertical whitespace.
     fn consume_plain_text(&mut self, merge_inner_whitespace: bool) -> SyntaxKind {
-        loop {
-            if self.is_eof() || self.is_at_block_bound() {
-                break;
-            }
+        let next_bound = self.get_next_bound();
+        let chunk_offset = byte_lookup::simd::scan_for_significant_bytes(
+            &self.text.as_bytes()[self.position..next_bound],
+            merge_inner_whitespace,
+        );
+        self.advance_n_bytes(chunk_offset);
 
-            let current = self.current();
-            if byte_is_significant_punctuation(current) {
-                break;
-            }
+        let mut last_non_whitespace_checkpoint = None;
+        let mut last_is_whitespace = false;
 
-            // Inline whitespace is allowed to conjoin text into a single token, but
-            // it is done so speculatively by consuming the whitespace until another
-            // character is encountered. If that character is _not_ significant on
-            // its own, then the text segment is allowed to continue. Otherwise, the
-            // lexer is rewound to before the whitespace and the token is ended there.
-            if current == b' ' || current == b'\t' {
-                if !merge_inner_whitespace {
-                    break;
+        // Fallback to scalar processing once something significant is found.
+        while self.position < next_bound {
+            let current = self.text.as_bytes()[self.position];
+            match get_byte_type(current) {
+                ByteType::PUNCT | ByteType::LINE => break,
+                // Inline whitespace is allowed to conjoin text into a single token, but
+                // it is done so speculatively by consuming the whitespace until another
+                // character is encountered. If that character is _not_ significant on
+                // its own, then the text segment is allowed to continue. Otherwise, the
+                // lexer is rewound to before the whitespace and the token is ended there.
+                ByteType::INLINE_SPACE => {
+                    if !merge_inner_whitespace {
+                        break;
+                    }
+                    if !last_is_whitespace {
+                        last_non_whitespace_checkpoint = Some(self.checkpoint());
+                    }
+                    last_is_whitespace = true;
                 }
-
-                let checkpoint = self.checkpoint();
-                if self.maybe_consume_whitespace_between_text() {
-                    continue;
-                } else {
-                    self.rewind(checkpoint);
-                    break;
-                }
+                _ => last_is_whitespace = false,
             }
+            self.advance_n_bytes(1);
+        }
 
-            self.advance();
+        if let Some(last_non_whitespace_checkpoint) = last_non_whitespace_checkpoint {
+            if last_is_whitespace {
+                self.rewind(last_non_whitespace_checkpoint)
+            }
         }
 
         SyntaxKind::TEXT
-    }
-
-    /// Consume inline whitespace bytes (no newlines) from the input until
-    /// another character is encountered. If that character is _not_ significant,
-    /// this function returns true. Otherwise, returns false.
-    #[inline(always)]
-    fn maybe_consume_whitespace_between_text(&mut self) -> bool {
-        // Advance once, since the caller should have asserted the starting condition.
-        self.advance();
-
-        loop {
-            if self.is_eof() || self.is_at_block_bound() {
-                return false;
-            }
-
-            let current = self.current();
-            if byte_is_significant_punctuation(current) {
-                return false;
-            }
-            if current != b' ' && current != b'\t' {
-                return true;
-            }
-
-            self.advance();
-        }
     }
 
     /// Consume all the remaining characters on the current line as a single
@@ -810,9 +805,14 @@ impl<'source> Lexer<'source> {
             }
             b'=' => self.consume_icu_plural_exact(),
             b'}' => self.consume_maybe_icu_unsafe_rcurly(),
-            // Whitespace is insignificant when inside an ICU block.
-            c if c.is_ascii_whitespace() => self.consume_whitespace(LexContext::Icu),
-            _ => self.consume_icu_keyword_or_ident(),
+            c => {
+                // Whitespace is insignificant when inside an ICU block.
+                if c.is_ascii_whitespace() {
+                    self.consume_whitespace(LexContext::Icu)
+                } else {
+                    self.consume_icu_keyword_or_ident()
+                }
+            }
         }
     }
 
@@ -902,10 +902,7 @@ impl<'source> Lexer<'source> {
     }
 
     fn consume_maybe_icu_unsafe_lcurly(&mut self) -> SyntaxKind {
-        if self.current() == b'!'
-            && matches!(self.peek_at(1), Some(b'!'))
-            && matches!(self.peek_at(2), Some(b'{'))
-        {
+        if self.current_slice().starts_with(b"!!{") {
             self.advance_n_bytes(3);
             SyntaxKind::UNSAFE_LCURLY
         } else {
@@ -913,10 +910,7 @@ impl<'source> Lexer<'source> {
         }
     }
     fn consume_maybe_icu_unsafe_rcurly(&mut self) -> SyntaxKind {
-        if self.current() == b'}'
-            && matches!(self.peek_at(1), Some(b'!'))
-            && matches!(self.peek_at(2), Some(b'!'))
-        {
+        if self.current_slice().starts_with(b"}!!") {
             self.advance_n_bytes(3);
             SyntaxKind::UNSAFE_RCURLY
         } else {
@@ -927,8 +921,9 @@ impl<'source> Lexer<'source> {
 
     //#region Internal API (current, advance, etc.)
 
-    /// Advance `n` positions through the source text, then consumes a token
-    /// using the current position state after advancing.
+    /// Advance one position through the source and return the given `kind`.
+    /// This method does no work on its own and is simply a syntax convenience
+    /// to be able to consume the end of a token in one expression
     fn consume_byte(&mut self, kind: SyntaxKind) -> SyntaxKind {
         self.advance();
         kind
@@ -942,16 +937,20 @@ impl<'source> Lexer<'source> {
     fn current(&self) -> u8 {
         debug_assert!(
             self.text.is_char_boundary(self.position),
-            "current parser position is not a ut8 char boundary"
+            "current parser position is not a utf8 char boundary"
         );
         self.text.as_bytes()[self.position]
+    }
+
+    fn current_slice(&self) -> &[u8] {
+        &self.text.as_bytes()[self.position..]
     }
 
     /// Returns the complete char at the current position.
     fn current_char(&self) -> char {
         debug_assert!(
             self.text.is_char_boundary(self.position),
-            "current parser position is not a ut8 char boundary"
+            "current parser position is not a utf8 char boundary"
         );
         self.text[self.position..].chars().nth(0).unwrap()
     }

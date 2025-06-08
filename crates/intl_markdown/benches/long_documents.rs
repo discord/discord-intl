@@ -48,7 +48,7 @@ fn short_inlines(c: &mut Criterion) {
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
-    let ast = parse_to_ast(content, false);
+            let ast = parse_to_ast(content, false);
 
             format_ast(&ast)
         })
@@ -67,7 +67,7 @@ fn short_inlines(c: &mut Criterion) {
 fn real_messages(c: &mut Criterion) {
     let mut group = c.benchmark_group("real messages");
     let messages: HashMap<String, String> = serde_json::from_str(
-        &std::fs::read_to_string("../intl_message_database/data/input/fr.jsona")
+        &std::fs::read_to_string("../intl_message_database/data/input/fr.messages.jsona")
             .expect("No data file exists"),
     )
     .expect("failed to parse JSON data file");
@@ -75,16 +75,20 @@ fn real_messages(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let ast = parse_to_ast(message, true);
-                format_ast(&ast).ok();
+                let mut parser = ICUMarkdownParser::new(message, true);
+                parser.parse();
+                // let ast = parse_to_ast(message, true);
+                // format_ast(&ast).ok();
             }
         })
     });
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let ast = parse_to_ast(message, false);
-                format_ast(&ast).ok();
+                let mut parser = ICUMarkdownParser::new(message, false);
+                parser.parse();
+                // let ast = parse_to_ast(message, false);
+                // format_ast(&ast).ok();
             }
         })
     });
@@ -92,8 +96,9 @@ fn real_messages(c: &mut Criterion) {
         b.iter(|| {
             for message in messages.values() {
                 let parser = pulldown_cmark::Parser::new(&message);
-                let mut html_output = String::new();
-                pulldown_cmark::html::push_html(&mut html_output, parser);
+                let events = parser.collect::<Vec<_>>();
+                // let mut html_output = String::new();
+                // pulldown_cmark::html::push_html(&mut html_output, parser);
             }
         })
     });

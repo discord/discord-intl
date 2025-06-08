@@ -1,4 +1,4 @@
-extern crate core;
+#![feature(portable_simd)]
 
 pub use ast::format::format_ast;
 pub use ast::process::process_cst_to_ast;

@@ -1,24 +1,49 @@
+//! This module contains functions for profiling parser and database performance using IDE tools.
+//! In RustRover, for example, the `main` function can be run using the `Profile` tool to get a
+//! flamegraph and call trace for the run to identify hotspots and areas for performance
+//! improvement. The goal of this file is to be a broad test that flexes most parts of the system
+//! at once with realistic data to ensure performance gains are real and not just abstract numbers.
+
 use intl_database_core::{DatabaseInsertStrategy, MessagesDatabase};
-use intl_message_database::public::{process_definitions_file, validate_messages};
+use intl_message_database::public::{
+    find_all_messages_files, is_message_definitions_file, process_definitions_file,
+    process_translation_file,
+};
+
+fn find_and_process_files(database: &mut MessagesDatabase) -> anyhow::Result<()> {
+    let input_path = std::env::current_dir()?.join("crates/intl_message_database/data/input");
+    let input_root = input_path.to_str().expect("Data dir did not exist");
+    let files = find_all_messages_files([&input_root].into_iter(), "en-US");
+    for file in files {
+        if is_message_definitions_file(file.file_path.to_str().unwrap()) {
+            process_definitions_file(
+                database,
+                file.file_path.to_str().unwrap(),
+                Some("en-US"),
+                DatabaseInsertStrategy::UpdateSourceFile,
+            )?;
+        } else {
+            process_translation_file(
+                database,
+                file.file_path.to_str().unwrap(),
+                &file.locale,
+                DatabaseInsertStrategy::UpdateSourceFile,
+            )?;
+        }
+    }
+
+    Ok(())
+}
 
 pub fn main() {
-    let input_root = "./data/temp";
-    let output_root = "./data/output";
     let mut database = MessagesDatabase::new();
-    //
-    // let files = find_all_messages_files([&input_root].into_iter(), "en-US");
-    // process_all_messages_files(&mut database, files.into_iter()).expect("all files are processed");
-    // process_translation_file(&mut database, "./data/temp/es-ES.messages.jsona", "es-ES")
-    //     .expect("processed");
-    process_definitions_file(
-        &mut database,
-        "./data/temp/en-US.messages.js",
-        None,
-        DatabaseInsertStrategy::NewSourceFile,
-    )
-    .expect("processed");
+    for _ in 0..10 {
+        find_and_process_files(&mut database).expect("Failed to process message files");
+    }
 
-    validate_messages(&database).expect("validated messages");
+    println!("Processed {} unique messages", database.messages.len());
+
+    // validate_messages(&database).expect("validated messages");
 
     // let source = format!("{input_root}/en-US.messages.js");
     // let output = format!("{output_root}/en-US.messages.d.ts");

@@ -77,13 +77,13 @@ impl<'source, T: ReadFromEventBuf> ReadFromEventBuf for Vec<T> {
         // iteratively and still stop at the next node boundary (either a Start
         // _or_ a Finish).
         if T::IS_TOKEN {
-            let mut children = vec![];
+            let mut children = Vec::with_capacity(4);
             while matches!(buf.peek(), Some(Event::Token(_))) {
                 children.push(T::read_from(buf));
             }
             children
         } else {
-            let mut children = vec![];
+            let mut children = Vec::with_capacity(4);
             while !matches!(buf.peek(), None | Some(Event::Finish(_))) {
                 children.push(T::read_from(buf));
             }

@@ -100,10 +100,7 @@ impl VisitMut for IntlMessageConsumerTransformer {
 
 #[cfg(test)]
 mod tests {
-    use swc_core::ecma::{
-        transforms::testing::test_inline_input_output,
-        visit::{self, visit_mut_pass},
-    };
+    use swc_core::ecma::{transforms::testing::test_inline_input_output, visit::visit_mut_pass};
 
     use crate::config::IntlMessageTransformerConfig;
 
