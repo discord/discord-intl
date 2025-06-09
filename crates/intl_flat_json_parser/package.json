@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build:debug": "cargo build",
-    "bench": "node ./bench/index.js"
+    "bench": "node ./benches/index.js"
   },
   "optionalDependencies": {
     "@discord/intl-flat-json-parser-darwin-arm64": "workspace:*",

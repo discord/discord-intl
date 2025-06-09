@@ -21,3 +21,11 @@ napi-derive = { workspace = true }
 
 [build-dependencies]
 napi-build = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "json_parsing"
+harness = false

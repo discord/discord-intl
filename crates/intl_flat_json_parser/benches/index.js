@@ -50,7 +50,7 @@ bench('JSON.parse (mapped values)', () => {
 });
 
 bench('intlJson.parseJson', () => {
-  for (const content of Object.values(JSON_FILES)) {
+  for (const [name, content] of Object.entries(JSON_FILES)) {
     intlJson.parseJson(content);
   }
 });
@@ -60,3 +60,8 @@ bench('intlJson.parseJsonFile', () => {
     intlJson.parseJsonFile(filePath);
   }
 });
+
+// bench('JSON.parse (English Only)', () => {
+//   JSON_FILES
+//   JSON.parse()
+// })

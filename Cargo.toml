@@ -37,6 +37,7 @@ intl_validator = { path = "./crates/intl_validator" }
 keyless_json = { path = "./crates/keyless_json" }
 
 anyhow = "1"
+criterion = "0.6"
 ignore = "0.4.19"
 mimalloc = { version = "0.1", features = ["local_dynamic_tls"] }
 napi = { version = "3.0.0-alpha.8", features = ["error_anyhow", "serde-json"] }
