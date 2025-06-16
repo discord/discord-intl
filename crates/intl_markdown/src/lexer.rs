@@ -1,5 +1,3 @@
-use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
-
 use crate::byte_lookup::{
     self, char_length_from_byte, get_byte_type, is_unicode_identifier_continue,
     is_unicode_identifier_start, ByteType,
@@ -19,16 +17,6 @@ pub(super) struct LexerState {
     /// Index into the block_bounds Vec indicating how far the lexer has
     /// progressed through it so far.
     pub block_bound_index: usize,
-    pub last_was_whitespace: bool,
-    pub last_was_punctuation: bool,
-    pub last_was_newline: bool,
-    /// True if the last token was entirely an escaped token, which has an
-    /// effect on whether the next token is considered punctuation or not when
-    /// computing delimiters.
-    pub last_token_was_escape: bool,
-    /// True if the lexer has only encountered whitespace tokens since the last
-    /// newline.
-    pub is_after_newline: bool,
 }
 
 impl LexerState {
@@ -40,23 +28,7 @@ impl LexerState {
         Self {
             indent_depth: 0,
             block_bound_index: 0,
-            // The beginning of input counts as whitespace and a newline.
-            last_was_newline: true,
-            last_was_whitespace: true,
-            last_was_punctuation: false,
-            last_token_was_escape: false,
-            is_after_newline: true,
         }
-    }
-
-    /// Reset the state values that have important values when lexing the start
-    /// of the input.
-    pub fn set_initial_conditions(&mut self) {
-        self.last_was_whitespace = true;
-        self.last_was_newline = true;
-        self.last_was_punctuation = false;
-        self.last_token_was_escape = false;
-        self.is_after_newline = true;
     }
 }
 
@@ -73,6 +45,9 @@ pub enum LexContext {
     /// Normal lexing, where all tokens are treated as they are intuitively, with no context-
     /// sensitive components. This context is the default where Markdown syntax is parsed.
     Regular,
+    /// Lex a contiguous set of a single punctuation character as a single token. Used for
+    /// delimiter runs like fenced code blocks and strikethrough delimiters.
+    AsciiPunctuationRun,
     /// Code blocks treat enitre lines as single tokens, with no semantics inside of them.
     CodeBlock,
     /// Link destinations allow plain text but
@@ -132,7 +107,6 @@ impl Lexer {
         // But if this is the first byte of the input, then we can just assume
         // a truly-default state instead.
         self.position = self.last_position;
-        self.get_state_from_previous_character();
         self.next_token(context)
     }
 
@@ -152,6 +126,7 @@ impl Lexer {
 
         self.current_kind = match context {
             LexContext::Regular => self.next_regular_token(true),
+            LexContext::AsciiPunctuationRun => self.next_ascii_punctuation_run(),
             LexContext::CodeBlock => self.next_code_block_token(),
             LexContext::LinkDestination => self.next_regular_token(false),
             LexContext::Autolink => self.next_autolink_token(),
@@ -192,17 +167,36 @@ impl Lexer {
         }
     }
 
+    fn next_ascii_punctuation_run(&mut self) -> SyntaxKind {
+        if self.is_eof() {
+            return SyntaxKind::EOF;
+        }
+        debug_assert!(
+            self.current().is_ascii_punctuation() || self.current().is_ascii_whitespace(),
+            "Lexing in the AsciiPunctuationRun context when not already at a punctuation or whitespace character is invalid"
+        );
+
+        if self.current().is_ascii_punctuation() {
+            while self.current().is_ascii_punctuation() {
+                self.advance();
+            }
+            SyntaxKind::PUNCTUATION_RUN
+        } else {
+            self.consume_whitespace(LexContext::Regular)
+        }
+    }
+
     fn next_code_block_token(&mut self) -> SyntaxKind {
         match self.current() {
             // Consecutive newlines immediately become blank lines
-            b'\n' if self.state.last_was_newline => {
+            b'\n' if self.last_was_newline() => {
                 self.advance();
                 SyntaxKind::BLANK_LINE
             }
             // Any other whitespaces character after a newline becomes leading
             // whitespace, if the configured `indent_depth` is more than 0. If
             // it is 0, then there cannot be any skipped leading whitespace.
-            c if self.state.last_was_newline
+            c if self.last_was_newline()
                 && c.is_ascii_whitespace()
                 && self.state.indent_depth > 0 =>
             {
@@ -228,7 +222,7 @@ impl Lexer {
     /// newlines.
     fn consume_whitespace(&mut self, context: LexContext) -> SyntaxKind {
         let next_bound = self.get_next_bound();
-        let started_on_newline = self.state.last_was_newline;
+        let started_on_newline = self.last_was_newline();
         // Only allow regular whitespace to become leading whitespace in the
         // regular lexing context. In other contexts, leading whitespace can have
         // a semantic meaning.
@@ -537,8 +531,6 @@ impl Lexer {
             return SyntaxKind::TEXT;
         }
 
-        self.state.last_token_was_escape = true;
-
         match self.current() {
             // Escaped backticks are treated specially when discovering code
             // spans. The escape won't actually get interpreted when it's
@@ -550,12 +542,7 @@ impl Lexer {
             // But if there is a block bound between the slash and the end of
             // the line, then it can't be combined into a single token.
             b'\n' if !self.is_at_block_bound() => self.consume_byte(SyntaxKind::BACKSLASH_BREAK),
-            _ => {
-                // Markdown only allows the above characters to be escaped,
-                // everything else is treated as a literal backslash.
-                self.state.last_token_was_escape = false;
-                SyntaxKind::TEXT
-            }
+            _ => SyntaxKind::TEXT,
         }
     }
 
@@ -761,7 +748,7 @@ impl Lexer {
             b'\r' | b'\n' => self.consume_line_ending(),
             b'{' => self.consume_byte(SyntaxKind::LCURLY),
             b',' => self.consume_byte(SyntaxKind::COMMA),
-            b':' if matches!(self.peek(), Some(b':')) => {
+            b':' if self.peek() == b':' => {
                 self.advance_n_bytes(2);
                 self.consume_byte(SyntaxKind::ICU_DOUBLE_COLON)
             }
@@ -827,7 +814,7 @@ impl Lexer {
 
         if !self.current().is_ascii_digit() {
             // Allow negative numbers using a `-` prefix.
-            if self.current() == b'-' && self.peek().is_some_and(u8::is_ascii_digit) {
+            if self.current() == b'-' && self.peek().is_ascii_digit() {
                 self.advance();
             } else {
                 return SyntaxKind::EQUAL;
@@ -916,19 +903,26 @@ impl Lexer {
     }
 
     /// Returns the next character in the source text after the current one.
-    fn peek(&self) -> Option<&u8> {
+    fn peek(&self) -> u8 {
         self.peek_at(1)
     }
 
-    /// Peeks an entire unicode char from the source.
-    fn peek_char(&self) -> Option<char> {
-        self.text[self.position..].chars().nth(1)
+    /// Returns the character `offset` characters after the current one in the source text.
+    fn peek_at(&self, offset: usize) -> u8 {
+        let position = self.position + offset;
+        if !(0..self.text.len()).contains(&(position)) {
+            return 0;
+        }
+        self.text.as_bytes()[position]
     }
 
-    /// Returns the character `offset` characters after the current one from
-    /// the source text.
-    fn peek_at(&self, offset: usize) -> Option<&u8> {
-        self.text.as_bytes().get(self.position + offset)
+    /// Returns the character `offset` characters _before_ the current one in the source text.
+    fn peek_back(&self, offset: isize) -> u8 {
+        let position = self.position as isize - offset;
+        if !(0isize..self.text.len() as isize).contains(&(position)) {
+            return 0;
+        }
+        self.text.as_bytes()[position as usize]
     }
 
     /// Returns true if the current byte position is at or past the end of the
@@ -953,31 +947,11 @@ impl Lexer {
         self.state = checkpoint.state;
     }
 
-    /// Calculate properties for the LexerState by examining backwards in the
-    /// source.
-    fn get_state_from_previous_character(&mut self) {
-        if self.position == 0 {
-            self.state.set_initial_conditions();
-            return;
-        }
-
-        let last_char = self.text[0..self.position].chars().rev().next().unwrap();
-        self.state.last_was_punctuation = if !last_char.is_ascii() {
-            matches!(
-                last_char.general_category_group(),
-                GeneralCategoryGroup::Punctuation | GeneralCategoryGroup::Symbol
-            )
-        } else {
-            last_char.is_ascii_punctuation()
-        };
-
-        self.state.last_was_newline = last_char == '\n';
-        self.state.last_was_whitespace = last_char.is_whitespace();
-        self.state.is_after_newline = self.state.last_was_newline
-            || (self.state.is_after_newline && self.state.last_was_whitespace)
+    fn last_was_newline(&self) -> bool {
+        self.peek_back(1) == b'\n'
     }
 
-    /// Advance the lexer by one unicode character.
+    /// Advance the lexer by one Unicode character.
     fn advance(&mut self) {
         let previous = self.current();
         self.position += char_length_from_byte(previous);
@@ -1024,25 +998,12 @@ impl Lexer {
         self.position
     }
 
-    /// Creates a new token with the current `kind` from the current positions in
-    /// the source text.
-    ///
-    /// After consuming, the state of the lexer is reset and advanced to the
-    /// next position in the source.
-    pub fn extract_current_token(&mut self) -> SyntaxToken {
-        self.get_state_from_previous_character();
-        let token = self.token_from_range(self.current_kind, self.current_byte_span());
-        self.reset_state();
-        token
-    }
-
     /// Creates a new token of the given `kind` from the current positions in
     /// the source text.
     ///
     /// After consuming, the state of the lexer is reset and advanced to the
     /// next position in the source.
     pub fn extract_current_token_as_kind(&mut self, kind: SyntaxKind) -> SyntaxToken {
-        self.get_state_from_previous_character();
         let token = self.token_from_range(kind, self.current_byte_span());
         self.reset_state();
         token

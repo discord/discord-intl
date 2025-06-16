@@ -4,8 +4,7 @@ use proc_macro2::Ident;
 use quote::{format_ident, quote_spanned};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
-use syn::{parse_macro_input, DeriveInput, LitByteStr, Token, Type};
+use syn::{bracketed, parse_macro_input, DeriveInput, LitByteStr, LitInt, Token, Type};
 
 #[proc_macro_derive(FromSyntax)]
 pub fn derive_from_syntax(input: TokenStream) -> TokenStream {
@@ -22,88 +21,67 @@ pub fn derive_from_syntax(input: TokenStream) -> TokenStream {
     .into()
 }
 
-struct AstNodeField {
+#[derive(Clone)]
+struct CstNodeDebugField {
+    slot: LitInt,
     name: Ident,
-    optional: bool,
+    #[allow(unused)]
     ty: Type,
 }
-impl Parse for AstNodeField {
+
+impl Parse for CstNodeDebugField {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let name = input.parse::<Ident>()?;
-        let optional = input.parse::<Token![?]>().is_ok();
-        input.parse::<Token![:]>()?;
-        let ty = input.parse::<Type>()?;
-        Ok(AstNodeField { name, optional, ty })
+        let content;
+        bracketed!(content in input);
+        let slot = content.parse::<LitInt>()?;
+        content.parse::<Token![,]>()?;
+        let name = content.parse::<Ident>()?;
+        content.parse::<Token![:]>()?;
+        let ty = content.parse::<Type>()?;
+
+        Ok(Self { slot, name, ty })
     }
 }
 
-struct AstNodeDefinitionInput {
+struct CstNodeDebugInput {
     name: Ident,
-    fields: Vec<AstNodeField>,
+    fields: Vec<CstNodeDebugField>,
 }
-impl Parse for AstNodeDefinitionInput {
+
+impl Parse for CstNodeDebugInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse::<Ident>()?;
         input.parse::<Token![,]>()?;
-        let fields = input
-            .parse_terminated(AstNodeField::parse, Token![,])?
-            .into_iter()
+        let fields = Punctuated::<CstNodeDebugField, Token![,]>::parse_terminated(input)?
+            .iter()
+            .cloned()
             .collect();
-        Ok(AstNodeDefinitionInput { name, fields })
+        Ok(Self { name, fields })
     }
 }
 
 #[proc_macro]
-pub fn ast_node(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as AstNodeDefinitionInput);
+pub fn cst_node_debug(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as CstNodeDebugInput);
 
-    let name = &input.name;
-
-    let accessors = input
+    let fields = input
         .fields
         .iter()
-        .enumerate()
-        .map(|(slot, field)| {
-            let AstNodeField { name, optional, ty } = &field;
-            let type_name = ty.span().source_text().unwrap();
-            let mapper = if type_name == "Token" {
-                if *optional {
-                    format_ident!("optional_token")
-                } else {
-                    format_ident!("required_token")
-                }
-            } else {
-                if *optional {
-                    format_ident!("optional_node")
-                } else {
-                    format_ident!("required_node")
-                }
-            };
-            quote_spanned! { field.name.span() =>
-                fn #name(&self) -> #ty {
-                    #mapper(&self.syntax, #slot)
-                }
-            }
-        })
+        .map(|field| &field.name)
         .collect::<Vec<_>>();
+    let slots = input
+        .fields
+        .iter()
+        .map(|field| &field.slot)
+        .collect::<Vec<_>>();
+    let struct_name = &input.name;
 
     let expanded = quote_spanned! { proc_macro2::Span::call_site() =>
-        #[derive(Clone, Debug)]
-        struct #name {
-            syntax: crate::syntax::SyntaxNode,
-        }
-
-        impl #name {
-            pub fn syntax(&self) -> &SyntaxNode {
-                &self.syntax
-            }
-
-            #(#accessors)*
-        }
-
-        impl FromSyntax for #name {
-            fn from_syntax(syntax: crate::syntax::SyntaxNode) -> Self {
-                Self { syntax }
+        impl std::fmt::Debug for #struct_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_struct(stringify!(#struct_name))
+                    #(.field(stringify!([#slots] #fields), &self.#fields()))*
+                    .finish()
             }
         }
     };

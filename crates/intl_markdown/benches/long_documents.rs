@@ -2,14 +2,12 @@ use std::collections::HashMap;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use intl_markdown::{format_ast, process_to_ast, Document, ICUMarkdownParser};
+use intl_markdown::{commonmark_html, Document, ICUMarkdownParser, SourceText};
 
 fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
-    let mut parser = ICUMarkdownParser::new(content, include_blocks);
-    let source = parser.source().clone();
+    let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     parser.parse();
-    let document = parser.finish();
-    process_to_ast(source, &document)
+    parser.finish().to_document()
 }
 
 /// NOTE: To run this test, copy the commonmark spec text from
@@ -21,7 +19,8 @@ fn long_documents(c: &mut Criterion) {
         b.iter(|| {
             let content = include_str!("./spec.md");
             let ast = parse_to_ast(content, true);
-            format_ast(&ast)
+            let mut result = String::new();
+            commonmark_html::format_document(&mut result, &ast)
         })
     });
 
@@ -42,15 +41,16 @@ fn short_inlines(c: &mut Criterion) {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
             let ast = parse_to_ast(content, true);
-            format_ast(&ast)
+            let mut result = String::new();
+            commonmark_html::format_document(&mut result, &ast)
         })
     });
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
             let ast = parse_to_ast(content, false);
-
-            format_ast(&ast)
+            let mut result = String::new();
+            commonmark_html::format_document(&mut result, &ast)
         })
     });
     group.bench_function("pulldown_cmark", |b| {
@@ -75,20 +75,18 @@ fn real_messages(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let mut parser = ICUMarkdownParser::new(message, true);
-                parser.parse();
-                // let ast = parse_to_ast(message, true);
-                // format_ast(&ast).ok();
+                let ast = parse_to_ast(message, true);
+                let mut result = String::new();
+                commonmark_html::format_document(&mut result, &ast).ok();
             }
         })
     });
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let mut parser = ICUMarkdownParser::new(message, false);
-                parser.parse();
-                // let ast = parse_to_ast(message, false);
-                // format_ast(&ast).ok();
+                let ast = parse_to_ast(message, true);
+                let mut result = String::new();
+                commonmark_html::format_document(&mut result, &ast).ok();
             }
         })
     });
@@ -96,9 +94,8 @@ fn real_messages(c: &mut Criterion) {
         b.iter(|| {
             for message in messages.values() {
                 let parser = pulldown_cmark::Parser::new(&message);
-                let events = parser.collect::<Vec<_>>();
-                // let mut html_output = String::new();
-                // pulldown_cmark::html::push_html(&mut html_output, parser);
+                let mut html_output = String::new();
+                pulldown_cmark::html::push_html(&mut html_output, parser);
             }
         })
     });

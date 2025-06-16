@@ -1,6 +1,7 @@
 use crate::delimiter::{Delimiter, StrikethroughDelimiter};
 use crate::parser::delimiter::get_surrounding_delimiter_state;
 use crate::parser::emphasis::{complete_emphasis_and_content_marker_pairs, EmphasisMatchResult};
+use crate::parser::marker::MarkerSpan;
 use crate::{syntax::SyntaxKind, ICUMarkdownParser};
 
 /// Consume a sequence of contiguous delimiter tokens of the same kind to

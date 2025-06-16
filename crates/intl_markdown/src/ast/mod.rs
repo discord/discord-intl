@@ -381,6 +381,7 @@ pub struct IcuTime {
     style: Option<IcuDateTimeStyle>,
     is_unsafe: bool,
 }
+
 impl IcuTime {
     pub fn variable(&self) -> &IcuVariable {
         &self.variable

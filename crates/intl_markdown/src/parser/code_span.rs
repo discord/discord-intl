@@ -1,3 +1,4 @@
+use crate::lexer::LexContext;
 use crate::syntax::SyntaxKind;
 
 use super::ICUMarkdownParser;
@@ -15,13 +16,10 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
     // them to create the opening delimiter. As soon as a non-escaped backtick
     // is encountered, no further backticks in the run can be escaped, either.
     let marker = p.mark();
-    let open_delimiter_start = p.mark();
-    let mut open_count = 0;
-    while p.current() == kind {
-        p.bump();
-        open_count += 1;
-    }
-    let open_delimiter_end = p.mark();
+    p.relex_with_context(LexContext::AsciiPunctuationRun);
+    let open_count = p.current_token_len();
+    p.expect(SyntaxKind::PUNCTUATION_RUN)?;
+    let content_start = p.mark();
 
     // Parsing the content of the codespan is predictive, meaning we don't know
     // if it will actually become a codespan until we've reached a closer. If
@@ -38,28 +36,14 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
             // If another delimiter is found, try to match it and complete the
             // codespan, otherwise just continue consuming it.
             SyntaxKind::BACKTICK | SyntaxKind::ESCAPED_BACKTICK => {
-                let codespan_content_end_mark = p.mark();
-                let close_delimiter = p.mark();
-                p.bump();
-                let mut close_count = 1;
-                while p.current() == kind {
-                    p.bump();
-                    close_count += 1;
-                }
+                // TODO: Handle escaped backticks properly here.
+                p.relex_with_context(LexContext::AsciiPunctuationRun);
+                let close_count = p.current_token_len();
                 // If a match is found, complete the marker and stop parsing,
                 // indicating that the marker was completed.
                 if open_count == close_count {
-                    // ORDER:
-                    // - Complete the closing delimiter first, since it's now guaranteed to exist.
-                    // - Complete the opening delimiter.
-                    // - Complete the content.
-                    close_delimiter.complete(p, SyntaxKind::CODE_SPAN_DELIMITER);
-                    open_delimiter_start
-                        .span_to(open_delimiter_end)
-                        .complete(p, SyntaxKind::CODE_SPAN_DELIMITER);
-                    open_delimiter_end
-                        .span_to(codespan_content_end_mark)
-                        .complete(p, SyntaxKind::CODE_SPAN_CONTENT);
+                    content_start.complete(p, SyntaxKind::CODE_SPAN_CONTENT)?;
+                    p.expect(SyntaxKind::PUNCTUATION_RUN)?;
                     marker.complete(p, SyntaxKind::CODE_SPAN);
                     break true;
                 }

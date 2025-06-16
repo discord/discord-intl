@@ -9,13 +9,14 @@ pub use icu::format::format_icu_string;
 pub use icu::tags::DEFAULT_TAG_NAMES;
 pub use parser::ICUMarkdownParser;
 
-use crate::syntax::{SourceText, SyntaxKind, SyntaxNode};
+pub use crate::syntax::{SourceText, SyntaxKind, SyntaxNode};
 use syntax::FromSyntax;
 
-pub mod ast;
+mod ast;
 mod block_parser;
 mod byte_lookup;
 mod cjk;
+pub mod commonmark_html;
 mod cst;
 mod delimiter;
 mod html_entities;

@@ -54,6 +54,8 @@ pub enum SyntaxKind {
     COMMA,         // ,
     EXCLAIM,       // !
 
+    PUNCTUATION_RUN, // Sequence of homogenous punctuation characters, often used as delimiters.
+
     // Nodes:
     //
     // All token kinds should be placed _above_ this point. All node kinds
@@ -161,7 +163,6 @@ pub enum SyntaxKind {
     IMAGE,
     LINK,
     LINK_RESOURCE,
-    LINK_DESTINATION,
     STATIC_LINK_DESTINATION,
     DYNAMIC_LINK_DESTINATION,
     LINK_TITLE,
@@ -175,7 +176,6 @@ pub enum SyntaxKind {
     STRIKETHROUGH,
     ATX_HASH_SEQUENCE,
     SETEXT_HEADING_UNDERLINE,
-    CODE_FENCE_DELIMITER,
     CODE_FENCE_INFO_STRING,
     CODE_BLOCK_CONTENT,
 

@@ -1,44 +1,11 @@
+mod util;
+
 use crate::syntax::{
-    FromSyntax, SyntaxElementChildren, SyntaxKind, SyntaxNode, SyntaxNodeChildren, SyntaxToken,
-    SyntaxTokenChildren,
+    FromSyntax, FromSyntaxElement, SyntaxElement, SyntaxElementChildren, SyntaxKind, SyntaxNode,
+    SyntaxNodeChildren, SyntaxToken, SyntaxTokenChildren,
 };
-use std::marker::PhantomData;
-
-//#region Utilities
-fn required_node<N: FromSyntax>(syntax: &SyntaxNode, slot: usize) -> N {
-    N::from_syntax(syntax.required_node(slot))
-}
-fn optional_node<N: FromSyntax>(syntax: &SyntaxNode, slot: usize) -> Option<N> {
-    syntax.optional_node(slot).map(FromSyntax::from_syntax)
-}
-fn required_token(syntax: &SyntaxNode, slot: usize) -> SyntaxToken {
-    syntax.required_token(slot)
-}
-fn optional_token(syntax: &SyntaxNode, slot: usize) -> Option<SyntaxToken> {
-    syntax.optional_token(slot)
-}
-
-pub struct AstNodeChildren<'a, T: FromSyntax> {
-    children: SyntaxNodeChildren<'a>,
-    _phantom: PhantomData<&'a T>,
-}
-
-impl<'a, T: FromSyntax> AstNodeChildren<'a, T> {
-    pub fn new(children: SyntaxNodeChildren<'a>) -> Self {
-        Self {
-            children,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<'a, T: FromSyntax> Iterator for AstNodeChildren<'a, T> {
-    type Item = T;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.children.next().map(T::from_syntax)
-    }
-}
-//#endregion
+use intl_markdown_macros::cst_node_debug;
+use util::*;
 
 //#region Macros
 macro_rules! cst_field {
@@ -64,8 +31,7 @@ macro_rules! cst_field {
     };
 }
 macro_rules! cst_node {
-    ($node_name:ident) => {
-        #[derive(Debug)]
+    (@no_debug $node_name:ident) => {
         #[repr(transparent)]
         pub struct $node_name {
             syntax: SyntaxNode,
@@ -75,17 +41,50 @@ macro_rules! cst_node {
             fn from_syntax(syntax: SyntaxNode) -> Self { Self { syntax } }
         }
     };
+    ($node_name:ident) => {
+        cst_node!(@no_debug $node_name);
+        impl std::fmt::Debug for $node_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(stringify!($node_name))
+            }
+        }
+    };
     ($node_name:ident, $( $fields:tt ),*) => {
-        cst_node!($node_name);
+        cst_node!(@no_debug $node_name);
         impl $node_name {
             $(cst_field!($fields);)*
         }
+        cst_node_debug!($node_name, $($fields,)*);
     };
 }
 
 macro_rules! cst_list_node {
-    ($node_name:ident, Node<$node_ty:ident>) => {
-        cst_node!($node_name);
+    ($node_name:ident, Token) => {
+        cst_node!(@no_debug $node_name);
+        impl $node_name {
+            pub fn content(&self) -> SyntaxTokenChildren {
+                SyntaxTokenChildren::new(self.syntax.children())
+            }
+            pub fn len(&self) -> usize {
+                self.syntax.len()
+            }
+        }
+        cst_list_node!(@debug, $node_name);
+    };
+    ($node_name:ident, Mixed<$node_ty:ident>) => {
+        cst_node!(@no_debug $node_name);
+        impl $node_name {
+            pub fn content(&self) -> AstElementChildren<$node_ty> {
+                AstElementChildren::new(SyntaxElementChildren::new(self.syntax.children()))
+            }
+            pub fn len(&self) -> usize {
+                self.syntax.len()
+            }
+        }
+        cst_list_node!(@debug, $node_name);
+    };
+    ($node_name:ident, $node_ty:ident) => {
+        cst_node!(@no_debug $node_name);
         impl $node_name {
             pub fn content(&self) -> AstNodeChildren<$node_ty> {
                 AstNodeChildren::new(SyntaxNodeChildren::new(self.syntax.children()))
@@ -94,23 +93,58 @@ macro_rules! cst_list_node {
                 self.syntax.len()
             }
         }
+        cst_list_node!(@debug, $node_name);
     };
-    ($node_name:ident, $children:ident) => {
-        cst_node!($node_name);
-        impl $node_name {
-            pub fn content(&self) -> $children {
-                $children::new(self.syntax.children())
-            }
-            pub fn len(&self) -> usize {
-                self.syntax.len()
+    (@debug, $node_name:ident) => {
+        impl std::fmt::Debug for $node_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(stringify!($node_name))?;
+                f.write_str(" ")?;
+                f.debug_list().entries(self.content()).finish()
             }
         }
-    };
+    }
 }
 
 macro_rules! cst_enum_node {
+    ($node_name:ident, Token, $( $field:ident ),+) => {
+        pub enum $node_name {
+            $($field($field),)+
+            Token(SyntaxToken)
+        }
+
+        paste::item! {
+            impl FromSyntaxElement for $node_name {
+                fn from_syntax_element(syntax: SyntaxElement) -> Self {
+                    match syntax.kind() {
+                        $(SyntaxKind::[<$field:snake:upper>] => Self::$field($field::from_syntax_element(syntax)),)+
+                        kind => {
+                            if kind.is_token() {
+                                $node_name::Token(syntax.into_token())
+                            } else {
+                                unreachable!(
+                                    "Encountered invalid node or token of kind {:?}",
+                                    syntax.kind()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        paste::item! {
+            impl std::fmt::Debug for $node_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    match self {
+                        $(Self::$field(node) => node.fmt(f),)+
+                        Self::Token(token) => token.fmt(f),
+                    }
+                }
+            }
+        }
+    };
     ($node_name:ident, $( $field:ident ),+) => {
-        #[derive(Debug)]
         pub enum $node_name {
             $($field($field)),+
         }
@@ -125,46 +159,55 @@ macro_rules! cst_enum_node {
                 }
             }
         }
+
+        paste::item! {
+            impl std::fmt::Debug for $node_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    match self {
+                        $(Self::$field(node) => node.fmt(f)),+
+                    }
+                }
+            }
+        }
     };
 }
 //#endregion
 
 //#region Markdown Block Nodes
-cst_list_node!(Document, SyntaxElementChildren);
-cst_list_node!(InlineContent, SyntaxElementChildren);
-cst_list_node!(ThematicBreak, SyntaxTokenChildren);
+cst_list_node!(Document, Mixed<BlockNode>);
+cst_list_node!(InlineContent, Mixed<InlineNode>);
+cst_list_node!(ThematicBreak, Token);
 
 cst_node!(Paragraph, [0, content: InlineContent]);
 cst_node!(IndentedCodeBlock, [0, content: CodeBlockContent]);
 
 cst_node!(FencedCodeBlock,
-    [0, opening_sequence: CodeFenceDelimiter],
+    [0, opening_run: Token],
     [1, info_string: Option<CodeFenceInfoString>],
     [2, content: CodeBlockContent],
-    [3, closing_sequence: CodeFenceDelimiter]
+    [3, closing_run: Option<Token>]
 );
 
-cst_list_node!(CodeBlockContent, SyntaxTokenChildren);
-cst_list_node!(CodeFenceDelimiter, SyntaxTokenChildren);
-cst_list_node!(CodeFenceInfoString, SyntaxTokenChildren);
+cst_list_node!(CodeBlockContent, Token);
+cst_list_node!(CodeFenceInfoString, Token);
 
 cst_node!(AtxHeading,
-    [0, opening_sequence: AtxHashSequence],
+    [0, opening_run: Token],
     [1, content: InlineContent],
-    [2, closing_sequence: AtxHashSequence]
+    [2, closing_run: Option<Token>]
 );
 impl AtxHeading {
     /// Returns the heading level (1-6, inclusive) that this heading should
     /// have according to the opening sequence
     pub fn level(&self) -> usize {
-        self.opening_sequence().len()
+        self.opening_run().len() as usize
     }
 }
 
-cst_list_node!(AtxHashSequence, SyntaxTokenChildren);
+cst_list_node!(AtxHashSequence, Token);
 
 cst_node!(SetextHeading, [0, content: InlineContent], [1, underline: SetextHeadingUnderline]);
-cst_list_node!(SetextHeadingUnderline, SyntaxTokenChildren);
+cst_list_node!(SetextHeadingUnderline, Token);
 impl SetextHeadingUnderline {
     /// Returns the heading level (1 or 2) that this heading should have
     /// according to the type of underline.
@@ -220,7 +263,7 @@ cst_node!(Image,
 
 cst_node!(LinkResource,
     [0, l_paren: Token],
-    [1, destination: Option<LinkDestination>],
+    [1, destination: LinkDestination],
     [2, title: Option<LinkTitle>],
     [3, r_paren: Token]
 );
@@ -232,23 +275,23 @@ cst_enum_node!(
     ClickHandlerLinkDestination
 );
 
-cst_list_node!(StaticLinkDestination, SyntaxTokenChildren);
+cst_list_node!(StaticLinkDestination, Token);
 cst_node!(DynamicLinkDestination, [0, url: Icu]);
 cst_node!(ClickHandlerLinkDestination, [0, name: Token]);
 
 cst_node!(LinkTitle, [0, opening_punctuation: Token], [1, title: LinkTitleContent], [2, closing_punctuation: Token]);
-cst_list_node!(LinkTitleContent, SyntaxTokenChildren);
+cst_list_node!(LinkTitleContent, Token);
 
 cst_node!(Autolink, [0, l_angle: Token], [1, uri: Token], [2, r_angle: Token]);
 
 cst_node!(CodeSpan,
-    [0, open_backticks: CodeSpanDelimiter],
+    [0, open_backticks: Token],
     [1, content: CodeSpanContent],
-    [2, close_backticks: CodeSpanDelimiter]
+    [2, close_backticks: Token]
 );
 
-cst_list_node!(CodeSpanDelimiter, SyntaxTokenChildren);
-cst_list_node!(CodeSpanContent, SyntaxTokenChildren);
+cst_list_node!(CodeSpanDelimiter, Token);
+cst_list_node!(CodeSpanContent, Token);
 //#endregion
 
 //#region Markdown Extensions
@@ -266,11 +309,9 @@ cst_node!(HookName,
 );
 
 cst_node!(Strikethrough,
-    [0, l_tilde_1: Token],
-    [1, l_tilde_2: Option<Token>],
+    [0, opening_run: Token],
     [2, content: InlineContent],
-    [3, r_tilde_1: Token],
-    [4, r_tilde_2: Option<Token>]
+    [4, closing_run: Token]
 );
 //#endregion
 
@@ -314,7 +355,7 @@ cst_node!(IcuSelectOrdinal,
     [3, format_comma: Token],
     [4, arms: IcuPluralArms]
 );
-cst_list_node!(IcuPluralArms, Node<IcuPluralArm>);
+cst_list_node!(IcuPluralArms, IcuPluralArm);
 cst_node!(IcuPluralArm,
     [0, selector: Token],
     [1, l_curly: Token],
@@ -361,6 +402,34 @@ cst_enum_node!(
     IndentedCodeBlock,
     FencedCodeBlock,
     InlineContent,
+    Emphasis,
+    Strong,
+    Link,
+    Image,
+    Autolink,
+    CodeSpan,
+    Hook,
+    Strikethrough,
+    Icu
+);
+
+cst_enum_node!(
+    BlockNode,
+    Token,
+    // Blocks can directly contain inline content, but this only happens when parsing _without_
+    // blocks enabled. Otherwise, all inline content is wrapped in a Paragraph.
+    InlineContent,
+    Paragraph,
+    ThematicBreak,
+    AtxHeading,
+    SetextHeading,
+    IndentedCodeBlock,
+    FencedCodeBlock
+);
+
+cst_enum_node!(
+    InlineNode,
+    Token,
     Emphasis,
     Strong,
     Link,

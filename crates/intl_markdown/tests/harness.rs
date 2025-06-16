@@ -1,16 +1,16 @@
 use intl_markdown::{
     compile_to_format_js, format_ast, format_icu_string, process_to_ast, CstDocument, Document,
-    ICUMarkdownParser,
+    ICUMarkdownParser, SourceText,
 };
 
 pub fn parse(content: &str, include_blocks: bool) -> CstDocument {
-    let mut parser = ICUMarkdownParser::new(content, include_blocks);
+    let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     parser.parse();
     parser.finish()
 }
 
 pub fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
-    let mut parser = ICUMarkdownParser::new(content, include_blocks);
+    let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     let source = parser.source().clone();
     parser.parse();
     process_to_ast(source, &parser.finish())

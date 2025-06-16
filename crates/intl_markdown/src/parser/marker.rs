@@ -1,4 +1,4 @@
-use crate::syntax::tree::TreeCheckpoint;
+use crate::syntax::TreeCheckpoint;
 use crate::syntax::{SyntaxKind, TextSize};
 use crate::ICUMarkdownParser;
 
@@ -23,6 +23,11 @@ impl Marker {
     pub(crate) fn complete(self, p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option<()> {
         p.start_node_at(kind, self.checkpoint);
         p.finish_node();
+        Some(())
+    }
+
+    pub(crate) fn complete_missing(self, p: &mut ICUMarkdownParser) -> Option<()> {
+        p.builder.push_missing();
         Some(())
     }
 }

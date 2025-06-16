@@ -113,28 +113,26 @@ fn parse_optional_icu_style_argument(
     p: &mut ICUMarkdownParser,
     parent_kind: SyntaxKind,
 ) -> Option<()> {
-    // If there's no comma, then there's no style are and this can just return immediately.
-    if !p.at(SyntaxKind::COMMA) {
-        return None;
-    }
+    // If there's no comma, then there's no style arg and this can just return immediately.
+    p.optional(p.at(SyntaxKind::COMMA), |p| {
+        // Otherwise, open the style marker and consume that comma.
+        let style_mark = p.mark();
+        p.bump_with_context(LexContext::Icu);
+        p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
+        // This relex happens first so that any potentially-significant token that may be at the
+        // current position is un-lexed and treated as plain text instead. It has to happen as a relex
+        // because the IcuStyle context doesn't understand whitespace and wouldn't be able to skip
+        // trivia as expected if it was used in `skip_whitespace_as_trivia_with_context` above.
+        p.relex_with_context(LexContext::IcuStyle);
 
-    // Otherwise, open the style marker and consume that comma.
-    let style_mark = p.mark();
-    p.bump_with_context(LexContext::Icu);
-    p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
-    // This relex happens first so that any potentially-significant token that may be at the
-    // current position is un-lexed and treated as plain text instead. It has to happen as a relex
-    // because the IcuStyle context doesn't understand whitespace and wouldn't be able to skip
-    // trivia as expected if it was used in `skip_whitespace_as_trivia_with_context` above.
-    p.relex_with_context(LexContext::IcuStyle);
-
-    p.expect_with_context(SyntaxKind::ICU_STYLE_TEXT, LexContext::Icu)?;
-    let completed_kind = match parent_kind {
-        SyntaxKind::ICU_DATE | SyntaxKind::ICU_TIME => SyntaxKind::ICU_DATE_TIME_STYLE,
-        SyntaxKind::ICU_NUMBER => SyntaxKind::ICU_NUMBER_STYLE,
-        _ => unreachable!(),
-    };
-    style_mark.complete(p, completed_kind)
+        p.expect_with_context(SyntaxKind::ICU_STYLE_TEXT, LexContext::Icu)?;
+        let completed_kind = match parent_kind {
+            SyntaxKind::ICU_DATE | SyntaxKind::ICU_TIME => SyntaxKind::ICU_DATE_TIME_STYLE,
+            SyntaxKind::ICU_NUMBER => SyntaxKind::ICU_NUMBER_STYLE,
+            _ => unreachable!(),
+        };
+        style_mark.complete(p, completed_kind)
+    })
 }
 
 fn parse_icu_plural(

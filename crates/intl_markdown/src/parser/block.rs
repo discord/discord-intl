@@ -1,5 +1,6 @@
 use super::{inline::parse_inline, ICUMarkdownParser};
 use crate::lexer::LexContext;
+use crate::lexer::LexContext::AsciiPunctuationRun;
 use crate::syntax::SyntaxKind;
 
 /// Parse a block element of the given kind. Rules for how the content of the
@@ -56,13 +57,8 @@ fn parse_setext_heading(p: &mut ICUMarkdownParser) -> Option<()> {
 /// Parsing here presumes that the block parser has asserted the content of the
 /// input will create a valid heading.
 fn parse_atx_heading(p: &mut ICUMarkdownParser) -> Option<()> {
-    p.skip_whitespace_as_trivia();
-
-    let opening_sequence = p.mark();
-    while p.at(SyntaxKind::HASH) {
-        p.bump();
-    }
-    opening_sequence.complete(p, SyntaxKind::ATX_HASH_SEQUENCE);
+    p.relex_with_context(LexContext::AsciiPunctuationRun);
+    p.expect(SyntaxKind::PUNCTUATION_RUN)?;
 
     p.skip_whitespace_as_trivia();
 
@@ -74,16 +70,12 @@ fn parse_atx_heading(p: &mut ICUMarkdownParser) -> Option<()> {
     p.skip_whitespace_as_trivia();
 
     // Finally, collect the optional closing sequence.
-    if p.at(SyntaxKind::HASH) {
-        let closing_sequence = p.mark();
-        while p.at(SyntaxKind::HASH) {
-            p.bump();
-        }
-
-        closing_sequence.complete(p, SyntaxKind::ATX_HASH_SEQUENCE);
-
+    p.optional(p.at(SyntaxKind::HASH), |p| {
+        p.relex_with_context(LexContext::AsciiPunctuationRun);
+        p.expect(SyntaxKind::PUNCTUATION_RUN)?;
         p.skip_whitespace_as_trivia();
-    }
+        Some(())
+    });
 
     Some(())
 }
@@ -115,33 +107,31 @@ fn parse_code_block_content(p: &mut ICUMarkdownParser) {
 }
 
 fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
+    let mark = p.mark();
     let leading_indent = if p.at(SyntaxKind::LEADING_WHITESPACE) {
         let length = p.current_token_len();
-        p.bump_as_trivia(LexContext::Regular);
         length
     } else {
         0
     };
-
     p.set_lexer_state(|state| state.indent_depth += leading_indent);
 
-    // Consume the opening delimiter. The block parser has already asserted that
-    // this will create a valid sequence.
-    let opening_sequence = p.mark();
-    while p.at(SyntaxKind::BACKTICK) || p.at(SyntaxKind::TILDE) {
-        p.bump();
-    }
-    opening_sequence.complete(p, SyntaxKind::CODE_FENCE_DELIMITER);
-
+    p.bump_as_trivia(LexContext::AsciiPunctuationRun);
+    // The block parser has already asserted that this will create a valid sequence, either from
+    // ~~~ or ```.
+    p.expect(SyntaxKind::PUNCTUATION_RUN)?;
     p.skip_whitespace_as_trivia();
 
     // If that's not the end of the line, then consume everything else as the
     // info string.
-    if !p.at(SyntaxKind::INLINE_START) && !p.at(SyntaxKind::BLOCK_END) {
-        let info_string = p.mark();
-        parse_remainder_as_token_list(p);
-        info_string.complete(p, SyntaxKind::CODE_FENCE_INFO_STRING);
-    }
+    p.optional(
+        !p.at(SyntaxKind::INLINE_START) && !p.at(SyntaxKind::BLOCK_END),
+        |p| {
+            let info_string = p.mark();
+            parse_remainder_as_token_list(p);
+            info_string.complete(p, SyntaxKind::CODE_FENCE_INFO_STRING)
+        },
+    );
 
     // Then move onto the next line, which should start the inline content.
     p.expect_block_bound(SyntaxKind::INLINE_START)?;
@@ -154,13 +144,12 @@ fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
 
     // Finally the closing delimiter, which can be missing if the block ended
     // because of the end of the input.
-    if p.at(SyntaxKind::BACKTICK) || p.at(SyntaxKind::TILDE) {
-        let opening_sequence = p.mark();
-        parse_remainder_as_token_list(p);
-        opening_sequence.complete(p, SyntaxKind::CODE_FENCE_DELIMITER);
-    }
+    p.optional(p.at(SyntaxKind::BACKTICK) || p.at(SyntaxKind::TILDE), |p| {
+        p.relex_with_context(AsciiPunctuationRun);
+        p.expect(SyntaxKind::PUNCTUATION_RUN)?;
+        Some(())
+    });
 
     p.set_lexer_state(|state| state.indent_depth -= leading_indent);
-
-    Some(())
+    mark.complete(p, SyntaxKind::FENCED_CODE_BLOCK)
 }

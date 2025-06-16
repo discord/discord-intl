@@ -185,15 +185,15 @@ fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
     // Whitespace and a single newline are allowed between the destination and
     // the title, and the title can _only_ appear if there is some whitespace
     // between them, so it is nested inside here.
-    if p.current().is_same_line_whitespace() {
+    p.optional(p.current().is_same_line_whitespace(), |p| {
         p.skip_whitespace_as_trivia();
         // Not using ? since it's okay for this to be empty.
-        if parse_link_title(p).is_some() {
-            // Whitespace and a single newline are also allowed between the title
-            // and the ending.
-            p.skip_whitespace_as_trivia();
-        }
-    }
+        parse_link_title(p)?;
+        // Whitespace and a single newline are also allowed between the title
+        // and the ending.
+        p.skip_whitespace_as_trivia();
+        Some(())
+    });
 
     // The next token afterward _must_ be a closing parenthesis. Any other token
     // causes the link to break and be treated as plain text instead.

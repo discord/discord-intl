@@ -55,7 +55,11 @@ struct DeferredNode {
 
 impl PartialOrd for DeferredNode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.start.cmp(&other.start).then(self.end.cmp(&other.end)))
+        Some(
+            self.start
+                .cmp(&other.start)
+                .then(self.end.cmp(&other.end).reverse()),
+        )
     }
 }
 
@@ -112,12 +116,18 @@ impl TreeBuilder {
     }
 
     pub fn prepend_leading_trivia(&mut self, trivia_text: &str) {
+        if trivia_text.is_empty() {
+            return;
+        }
         // `extend_back` here is used because we're still working left-to-right, meaning the leading
         // trivia is built by tacking on the new text until we reach the start of the actual token.
         self.pending_leading_trivia = self.pending_leading_trivia.extend_back(trivia_text);
     }
 
     pub fn add_trivia(&mut self, trivia_text: &str) {
+        if trivia_text.is_empty() {
+            return;
+        }
         // SAFETY: We only do this while building the tree, meaning we know there can and should
         // only be a single other reference to this token (in whatever list or node contains it),
         // and that it won't be mutated by anything else.
@@ -125,11 +135,10 @@ impl TreeBuilder {
             Some(data) => data.append_trailing_trivia(trivia_text),
             None => self.prepend_leading_trivia(trivia_text),
         }
-        // assert!(
-        //     !self.last_token_data.is_null(),
-        //     "No token has been written yet for trivia to be appended"
-        // );
-        // unsafe { &mut *self.last_token_data }
+    }
+
+    pub fn push_missing(&mut self) {
+        self.children.push(SyntaxElement::Empty);
     }
 
     pub fn start_node(&mut self, kind: SyntaxKind) {

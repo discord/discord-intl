@@ -31,13 +31,17 @@ impl SyntaxTokenData {
     // See [TreeBuilder::append_token_trivia] for context on the usage.
 
     pub(super) fn append_trailing_trivia(&mut self, trivia_text: &str) {
-        self.text = self.text.extend_back(trivia_text);
+        if !trivia_text.is_empty() {
+            self.text = self.text.extend_back(trivia_text);
+        }
     }
 
     pub(super) fn prepend_leading_trivia(&mut self, trivia_text: &str) {
-        self.text = self.text.extend_front(trivia_text);
-        self.text_start = self.text_start + trivia_text.len() as TextSize;
-        self.trailing_start = self.trailing_start + trivia_text.len() as TextSize;
+        if !trivia_text.is_empty() {
+            self.text = self.text.extend_front(trivia_text);
+            self.text_start = self.text_start + trivia_text.len() as TextSize;
+            self.trailing_start = self.trailing_start + trivia_text.len() as TextSize;
+        }
     }
 }
 
@@ -80,7 +84,12 @@ impl SyntaxToken {
         self.text_start as usize..self.trailing_start as usize
     }
 
-    /// Returns the position range of _only_ the trivia attached to this token.
+    /// Returns the position range of _only_ the leading trivia attached to this token.
+    pub fn leading_trivia_span(&self) -> TextSpan {
+        0..self.text_start as usize
+    }
+
+    /// Returns the position range of _only_ the trailing trivia attached to this token.
     pub fn trailing_trivia_span(&self) -> TextSpan {
         self.trailing_start as usize..self.text.len()
     }
@@ -91,42 +100,53 @@ impl SyntaxToken {
         self.text.range()
     }
 
-    pub fn start(&self) -> TextSize {
-        self.text.start()
-    }
-
-    pub fn end(&self) -> TextSize {
-        self.text.end()
-    }
-
-    /// Returns the starting character position of this token in the source.
+    /// Returns the starting character position of this token's main text.
     pub fn text_start(&self) -> TextSize {
         self.text_start
     }
 
-    /// Returns the ending character position of this token in the source.
+    /// Returns the ending character position of this token's main text.
     pub fn text_end(&self) -> TextSize {
         self.trailing_start
     }
+    /// Returns the starting character position of this token's leading trivia.
+    pub fn leading_trivia_start(&self) -> TextSize {
+        0
+    }
 
-    pub fn trivia_start(&self) -> TextSize {
+    /// Returns the ending character position of this token's leading trivia.
+    pub fn leading_trivia_end(&self) -> TextSize {
+        self.text_start
+    }
+
+    /// Returns the starting character position of this token's trailing trivia.
+    pub fn trailing_trivia_start(&self) -> TextSize {
         self.trailing_start
     }
 
-    pub fn trivia_end(&self) -> TextSize {
+    /// Returns the ending character position of this token's trailing trivia.
+    pub fn trailing_trivia_end(&self) -> TextSize {
         self.text.end()
     }
 
+    /// Returns the total length of this token, including trivia.
     pub fn len(&self) -> TextSize {
         self.text.len_size()
     }
 
+    /// Returns the length of just this token's main text.
     pub fn text_len(&self) -> TextSize {
         self.trailing_start - self.text_start
     }
 
+    /// Returns the length of just this token's leading trivia.
+    pub fn leading_trivia_len(&self) -> TextSize {
+        self.text_start
+    }
+
+    /// Returns the length of just this token's trailing trivia.
     pub fn trailing_trivia_len(&self) -> TextSize {
-        self.end() - self.trivia_start()
+        self.text.len() as u32 - self.trailing_start
     }
 
     /// Returns the text of this token excluding all attached trivia.
@@ -134,7 +154,12 @@ impl SyntaxToken {
         &self.text[self.text_span()]
     }
 
-    /// Returns only the text of the trivia attached to this token.
+    /// Returns only the text of the trailing trivia attached to this token.
+    pub fn leading_trivia_text(&self) -> &str {
+        &self.text[self.leading_trivia_span()]
+    }
+
+    /// Returns only the text of the leading trivia attached to this token.
     pub fn trailing_trivia_text(&self) -> &str {
         &self.text[self.trailing_trivia_span()]
     }
@@ -164,17 +189,16 @@ impl Deref for SyntaxToken {
 impl Debug for SyntaxToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "{:?}@{}..{}{:?}",
+            "{:?}@{}{:?}",
             self.kind(),
-            self.text_start(),
-            self.text_end(),
+            self.text.format_range(),
             self.text()
         ))?;
 
         if self.has_trivia() {
             f.write_fmt(format_args!(
-                " [..{} {:?}]",
-                self.trivia_end(),
+                " [{:?}, {:?}]",
+                self.leading_trivia_text(),
                 self.trailing_trivia_text()
             ))?;
         }

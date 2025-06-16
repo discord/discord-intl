@@ -45,13 +45,26 @@ impl TextPointer {
         self.len as TextSize
     }
 
+    /// Returns true if this pointer references a standalone piece of text, likely meaning it was
+    /// cloned while editing the trivia of the token.
+    pub fn is_detached(&self) -> bool {
+        self.len() == self.source.len()
+    }
+
     /// Extend this text pointer to include the given `text`. If the text slice points to an
     /// adjacent subrange of this pointer's source, then this pointer is simply expanded to include
     /// that text in its range. If the given text is _not_ adjacent to this pointer's range in the
     /// source text, then the original pointer text is copied into a new string with the given text
     /// appended to it.
+    ///
+    /// NOTE: If the given text is empty, this method will still create and return a new
+    /// TextPointer, but the content will not be changed. To avoid making new pointers, check
+    /// whether the text is empty before calling this method.
     #[must_use = "TextPointers are immutable and any changes must be propagated to the parent for them to have an effect"]
     pub fn extend_back(&self, text: &str) -> Self {
+        if text.is_empty() {
+            return self.clone();
+        }
         let is_adjacent_end = self
             .source
             .substr_range(text)
@@ -76,6 +89,10 @@ impl TextPointer {
 
     /// Like [`extend_back`], but expanding to include or placing the given text at the start of
     /// the pointer rather than the end.
+    ///
+    /// NOTE: If the given text is empty, this method will still create and return a new
+    /// TextPointer, but the content will not be changed. To avoid making new pointers, check
+    /// whether the text is empty before calling this method.
     #[must_use = "TextPointers are immutable and any changes must be propagated to the parent for them to have an effect"]
     pub fn extend_front(&self, text: &str) -> Self {
         let is_adjacent_start = self
@@ -111,5 +128,15 @@ impl Deref for TextPointer {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         &self.source[self.range()]
+    }
+}
+
+impl TextPointer {
+    pub fn format_range(&self) -> String {
+        if self.is_detached() {
+            "copy.".into()
+        } else {
+            format!("{}..{}", self.start(), self.end())
+        }
     }
 }

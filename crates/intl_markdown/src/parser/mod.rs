@@ -3,10 +3,13 @@ use super::{
     block_parser::BlockParser,
     delimiter::{AnyDelimiter, Delimiter},
     lexer::{Lexer, LexerCheckpoint},
+    Document,
 };
 use crate::lexer::{LexContext, LexerState};
-use crate::syntax::tree::{TreeBuilder, TreeCheckpoint};
-use crate::syntax::{SourceText, SyntaxElement, SyntaxKind, SyntaxToken, TextSize};
+use crate::syntax::{
+    FromSyntaxElement, SourceText, SyntaxElement, SyntaxKind, SyntaxToken, TextSize, TreeBuilder,
+    TreeCheckpoint,
+};
 use marker::Marker;
 
 mod block;
@@ -34,6 +37,12 @@ pub(super) struct ParserCheckpoint {
 pub struct ParseResult {
     pub source: SourceText,
     pub tree: SyntaxElement,
+}
+
+impl ParseResult {
+    pub fn to_document(self) -> Document {
+        Document::from_syntax_element(self.tree)
+    }
 }
 
 /// A specialized Markdown parser that understands ICU MessageFormat and
@@ -160,8 +169,9 @@ impl ICUMarkdownParser {
                     self.reset_inline_state();
                 }
                 _ => unreachable!(
-                    "Encountered unexpected kind while parsing at the block level {:?}",
-                    self.current()
+                    "Encountered unexpected kind while parsing at the block level: {:?}.\nTree:---\n{:#?}",
+                    self.current(),
+                    self.builder,
                 ),
             }
         }
@@ -399,6 +409,13 @@ impl ICUMarkdownParser {
         delimiter.deactivate();
     }
 
+    /// Creates a new Start event in the buffer and returns a Marker pointing to
+    /// it that can be used to resolve a Node in the future.
+    pub(super) fn mark(&mut self) -> Marker {
+        let index = self.builder.checkpoint();
+        Marker::new(index)
+    }
+
     /// Push a plain token onto the back of the event stream. If the token is a
     /// TOMBSTONE, it is not pushed.
     pub(super) fn push_token(&mut self, token: SyntaxToken) {
@@ -406,14 +423,36 @@ impl ICUMarkdownParser {
             return;
         }
         self.previous_token = Some(token.clone());
-        self.builder.push_token(token);
+        self.builder.push_token(token)
     }
 
-    /// Creates a new Start event in the buffer and returns a Marker pointing to
-    /// it that can be used to resolve a Node in the future.
-    pub(super) fn mark(&mut self) -> Marker {
-        let index = self.builder.checkpoint();
-        Marker::new(index)
+    /// Push an empty syntax element to indicate that an optional node or token is missing.
+    ///
+    /// All nodes must be represented in the tree, even if they are not present in the source. Using
+    /// empty elements to fill the missing gaps preserves the layout of all syntax elements, no
+    /// matter if they are valid or not.
+    ///
+    /// This method will always return [`None`] as a way to indicate to other parts of the parser
+    /// that the element was _parsed_ but did not result in any actual parsed content.
+    pub(super) fn push_missing(&mut self) -> Option<()> {
+        self.builder.push_missing();
+        None
+    }
+
+    /// Attempt to parse some content from the input, falling back to placing an Empty element in
+    /// the tree if the parse fails.
+    ///
+    /// NOTE: This method will _not_ rewind the parser if parsing fails. Instead, either perform the
+    /// rewind inside the block or catch the [`None`] return from this method to control the rewind.
+    #[inline(always)]
+    pub(super) fn optional<F: FnMut(&mut ICUMarkdownParser) -> Option<()>>(
+        &mut self,
+        condition: bool,
+        mut func: F,
+    ) -> Option<()> {
+        condition
+            .then(|| func(self))
+            .unwrap_or_else(|| self.push_missing())
     }
 
     pub(super) fn tree_index(&mut self) -> u32 {
@@ -428,14 +467,18 @@ impl ICUMarkdownParser {
     }
 
     pub(super) fn skip_whitespace_as_trivia_with_context(&mut self, context: LexContext) {
-        let trivia_start = self.lexer.position();
+        let trivia_start = self.lexer.current_byte_span().start;
         let mut trivia_end = trivia_start;
+        let mut consumed = false;
         while self.current().is_trivia() {
+            consumed = true;
             trivia_end = self.lexer.position();
             self.skip_with_context(context);
         }
-        self.builder
-            .add_trivia(self.lexer.text(trivia_start..trivia_end))
+        if consumed {
+            self.builder
+                .add_trivia(self.lexer.text(trivia_start..trivia_end))
+        }
     }
 
     pub(super) fn set_lexer_state<F: FnMut(&mut LexerState)>(&mut self, mut func: F) {
@@ -451,7 +494,11 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = r#"hello *italic **\``foo_name\`** hi* bar"#;
+        let content = r#"
+### Foo
+
+Hello bar
+"#;
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
 
