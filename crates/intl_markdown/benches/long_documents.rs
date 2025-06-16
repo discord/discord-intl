@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use intl_markdown::{format_ast, process_cst_to_ast, Document, ICUMarkdownParser};
+use intl_markdown::{format_ast, process_to_ast, Document, ICUMarkdownParser};
 
 fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
     let mut parser = ICUMarkdownParser::new(content, include_blocks);
     let source = parser.source().clone();
     parser.parse();
-    let document = parser.into_cst();
-    process_cst_to_ast(source, &document)
+    let document = parser.finish();
+    process_to_ast(source, &document)
 }
 
 /// NOTE: To run this test, copy the commonmark spec text from

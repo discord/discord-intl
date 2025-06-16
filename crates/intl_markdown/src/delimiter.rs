@@ -1,4 +1,4 @@
-use super::syntax::SyntaxKind;
+use super::syntax::{SyntaxKind, TextSize};
 
 pub(crate) trait Delimiter {
     fn kind(&self) -> SyntaxKind;
@@ -10,19 +10,19 @@ pub(crate) trait Delimiter {
     fn can_open(&self) -> bool;
     fn can_close(&self) -> bool;
 
-    fn opening_cursor(&self) -> usize;
-    fn closing_cursor(&self) -> usize;
+    fn opening_cursor(&self) -> TextSize;
+    fn closing_cursor(&self) -> TextSize;
 
     /// Returns a tuple of two event indices where the first represents the
     /// event to use as the opening marker for the semantic item, and the
     /// second represents the event to use as the opening marker for the
     /// content _within_ the item.
-    fn consume_opening(&mut self, count: usize) -> (usize, usize);
+    fn consume_opening(&mut self, count: usize) -> (TextSize, TextSize);
     /// Returns a tuple of two event indices where the first represents the
     /// event to use as the closing marker for the semantic item, and the
     /// second represents the event to use as the closing marker for the
     /// content _within_ the item.
-    fn consume_closing(&mut self, count: usize) -> (usize, usize);
+    fn consume_closing(&mut self, count: usize) -> (TextSize, TextSize);
 
     fn can_open_and_close(&self) -> bool {
         self.can_open() && self.can_close()
@@ -30,19 +30,11 @@ pub(crate) trait Delimiter {
 }
 
 /// Emphasis delimiters represent a run of tokens that can each be used to
-/// possibly start or end some form of emphasis (e.g., strong or regular). Every
-/// token in the delimiter run is surrounded by two Events in the buffer, a
-/// Start event before it and a Finish event after it. So, a delimiter run like
-/// `***` would be inserted in the event buffer as:
+/// possibly start or end some form of emphasis (e.g., strong or regular).
 ///
-/// [Start, Token, Finish, Start, Token, Finish, Start, Token, Finish]
-///
-/// This is required in order to allow each token to either start or finish a
-/// section, otherwise two adjacent tokens could not both be used as opposite
-/// bounds, as in `*hi***yes**` becoming `<em>hi</em><strong>yes</strong>`.
-///
-/// The implementation of this struct takes care of handling indices in the
-/// event buffer by using this assumption to calculate offsets based on `count`.
+/// The implementation of this struct uses the assumption that all delimiters
+/// are adjacent tokens in the parser's token list to select the appropriate
+/// indices for each delimiter to use for its `first_token` and `length`.
 #[derive(Debug)]
 pub struct EmphasisDelimiter {
     kind: SyntaxKind,
@@ -50,8 +42,8 @@ pub struct EmphasisDelimiter {
     can_open: bool,
     can_close: bool,
     active: bool,
-    start_cursor: usize,
-    end_cursor: usize,
+    start_cursor: TextSize,
+    end_cursor: TextSize,
 }
 
 impl EmphasisDelimiter {
@@ -60,7 +52,7 @@ impl EmphasisDelimiter {
         count: usize,
         can_open: bool,
         can_close: bool,
-        first_index: usize,
+        first_index: TextSize,
     ) -> Self {
         Self {
             kind,
@@ -69,7 +61,7 @@ impl EmphasisDelimiter {
             can_close,
             active: true,
             start_cursor: first_index,
-            end_cursor: first_index + (count - 1) * 3,
+            end_cursor: first_index + count as u32,
         }
     }
 }
@@ -99,54 +91,26 @@ impl Delimiter for EmphasisDelimiter {
         self.can_close
     }
 
-    fn opening_cursor(&self) -> usize {
-        self.start_cursor - 1
+    fn opening_cursor(&self) -> TextSize {
+        self.start_cursor
     }
 
-    fn closing_cursor(&self) -> usize {
-        self.end_cursor + 1
+    fn closing_cursor(&self) -> TextSize {
+        self.end_cursor
     }
 
-    fn consume_opening(&mut self, count: usize) -> (usize, usize) {
+    fn consume_opening(&mut self, count: usize) -> (TextSize, TextSize) {
         self.count -= count;
-        let content_open = self.end_cursor + 1;
-        let item_open = if self.count > 0 {
-            self.end_cursor -= count * 3;
-            // See comment in `consume_closing`, with the difference that this
-            // method wants the `start` event _after_ the new cursor.
-            self.end_cursor + 2
-        } else {
-            self.active = false;
-            self.end_cursor -= (count - 1) * 3;
-            self.end_cursor - 1
-        };
-
-        (item_open, content_open)
+        self.end_cursor -= count as TextSize;
+        self.active = self.count > 0;
+        (self.end_cursor, self.end_cursor + count as TextSize)
     }
 
-    fn consume_closing(&mut self, count: usize) -> (usize, usize) {
+    fn consume_closing(&mut self, count: usize) -> (TextSize, TextSize) {
         self.count -= count;
-        let content_close = self.start_cursor - 1;
-        let item_close = if self.count > 0 {
-            self.start_cursor += count * 3;
-            // The cursor has moved one entire set of events forward, i.,e,:
-            // [start, token, finish, start, token, finish]
-            // ^       ^ was here            ^ now here
-            // ^ inner content ends here, represented by `content_close`.
-            //
-            // but the caller wants the `finish` event of the last token that was
-            // consumed, which is 2 events _prior_ to the new cursor position.
-            self.start_cursor - 2
-        } else {
-            self.active = false;
-            // If the remaining count is zero, we can't actually take all of the
-            // cursor positions, since it could end up being negative. Ideally,
-            // this would be an Option, but lazy right now.
-            self.start_cursor += (count - 1) * 3;
-            self.start_cursor + 1
-        };
-
-        (item_close, content_close)
+        self.start_cursor += count as TextSize;
+        self.active = self.count > 0;
+        (self.start_cursor, self.start_cursor - count as TextSize)
     }
 }
 
@@ -157,17 +121,17 @@ pub struct LinkDelimiter {
     active: bool,
     consumed: bool,
     /// Cursor to the marker for the link as a whole, including the resource.
-    link_cursor: usize,
+    link_cursor: TextSize,
     /// Cursor to the marker for the link content, within the square brackets.
-    content_cursor: usize,
+    content_cursor: TextSize,
 }
 
 impl LinkDelimiter {
     pub fn new(
         kind: SyntaxKind,
         is_closing: bool,
-        link_index: usize,
-        content_index: usize,
+        link_index: TextSize,
+        content_index: TextSize,
     ) -> Self {
         Self {
             kind,
@@ -209,24 +173,24 @@ impl Delimiter for LinkDelimiter {
         self.is_closing
     }
 
-    fn opening_cursor(&self) -> usize {
+    fn opening_cursor(&self) -> TextSize {
         self.link_cursor
     }
 
-    fn closing_cursor(&self) -> usize {
+    fn closing_cursor(&self) -> TextSize {
         self.content_cursor
     }
 
-    fn consume_opening(&mut self, _count: usize) -> (usize, usize) {
+    fn consume_opening(&mut self, _count: usize) -> (TextSize, TextSize) {
         self.consumed = true;
         // These values aren't used for link delimiters
-        (0, 0)
+        Default::default()
     }
 
-    fn consume_closing(&mut self, _count: usize) -> (usize, usize) {
+    fn consume_closing(&mut self, _count: usize) -> (TextSize, TextSize) {
         self.consumed = true;
         // These values aren't used for link delimiters
-        (0, 0)
+        Default::default()
     }
 }
 
@@ -237,8 +201,8 @@ pub struct StrikethroughDelimiter {
     can_open: bool,
     can_close: bool,
     active: bool,
-    start_cursor: usize,
-    end_cursor: usize,
+    start_cursor: TextSize,
+    end_cursor: TextSize,
 }
 
 impl StrikethroughDelimiter {
@@ -247,7 +211,7 @@ impl StrikethroughDelimiter {
         count: usize,
         can_open: bool,
         can_close: bool,
-        open_index: usize,
+        open_index: TextSize,
     ) -> Self {
         Self {
             kind,
@@ -256,7 +220,7 @@ impl StrikethroughDelimiter {
             can_close,
             active: true,
             start_cursor: open_index,
-            end_cursor: open_index + count + 1,
+            end_cursor: open_index + (count as TextSize) + 1,
         }
     }
 }
@@ -286,22 +250,22 @@ impl Delimiter for StrikethroughDelimiter {
         self.can_close
     }
 
-    fn opening_cursor(&self) -> usize {
+    fn opening_cursor(&self) -> TextSize {
         self.start_cursor
     }
 
-    fn closing_cursor(&self) -> usize {
+    fn closing_cursor(&self) -> TextSize {
         self.end_cursor
     }
 
-    fn consume_opening(&mut self, _count: usize) -> (usize, usize) {
+    fn consume_opening(&mut self, _count: usize) -> (TextSize, TextSize) {
         self.active = false;
         self.count = 0;
-        // These values aren't used for link delimiters
+        // These values aren't used for strikethrough delimiters
         (self.start_cursor, self.end_cursor)
     }
 
-    fn consume_closing(&mut self, _count: usize) -> (usize, usize) {
+    fn consume_closing(&mut self, _count: usize) -> (TextSize, TextSize) {
         self.active = false;
         self.count = 0;
         (self.end_cursor, self.start_cursor)
@@ -370,7 +334,7 @@ impl Delimiter for AnyDelimiter {
         }
     }
 
-    fn opening_cursor(&self) -> usize {
+    fn opening_cursor(&self) -> TextSize {
         match self {
             AnyDelimiter::Emphasis(emph) => emph.opening_cursor(),
             AnyDelimiter::Link(link) => link.opening_cursor(),
@@ -378,7 +342,7 @@ impl Delimiter for AnyDelimiter {
         }
     }
 
-    fn closing_cursor(&self) -> usize {
+    fn closing_cursor(&self) -> TextSize {
         match self {
             AnyDelimiter::Emphasis(emph) => emph.closing_cursor(),
             AnyDelimiter::Link(link) => link.closing_cursor(),
@@ -390,7 +354,7 @@ impl Delimiter for AnyDelimiter {
     /// event to use as the opening marker for the semantic item, and the
     /// second represents the event to use as the opening marker for the
     /// content _within_ the item.
-    fn consume_opening(&mut self, count: usize) -> (usize, usize) {
+    fn consume_opening(&mut self, count: usize) -> (TextSize, TextSize) {
         match self {
             AnyDelimiter::Emphasis(emph) => emph.consume_opening(count),
             AnyDelimiter::Link(link) => link.consume_opening(count),
@@ -402,7 +366,7 @@ impl Delimiter for AnyDelimiter {
     /// event to use as the closing marker for the semantic item, and the
     /// second represents the event to use as the closing marker for the
     /// content _within_ the item.
-    fn consume_closing(&mut self, count: usize) -> (usize, usize) {
+    fn consume_closing(&mut self, count: usize) -> (TextSize, TextSize) {
         match self {
             AnyDelimiter::Emphasis(emph) => emph.consume_closing(count),
             AnyDelimiter::Link(link) => link.consume_closing(count),

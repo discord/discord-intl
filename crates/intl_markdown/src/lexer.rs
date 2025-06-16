@@ -4,12 +4,11 @@ use crate::byte_lookup::{
     self, char_length_from_byte, get_byte_type, is_unicode_identifier_continue,
     is_unicode_identifier_start, ByteType,
 };
-use crate::token::{TextIndex, TextSpan};
+use crate::syntax::{SourceText, TextPointer, TextSize, TextSpan};
 
 use super::{
     block_parser::BlockBound,
-    syntax::SyntaxKind,
-    token::{SyntaxToken, TokenFlags},
+    syntax::{SyntaxKind, SyntaxToken},
 };
 
 /// A dedicated struct for storing ephemeral state that influences the lexer's
@@ -66,7 +65,6 @@ pub(super) struct LexerCheckpoint {
     position: usize,
     last_position: usize,
     current_kind: SyntaxKind,
-    current_flags: TokenFlags,
     state: LexerState,
 }
 
@@ -92,26 +90,24 @@ pub enum LexContext {
     IcuStyle,
 }
 
-pub struct Lexer<'source> {
-    text: &'source str,
+pub struct Lexer {
+    text: SourceText,
     block_bounds: Vec<BlockBound>,
     current_kind: SyntaxKind,
     /// Current byte offset into the text.
     position: usize,
     last_position: usize,
-    current_flags: TokenFlags,
     state: LexerState,
 }
 
-impl<'source> Lexer<'source> {
-    pub fn new(text: &'source str, block_bounds: Vec<BlockBound>) -> Self {
+impl Lexer {
+    pub fn new(text: SourceText, block_bounds: Vec<BlockBound>) -> Self {
         Self {
             text,
             block_bounds: block_bounds.into(),
             current_kind: SyntaxKind::TOMBSTONE,
             position: 0,
             last_position: 0,
-            current_flags: TokenFlags::default(),
             state: LexerState::new(),
         }
     }
@@ -137,7 +133,6 @@ impl<'source> Lexer<'source> {
         // a truly-default state instead.
         self.position = self.last_position;
         self.get_state_from_previous_character();
-        self.current_flags = TokenFlags::default();
         self.next_token(context)
     }
 
@@ -533,7 +528,7 @@ impl<'source> Lexer<'source> {
     //#region Markdown Elements
 
     /// Consume an escaped character, either returning SyntaxKind::ESCAPED for
-    /// valid escape sequences, or `text` if the next character would not create
+    /// valid escape sequences, or `TEXT` if the next character would not create
     /// a valid escape.
     fn consume_escaped(&mut self) -> SyntaxKind {
         self.advance();
@@ -543,13 +538,12 @@ impl<'source> Lexer<'source> {
         }
 
         self.state.last_token_was_escape = true;
-        self.current_flags.insert(TokenFlags::IS_ESCAPED);
 
         match self.current() {
             // Escaped backticks are treated specially when discovering code
             // spans. The escape won't actually get interpreted when it's
             // _inside_ of the span, but will if it's anywhere else.
-            b'`' => self.consume_byte(SyntaxKind::BACKTICK),
+            b'`' => self.consume_byte(SyntaxKind::ESCAPED_BACKTICK),
             // "Any ASCII punctuation character may be backslash-escaped"
             b if b.is_ascii_punctuation() => self.consume_byte(SyntaxKind::ESCAPED),
             // "A backslash at the end of the line is a hard line break"
@@ -560,7 +554,6 @@ impl<'source> Lexer<'source> {
                 // Markdown only allows the above characters to be escaped,
                 // everything else is treated as a literal backslash.
                 self.state.last_token_was_escape = false;
-                self.current_flags.remove(TokenFlags::IS_ESCAPED);
                 SyntaxKind::TEXT
             }
         }
@@ -575,45 +568,14 @@ impl<'source> Lexer<'source> {
     /// and collating the bounds for whether the run can open and/or close.
     fn consume_delimiter(&mut self) -> SyntaxKind {
         // Consume all the same consecutive characters.
-        let value = self.current();
-
-        let kind = match value {
+        let kind = match self.current() {
             b'*' => SyntaxKind::STAR,
             b'_' => SyntaxKind::UNDER,
             b'~' => SyntaxKind::TILDE,
-            _ => unreachable!("Consumed a delimiter run of a non-runnable value {}", value),
+            value => unreachable!("Consumed a delimiter run of a non-runnable value {}", value),
         };
 
-        // Then examine the character that follows the run.
-        let next = self.peek_char();
-        let next_is_whitespace: bool = next.map_or(true, |c| c.is_whitespace());
-        let next_is_punctuation = next.is_some_and(|c| {
-            matches!(
-                c.general_category_group(),
-                GeneralCategoryGroup::Punctuation | GeneralCategoryGroup::Symbol
-            )
-        });
-        let next_is_escaped = matches!(next, Some('\\'));
-
-        let mut flags = TokenFlags::default();
-        if self.state.last_was_whitespace {
-            flags.insert(TokenFlags::HAS_PRECEDING_WHITESPACE);
-        }
-        if self.state.last_was_punctuation && !self.state.last_token_was_escape {
-            flags.insert(TokenFlags::HAS_PRECEDING_PUNCTUATION);
-        }
-        if next_is_whitespace {
-            flags.insert(TokenFlags::HAS_FOLLOWING_WHITESPACE);
-        }
-        if next_is_punctuation && !next_is_escaped {
-            flags.insert(TokenFlags::HAS_FOLLOWING_PUNCTUATION);
-        }
-
         self.advance();
-
-        // Add all the determined flags to the current flag set.
-        self.current_flags.insert(flags);
-
         kind
     }
 
@@ -845,9 +807,7 @@ impl<'source> Lexer<'source> {
 
     fn consume_icu_keyword_or_ident(&mut self) -> SyntaxKind {
         self.consume_icu_ident();
-        let span = self.current_byte_span();
-        let size_span = span.start as usize..span.end as usize;
-        let ident = &self.text[size_span];
+        let ident = &self.text[self.current_byte_span()];
         match ident {
             "plural" => SyntaxKind::ICU_PLURAL_KW,
             "select" => SyntaxKind::ICU_SELECT_KW,
@@ -955,11 +915,6 @@ impl<'source> Lexer<'source> {
         self.text[self.position..].chars().nth(0).unwrap()
     }
 
-    /// Returns the flags that are applied for the current token.
-    pub fn current_flags(&self) -> TokenFlags {
-        self.current_flags
-    }
-
     /// Returns the next character in the source text after the current one.
     fn peek(&self) -> Option<&u8> {
         self.peek_at(1)
@@ -987,7 +942,6 @@ impl<'source> Lexer<'source> {
             position: self.position,
             last_position: self.last_position,
             current_kind: self.current_kind,
-            current_flags: self.current_flags,
             state: self.state,
         }
     }
@@ -996,7 +950,6 @@ impl<'source> Lexer<'source> {
         self.position = checkpoint.position;
         self.last_position = checkpoint.last_position;
         self.current_kind = checkpoint.current_kind;
-        self.current_flags = checkpoint.current_flags;
         self.state = checkpoint.state;
     }
 
@@ -1056,10 +1009,22 @@ impl<'source> Lexer<'source> {
 
     /// Returns a range representing the byte span of the current token.
     pub fn current_byte_span(&self) -> TextSpan {
-        self.last_position as TextIndex..self.position as TextIndex
+        self.last_position..self.position
     }
 
-    /// Creates a new token of the given `kind` from the current positions in
+    pub fn current_text(&self) -> &str {
+        &self.text[self.current_byte_span()]
+    }
+
+    pub fn text(&self, range: std::ops::Range<usize>) -> &str {
+        &self.text[range]
+    }
+
+    pub fn position(&self) -> usize {
+        self.position
+    }
+
+    /// Creates a new token with the current `kind` from the current positions in
     /// the source text.
     ///
     /// After consuming, the state of the lexer is reset and advanced to the
@@ -1071,9 +1036,24 @@ impl<'source> Lexer<'source> {
         token
     }
 
+    /// Creates a new token of the given `kind` from the current positions in
+    /// the source text.
+    ///
+    /// After consuming, the state of the lexer is reset and advanced to the
+    /// next position in the source.
+    pub fn extract_current_token_as_kind(&mut self, kind: SyntaxKind) -> SyntaxToken {
+        self.get_state_from_previous_character();
+        let token = self.token_from_range(kind, self.current_byte_span());
+        self.reset_state();
+        token
+    }
+
+    pub fn skip_current_token(&mut self) {
+        self.reset_state();
+    }
+
     fn reset_state(&mut self) {
         self.last_position = self.position;
-        self.current_flags = TokenFlags::default();
         self.current_kind = SyntaxKind::TOMBSTONE;
     }
     //#endregion
@@ -1083,6 +1063,13 @@ impl<'source> Lexer<'source> {
     /// be used to generate arbitrary tokens from a given range, effectively re-
     /// lexing the content, but without destroying old tokens, either.
     pub fn token_from_range(&self, kind: SyntaxKind, range: TextSpan) -> SyntaxToken {
-        SyntaxToken::new(kind, range).with_flags(self.current_flags)
+        SyntaxToken::new(
+            kind,
+            TextPointer::new(
+                self.text.clone(),
+                range.start as TextSize,
+                (range.end - range.start) as TextSize,
+            ),
+        )
     }
 }

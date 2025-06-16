@@ -1,6 +1,6 @@
 use crate::parser::link::parse_hook_open;
 use crate::parser::strikethrough::parse_strikethrough_delimiter_run;
-use crate::{lexer::LexContext, SyntaxKind};
+use crate::{lexer::LexContext, syntax::SyntaxKind};
 
 use super::{
     code_span::parse_code_span,

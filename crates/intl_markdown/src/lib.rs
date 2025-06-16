@@ -1,45 +1,42 @@
 #![feature(portable_simd)]
+#![feature(iter_collect_into)]
+#![feature(substr_range)]
 
 pub use ast::format::format_ast;
-pub use ast::process::process_cst_to_ast;
-pub use ast::*;
+pub use cst::*;
 pub use icu::compile::compile_to_format_js;
 pub use icu::format::format_icu_string;
 pub use icu::tags::DEFAULT_TAG_NAMES;
 pub use parser::ICUMarkdownParser;
-pub use syntax::SyntaxKind;
-pub use token::SyntaxToken;
-pub use tree_builder::cst::Document as CstDocument;
+
+use crate::syntax::{SourceText, SyntaxKind, SyntaxNode};
+use syntax::FromSyntax;
 
 pub mod ast;
 mod block_parser;
 mod byte_lookup;
 mod cjk;
+mod cst;
 mod delimiter;
-mod event;
 mod html_entities;
 mod icu;
 mod lexer;
 mod parser;
 mod syntax;
-mod token;
-mod tree_builder;
 
 /// Parse an intl message into a final AST representing the semantics of the message.
 pub fn parse_intl_message(content: &str, include_blocks: bool) -> Document {
-    let mut parser = ICUMarkdownParser::new(content, include_blocks);
-    let source = parser.source().clone();
+    let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     parser.parse();
-    let cst = parser.into_cst();
-    process_cst_to_ast(source, &cst)
+    Document::from_syntax(parser.finish().tree.node().clone())
 }
 
 /// Return a new Document with the given content as the only value, treated as a raw string with
 /// no parsing or semantics applied.
 pub fn raw_string_to_document(content: &str) -> Document {
-    Document::from_literal(content)
+    Document::from_syntax(SyntaxNode::new(SyntaxKind::DOCUMENT, None))
 }
 
-pub fn format_to_icu_string(document: &Document) -> Result<String, std::fmt::Error> {
-    format_icu_string(document)
-}
+// pub fn format_to_icu_string(document: &Document) -> Result<String, std::fmt::Error> {
+//     format_icu_string(document)
+// }

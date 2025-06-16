@@ -1,6 +1,6 @@
-use crate::{lexer::LexContext, SyntaxKind};
-
 use super::{inline::parse_inline, ICUMarkdownParser};
+use crate::lexer::LexContext;
+use crate::syntax::SyntaxKind;
 
 /// Parse a block element of the given kind. Rules for how the content of the
 /// block is parsed are applied first, then all of the contained content is
@@ -24,16 +24,9 @@ fn parse_paragraph(p: &mut ICUMarkdownParser) -> Option<()> {
 }
 
 fn parse_remainder_as_token_list(p: &mut ICUMarkdownParser) -> Option<()> {
-    while !matches!(
-        p.current(),
-        SyntaxKind::EOF
-            | SyntaxKind::BLOCK_START
-            | SyntaxKind::INLINE_START
-            | SyntaxKind::INLINE_END
-            | SyntaxKind::BLOCK_END
-    ) {
+    while !p.current().is_block_bound() {
         if p.current().is_trivia() {
-            p.bump_as_trivia();
+            p.bump_as_trivia(LexContext::Regular);
         } else {
             p.bump();
         }
@@ -80,7 +73,7 @@ fn parse_atx_heading(p: &mut ICUMarkdownParser) -> Option<()> {
 
     p.skip_whitespace_as_trivia();
 
-    // Finally collect the optional closing sequence.
+    // Finally, collect the optional closing sequence.
     if p.at(SyntaxKind::HASH) {
         let closing_sequence = p.mark();
         while p.at(SyntaxKind::HASH) {
@@ -123,8 +116,9 @@ fn parse_code_block_content(p: &mut ICUMarkdownParser) {
 
 fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
     let leading_indent = if p.at(SyntaxKind::LEADING_WHITESPACE) {
-        let trivia = p.bump_as_trivia();
-        trivia.text().len() as u32
+        let length = p.current_token_len();
+        p.bump_as_trivia(LexContext::Regular);
+        length
     } else {
         0
     };

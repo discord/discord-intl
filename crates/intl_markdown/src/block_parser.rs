@@ -663,10 +663,9 @@ fn create_lines(text: &str) -> VecDeque<Line> {
 
 #[cfg(test)]
 mod test {
-    use test_case::test_case;
-
     use super::{create_lines, BlockBound, BlockParser};
-    use crate::SyntaxKind;
+    use crate::syntax::SyntaxKind;
+    use test_case::test_case;
 
     #[test]
     fn print_test() {

@@ -1,171 +1,112 @@
 use proc_macro::TokenStream;
 
-use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::{format_ident, quote_spanned};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, LitByteStr, Token, Type};
+use syn::spanned::Spanned;
+use syn::{parse_macro_input, DeriveInput, LitByteStr, Token, Type};
 
-#[proc_macro_derive(ReadFromEvents)]
-pub fn derive_read_from_events(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(FromSyntax)]
+pub fn derive_from_syntax(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-
-    // get the name of the type we want to implement the trait for
     let name = &input.ident;
 
-    let syntax_kind = format_ident!("{}", name.to_string().to_case(Case::UpperSnake));
+    quote_spanned! { proc_macro2::Span::call_site() =>
+        impl crate::syntax::FromSyntax for #name {
+            fn from_syntax(syntax: crate::syntax::SyntaxNode) -> Self {
+                Self { syntax }
+            }
+        }
+    }
+    .into()
+}
 
-    match input.data {
-        Data::Struct(data) => derive_read_for_struct(name, syntax_kind, data),
-        Data::Enum(data) => derive_read_for_enum(name, syntax_kind, data),
-        _ => panic!("ReadFromEvents is only applicable on structs"),
+struct AstNodeField {
+    name: Ident,
+    optional: bool,
+    ty: Type,
+}
+impl Parse for AstNodeField {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let name = input.parse::<Ident>()?;
+        let optional = input.parse::<Token![?]>().is_ok();
+        input.parse::<Token![:]>()?;
+        let ty = input.parse::<Type>()?;
+        Ok(AstNodeField { name, optional, ty })
     }
 }
 
-fn derive_read_for_enum(name: &Ident, _: Ident, data: DataEnum) -> TokenStream {
-    let variants = data.variants;
-    let variant_idents = Vec::from_iter(variants.iter().map(|variant| &variant.ident));
+struct AstNodeDefinitionInput {
+    name: Ident,
+    fields: Vec<AstNodeField>,
+}
+impl Parse for AstNodeDefinitionInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let name = input.parse::<Ident>()?;
+        input.parse::<Token![,]>()?;
+        let fields = input
+            .parse_terminated(AstNodeField::parse, Token![,])?
+            .into_iter()
+            .collect();
+        Ok(AstNodeDefinitionInput { name, fields })
+    }
+}
 
-    let syntax_names = Vec::from_iter(
-        variant_idents
-            .iter()
-            .map(|ident| ident.to_string())
-            .map(|name| format_ident!("{}", name.to_string().to_case(Case::UpperSnake))),
-    );
+#[proc_macro]
+pub fn ast_node(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as AstNodeDefinitionInput);
 
-    let boilerplate_impls = quote_spanned! { proc_macro2::Span::call_site() =>
+    let name = &input.name;
+
+    let accessors = input
+        .fields
+        .iter()
+        .enumerate()
+        .map(|(slot, field)| {
+            let AstNodeField { name, optional, ty } = &field;
+            let type_name = ty.span().source_text().unwrap();
+            let mapper = if type_name == "Token" {
+                if *optional {
+                    format_ident!("optional_token")
+                } else {
+                    format_ident!("required_token")
+                }
+            } else {
+                if *optional {
+                    format_ident!("optional_node")
+                } else {
+                    format_ident!("required_node")
+                }
+            };
+            quote_spanned! { field.name.span() =>
+                fn #name(&self) -> #ty {
+                    #mapper(&self.syntax, #slot)
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let expanded = quote_spanned! { proc_macro2::Span::call_site() =>
+        #[derive(Clone, Debug)]
+        struct #name {
+            syntax: crate::syntax::SyntaxNode,
+        }
+
         impl #name {
-            pub fn kind(&self) -> SyntaxKind {
-                match self {
-                    #(#name::#variant_idents(_) => SyntaxKind::#syntax_names),*
-                }
+            pub fn syntax(&self) -> &SyntaxNode {
+                &self.syntax
             }
+
+            #(#accessors)*
         }
 
-        impl crate::tree_builder::TokenSpan for #name {
-            fn first_token(&self) -> Option<&Token> {
-                match self {
-                    #(#name::#variant_idents(v) => v.first_token(),)*
-                }
-            }
-
-            fn last_token(&self) -> Option<&Token> {
-                match self {
-                    #(#name::#variant_idents(v) => v.last_token(),)*
-                }
-            }
-        }
-
-        impl std::fmt::Debug for #name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                match self {
-                    #(Self::#variant_idents(v) => v.fmt(f)),*
-                }
+        impl FromSyntax for #name {
+            fn from_syntax(syntax: crate::syntax::SyntaxNode) -> Self {
+                Self { syntax }
             }
         }
     };
-
-    let expanded = quote_spanned! { proc_macro2::Span::call_site() =>
-        impl ReadFromEventBuf for #name {
-            fn read_from<I: Iterator<Item = Event>>(buf: &mut EventBuffer<I>) -> Self {
-                let start = buf.peek();
-                let Some(Event::Start(start_kind)) = start else {
-                    unreachable!("Encountered an event other than Start when reading a node");
-                };
-
-                let node = match start_kind {
-                    SyntaxKind::TOMBSTONE => unreachable!(
-                        "Tried to parse a real event, but encountered a tombstone (an abandoned event)"
-                    ),
-                    #(SyntaxKind::#syntax_names => #name::#variant_idents(#variant_idents::read_from(buf)),)*
-                    kind => unreachable!(
-                        "Expected parsed buffer to have a valid node kind, but got {:?}",
-                        kind
-                    ),
-                };
-
-                node
-            }
-
-            fn matches_kind(kind: SyntaxKind) -> bool {
-                matches!(kind, #(SyntaxKind::#syntax_names)|*)
-            }
-        }
-
-        #boilerplate_impls
-    };
-
-    TokenStream::from(expanded)
-}
-
-fn derive_read_for_struct(name: &Ident, syntax_kind: Ident, data: DataStruct) -> TokenStream {
-    let fields = data.fields;
-
-    let mut readers = vec![];
-    let mut assigners = vec![];
-    let mut accessors = vec![];
-
-    for field in fields.iter() {
-        let field_name = field.ident.as_ref().unwrap();
-
-        let kind = match &field.ty {
-            Type::Path(path) => path
-                .path
-                .get_ident()
-                .unwrap_or(&path.path.segments[0].ident),
-            _ => panic!("ReadFromEvents only supports Path types"),
-        };
-        let reader = quote_spanned! { kind.span() =>
-            let #field_name = #kind::read_from(buf);
-        };
-
-        let assigner = quote_spanned! { field_name.span() => #field_name };
-        let accessor = quote_spanned! { field_name.span() => self.#field_name };
-
-        readers.push(reader);
-        assigners.push(assigner);
-        accessors.push(accessor);
-    }
-
-    let reverse_accessors = accessors.iter().rev();
-
-    let boilerplate_impls = quote_spanned! { proc_macro2::Span::call_site() =>
-        impl crate::tree_builder::TokenSpan for #name {
-            fn first_token(&self) -> Option<&Token> {
-                #(if let Some(token) = #accessors.first_token() {
-                    return Some(token);
-                };)*
-                None
-            }
-
-            fn last_token(&self) -> Option<&Token> {
-                #(if let Some(token) = #reverse_accessors.last_token() {
-                    return Some(token);
-                };)*
-                None
-            }
-        }
-    };
-
-    let expanded = quote_spanned! { proc_macro2::Span::call_site() =>
-        impl crate::tree_builder::ReadFromEventBuf for #name {
-            const KIND: SyntaxKind = SyntaxKind::#syntax_kind;
-
-            fn read_from<I: Iterator<Item = Event>>(buf: &mut EventBuffer<I>) -> Self {
-                buf.next_as_start();
-                #(#readers)*
-                buf.next_as_finish(Self::KIND);
-
-                Self {
-                    #(#assigners),*
-                }
-            }
-        }
-
-        #boilerplate_impls
-    };
-
     TokenStream::from(expanded)
 }
 
@@ -265,6 +206,7 @@ pub fn generate_byte_lookup_table(input: TokenStream) -> TokenStream {
         pub(crate) static #table_name: [u8; 256] = [#(#values),*];
 
         #[repr(u8)]
+        #[allow(non_camel_case_types)]
         pub(crate) enum #enum_name {
             #(#enum_fields = #enum_values),*
         }

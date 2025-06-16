@@ -1,4 +1,4 @@
-use crate::SyntaxKind;
+use crate::syntax::SyntaxKind;
 
 use super::ICUMarkdownParser;
 
@@ -7,12 +7,6 @@ use super::ICUMarkdownParser;
 /// then the parser is rewound to the opener, it is deactivated to plain text,
 /// and parsing continues as normal afterward.
 pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option<()> {
-    // If the first backticks are escaped, then bump those tokens out, since
-    // they won't be included in the delimiter.
-    while p.current() == kind && p.current_flags().is_escaped() {
-        p.bump();
-    }
-
     if !p.at(kind) {
         return None;
     }
@@ -23,7 +17,7 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
     let marker = p.mark();
     let open_delimiter_start = p.mark();
     let mut open_count = 0;
-    while p.current() == kind && !p.current_flags().is_escaped() {
+    while p.current() == kind {
         p.bump();
         open_count += 1;
     }
@@ -39,25 +33,33 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
     let did_complete = loop {
         match p.current() {
             // EOF means the codespan wasn't matched. Spans are also bounded as
-            // inline elements, so the end of a block terminates it's reach.
+            // inline elements, so the end of a block terminates its reach.
             SyntaxKind::EOF | SyntaxKind::BLOCK_END => break false,
             // If another delimiter is found, try to match it and complete the
             // codespan, otherwise just continue consuming it.
-            SyntaxKind::BACKTICK => {
+            SyntaxKind::BACKTICK | SyntaxKind::ESCAPED_BACKTICK => {
+                let codespan_content_end_mark = p.mark();
                 let close_delimiter = p.mark();
                 p.bump();
                 let mut close_count = 1;
-                while p.current() == kind && !p.current_flags().is_escaped() {
+                while p.current() == kind {
                     p.bump();
                     close_count += 1;
                 }
                 // If a match is found, complete the marker and stop parsing,
                 // indicating that the marker was completed.
                 if open_count == close_count {
+                    // ORDER:
+                    // - Complete the closing delimiter first, since it's now guaranteed to exist.
+                    // - Complete the opening delimiter.
+                    // - Complete the content.
+                    close_delimiter.complete(p, SyntaxKind::CODE_SPAN_DELIMITER);
                     open_delimiter_start
                         .span_to(open_delimiter_end)
                         .complete(p, SyntaxKind::CODE_SPAN_DELIMITER);
-                    close_delimiter.complete(p, SyntaxKind::CODE_SPAN_DELIMITER);
+                    open_delimiter_end
+                        .span_to(codespan_content_end_mark)
+                        .complete(p, SyntaxKind::CODE_SPAN_CONTENT);
                     marker.complete(p, SyntaxKind::CODE_SPAN);
                     break true;
                 }

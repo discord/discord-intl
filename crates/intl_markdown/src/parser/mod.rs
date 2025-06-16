@@ -1,20 +1,13 @@
-use crate::token::{SourceText, TriviaList};
-use crate::{
-    lexer::{LexContext, LexerState},
-    token::Trivia,
-};
-
+use self::{block::parse_block, inline::parse_inline};
 use super::{
     block_parser::BlockParser,
     delimiter::{AnyDelimiter, Delimiter},
-    event::{Event, Marker},
     lexer::{Lexer, LexerCheckpoint},
-    token::TokenFlags,
-    tree_builder::cst::{parser_events_to_cst, Document},
-    SyntaxKind, SyntaxToken,
 };
-
-use self::{block::parse_block, inline::parse_inline};
+use crate::lexer::{LexContext, LexerState};
+use crate::syntax::tree::{TreeBuilder, TreeCheckpoint};
+use crate::syntax::{SourceText, SyntaxElement, SyntaxKind, SyntaxToken, TextSize};
+use marker::Marker;
 
 mod block;
 mod code_span;
@@ -23,6 +16,7 @@ mod emphasis;
 mod icu;
 mod inline;
 mod link;
+mod marker;
 mod strikethrough;
 mod text;
 
@@ -32,10 +26,14 @@ pub(super) struct ParserState {}
 #[derive(Debug)]
 pub(super) struct ParserCheckpoint {
     lexer_checkpoint: LexerCheckpoint,
-    buffer_index: usize,
-    trivia_index: usize,
+    builder_checkpoint: TreeCheckpoint,
     delimiter_stack_length: usize,
     state: ParserState,
+}
+
+pub struct ParseResult {
+    pub source: SourceText,
+    pub tree: SyntaxElement,
 }
 
 /// A specialized Markdown parser that understands ICU MessageFormat and
@@ -49,11 +47,10 @@ pub(super) struct ParserCheckpoint {
 /// This parser also handles the special syntax that Discord has used in
 /// messages as extensions to Markdown, specifically hooks and "unsafe" blocks
 /// (`$[content](hookName)` and `!!{something}!!`, respectively).
-pub struct ICUMarkdownParser<'source> {
-    lexer: Lexer<'source>,
+pub struct ICUMarkdownParser {
+    lexer: Lexer,
     source: SourceText,
-    buffer: Vec<Event>,
-    trivia_list: TriviaList,
+    builder: TreeBuilder,
     /// A stack of delimiter stacks, storing the hierarchical state of delimiters across different
     /// contexts as needed (i.e., when inside an ICU plural value), where new content will be pushed
     /// onto the stack and _should not_ be treated as part of the containing elements.
@@ -79,27 +76,25 @@ pub struct ICUMarkdownParser<'source> {
     /// spec, then parse each block as inline content. When false, block parsing is skipped and the
     /// entire block is treated as a single segment of inline content.
     include_blocks: bool,
+    previous_token: Option<SyntaxToken>,
 }
 
-impl<'source> ICUMarkdownParser<'source> {
-    pub fn new(source: &'source str, include_blocks: bool) -> Self {
+impl ICUMarkdownParser {
+    pub fn new(source: SourceText, include_blocks: bool) -> Self {
         let block_bounds = if include_blocks {
-            BlockParser::new(source).parse_into_block_bounds()
+            BlockParser::new(&source).parse_into_block_bounds()
         } else {
             vec![]
         };
 
         Self {
-            lexer: Lexer::new(source, block_bounds),
-            source: SourceText::from(source),
-            buffer: Vec::with_capacity(source.len() / 2),
-            // Pre-allocating some size here should avoid the need to allocate
-            // at any point within the parser in _most_ cases, at the expense of
-            // extra allocations for simple sources.
-            trivia_list: TriviaList::new(),
+            lexer: Lexer::new(source.clone(), block_bounds),
+            source,
+            builder: TreeBuilder::new(),
             delimiter_stacks: vec![],
             state: ParserState::default(),
             include_blocks,
+            previous_token: None,
         }
     }
 
@@ -125,15 +120,20 @@ impl<'source> ICUMarkdownParser<'source> {
     /// This method will first parse the content into blocks, and then each
     /// block's content will be parsed as inline syntax.
     pub fn parse(&mut self) {
-        if !self.include_blocks {
-            self.parse_inline_only();
-            return;
-        }
-
         // Eating one starts the parser by reading the first token.
         self.eat();
-        self.push_event(Event::Start(SyntaxKind::DOCUMENT));
+        self.start_node(SyntaxKind::DOCUMENT);
+        if !self.include_blocks {
+            parse_inline(self, false);
+        } else {
+            self.parse_with_blocks();
+        }
 
+        self.expect_end_of_file();
+        self.finish_node();
+    }
+
+    fn parse_with_blocks(&mut self) {
         loop {
             self.skip_whitespace_as_trivia();
 
@@ -141,22 +141,22 @@ impl<'source> ICUMarkdownParser<'source> {
                 SyntaxKind::EOF => break,
                 SyntaxKind::BLOCK_START => {
                     let kind = self.eat_block_bound();
-                    self.push_event(Event::Start(kind));
+                    self.start_node(kind);
                     parse_block(self, kind);
                 }
                 SyntaxKind::BLOCK_END => {
-                    let kind = self.eat_block_bound();
-                    self.push_event(Event::Finish(kind));
+                    self.eat_block_bound();
+                    self.finish_node();
                     self.reset_inline_state();
                 }
                 SyntaxKind::INLINE_START => {
                     let kind = self.eat_block_bound();
-                    self.push_event(Event::Start(kind));
+                    self.start_node(kind);
                     parse_inline(self, false);
                 }
                 SyntaxKind::INLINE_END => {
-                    let kind = self.eat_block_bound();
-                    self.push_event(Event::Finish(kind));
+                    self.eat_block_bound();
+                    self.finish_node();
                     self.reset_inline_state();
                 }
                 _ => unreachable!(
@@ -165,28 +165,16 @@ impl<'source> ICUMarkdownParser<'source> {
                 ),
             }
         }
-        self.expect_end_of_file();
-        self.push_event(Event::Finish(SyntaxKind::DOCUMENT));
-    }
-
-    /// Parse the entire content as a single inline segment. This skips block
-    /// parsing entirely, meaning any block-like syntax like headers, lists,
-    /// and link references will be treated as insignificant and/or interpreted
-    /// as inline syntax instead, even if there are multiple newlines separating
-    /// pieces of the text.
-    pub fn parse_inline_only(&mut self) {
-        self.eat();
-        self.push_event(Event::Start(SyntaxKind::DOCUMENT));
-        parse_inline(self, false);
-        self.expect_end_of_file();
-        self.push_event(Event::Finish(SyntaxKind::DOCUMENT));
     }
 
     /// Consume this parser, interpreting its events into a constructed,
     /// lossless syntax tree. The return value is the root Node of that tree,
     /// a Document.
-    pub fn into_cst(self) -> Document {
-        parser_events_to_cst(self.buffer, self.source, self.trivia_list)
+    pub fn finish(self) -> ParseResult {
+        ParseResult {
+            source: self.source,
+            tree: self.builder.finish(),
+        }
     }
 
     // Options API
@@ -215,8 +203,8 @@ impl<'source> ICUMarkdownParser<'source> {
         self.lexer.current_kind()
     }
 
-    pub(super) fn current_flags(&self) -> TokenFlags {
-        self.lexer.current_flags()
+    pub(super) fn current_token_len(&self) -> TextSize {
+        self.lexer.current_byte_span().len() as u32
     }
 
     /// Advances by 1 if the current token matches the given kind and returns
@@ -284,61 +272,56 @@ impl<'source> ICUMarkdownParser<'source> {
         self.bump_as(self.current(), context);
     }
 
-    /// Bump a token into the buffer with the given SyntaxKind associated to it.
-    /// Bumped tokens are always inline events. Use `push_block` to create a new
-    /// block event.
+    /// Bump a token into the buffer with the given SyntaxKind associated onto it.
     #[inline]
     pub(super) fn bump_as(&mut self, kind: SyntaxKind, context: LexContext) {
-        let token = self.eat_with_context(context);
-        self.push_token(token.with_kind(kind));
+        let token = self.eat_with_context(context, kind);
+        self.push_token(token);
     }
 
     /// Advance the lexer by one token _without_ adding the current token to
     /// the event buffer. The token that was eaten is returned for the caller to
     /// use as needed.
     #[inline]
-    pub(super) fn eat_with_context(&mut self, context: LexContext) -> SyntaxToken {
-        let token = self.lexer.extract_current_token();
+    pub(super) fn eat_with_context(
+        &mut self,
+        context: LexContext,
+        kind: SyntaxKind,
+    ) -> SyntaxToken {
+        let token = self.lexer.extract_current_token_as_kind(kind);
         self.lexer.next_token(context);
         token
     }
 
+    /// Advance the lexer by one token without processing anything about the current token.
+    /// This method should only be used for trivia and elements that are tracked in other ways to
+    /// avoid losing any content from the source text.
     #[inline]
-    pub(super) fn eat(&mut self) -> SyntaxToken {
-        self.eat_with_context(LexContext::Regular)
+    pub(super) fn skip_with_context(&mut self, context: LexContext) {
+        self.lexer.skip_current_token();
+        self.lexer.next_token(context);
     }
 
-    fn extract_as_trivia(&mut self) -> Trivia {
-        let token = self.lexer.extract_current_token();
-        Trivia::new(
-            token.kind(),
-            self.source().clone(),
-            token.span(),
-            // This is...arbitrary, but the lexer enforces that the only time
-            // LEADING_WHITESPACE is created is when there is non-whitespace
-            // content on the line as well, and the leading whitespace will
-            // always consume up until the first significant character, meaning
-            // it is the only kind of token that can become leading trivia.
-            //
-            // However, if this trivia is at the very start of the input, then
-            // it can't be trailing, so it gets forced as leading trivia, too.
-            token.span_start() > 0 && token.kind() != SyntaxKind::LEADING_WHITESPACE,
-        )
+    #[inline]
+    pub(super) fn eat(&mut self) -> SyntaxToken {
+        self.eat_with_context(LexContext::Regular, self.current())
     }
 
     /// Eats the next token from the input as a Trivia token, adds it to the
     /// trivia list, and returns a reference to that trivia for the caller to
     /// inspect.
-    pub(super) fn bump_as_trivia(&mut self) -> &Trivia {
+    ///
+    /// NOTE: Trivia cannot be rewound within a token. To reparse trivia and
+    /// remove it from the previous token, the parser must be rewound to before
+    /// the target token.
+    pub(super) fn bump_as_trivia(&mut self, context: LexContext) {
         debug_assert!(
             self.current().is_trivia(),
             "Attempted to eat a token as trivia, but it is not a trivial kind: {:?}",
             self.current()
         );
-        let trivia = self.extract_as_trivia();
-        self.trivia_list.push(trivia);
-        self.lexer.next_token(LexContext::Regular);
-        self.trivia_list.last().unwrap()
+        self.builder.add_trivia(self.lexer.current_text());
+        self.lexer.next_token(context);
     }
 
     /// Eats the current token from the stream, consuming the kind stored on
@@ -364,8 +347,7 @@ impl<'source> ICUMarkdownParser<'source> {
     pub(super) fn checkpoint(&self) -> ParserCheckpoint {
         ParserCheckpoint {
             lexer_checkpoint: self.lexer.checkpoint(),
-            buffer_index: self.buffer_index(),
-            trivia_index: self.trivia_list.len(),
+            builder_checkpoint: self.builder.checkpoint(),
             delimiter_stack_length: self.delimiter_stack_length(),
             state: self.state,
         }
@@ -373,11 +355,35 @@ impl<'source> ICUMarkdownParser<'source> {
 
     pub(super) fn rewind(&mut self, checkpoint: ParserCheckpoint) {
         self.lexer.rewind(checkpoint.lexer_checkpoint);
-        self.buffer.truncate(checkpoint.buffer_index);
-        self.trivia_list.truncate(checkpoint.trivia_index);
+        self.builder.rewind(checkpoint.builder_checkpoint);
         self.delimiter_stack()
             .truncate(checkpoint.delimiter_stack_length);
         self.state = checkpoint.state;
+    }
+
+    pub(super) fn start_node(&mut self, kind: SyntaxKind) {
+        self.builder.start_node(kind)
+    }
+
+    pub(super) fn start_node_at(&mut self, kind: SyntaxKind, checkpoint: TreeCheckpoint) {
+        self.builder.start_node_at(kind, checkpoint)
+    }
+
+    pub(super) fn finish_node(&mut self) {
+        self.builder.finish_node()
+    }
+
+    pub(super) fn wrap_with_node(
+        &mut self,
+        kind: SyntaxKind,
+        start: TreeCheckpoint,
+        end: TreeCheckpoint,
+    ) {
+        self.builder.wrap_with_node(kind, start, end);
+    }
+
+    pub(super) fn last_element(&self) -> Option<&SyntaxElement> {
+        self.builder.last_element()
     }
 
     pub(super) fn push_delimiter(&mut self, delimiter: AnyDelimiter) {
@@ -393,41 +399,28 @@ impl<'source> ICUMarkdownParser<'source> {
         delimiter.deactivate();
     }
 
-    pub(super) fn buffer_index(&self) -> usize {
-        self.buffer.len()
-    }
-
     /// Push a plain token onto the back of the event stream. If the token is a
     /// TOMBSTONE, it is not pushed.
     pub(super) fn push_token(&mut self, token: SyntaxToken) {
         if token.kind() == SyntaxKind::TOMBSTONE {
             return;
         }
-
-        self.push_event(Event::Token(token));
-    }
-
-    pub(super) fn push_event(&mut self, event: Event) {
-        self.buffer.push(event);
+        self.previous_token = Some(token.clone());
+        self.builder.push_token(token);
     }
 
     /// Creates a new Start event in the buffer and returns a Marker pointing to
     /// it that can be used to resolve a Node in the future.
     pub(super) fn mark(&mut self) -> Marker {
-        let index = self.buffer.len();
-        self.buffer.push(Event::tombstone());
+        let index = self.builder.checkpoint();
         Marker::new(index)
     }
 
-    pub(super) fn get_event_mut(&mut self, index: usize) -> Option<&mut Event> {
-        self.buffer.get_mut(index)
+    pub(super) fn tree_index(&mut self) -> u32 {
+        self.builder.index()
     }
 
-    pub(super) fn get_last_event(&self) -> Option<&Event> {
-        self.buffer.last()
-    }
-
-    /// Skips consecutive whitespace and newline tokens as Trivia. The resulting
+    /// Skip consecutive whitespace and newline tokens as Trivia. The resulting
     /// list of Trivia is returned for the caller to determine if it should
     /// become leading or trailing trivia for a token.
     pub(super) fn skip_whitespace_as_trivia(&mut self) {
@@ -435,11 +428,14 @@ impl<'source> ICUMarkdownParser<'source> {
     }
 
     pub(super) fn skip_whitespace_as_trivia_with_context(&mut self, context: LexContext) {
+        let trivia_start = self.lexer.position();
+        let mut trivia_end = trivia_start;
         while self.current().is_trivia() {
-            let trivia = self.extract_as_trivia();
-            self.trivia_list.push(trivia);
-            self.lexer.next_token(context);
+            trivia_end = self.lexer.position();
+            self.skip_with_context(context);
         }
+        self.builder
+            .add_trivia(self.lexer.text(trivia_start..trivia_end))
     }
 
     pub(super) fn set_lexer_state<F: FnMut(&mut LexerState)>(&mut self, mut func: F) {
@@ -449,40 +445,27 @@ impl<'source> ICUMarkdownParser<'source> {
 
 #[cfg(test)]
 mod test {
-    use crate::event::DebugEventBuffer;
-    use crate::{format_ast, process_cst_to_ast};
-
     use super::ICUMarkdownParser;
+    use crate::cst::Document;
+    use crate::syntax::{FromSyntax, SourceText};
 
     #[test]
     fn test_debug() {
-        let content = r#"¯\\_(ツ)_/¯"#;
-        let mut parser = ICUMarkdownParser::new(content, true);
-        let source = parser.source.clone();
+        let content = r#"hello *italic **\``foo_name\`** hi* bar"#;
+        let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
 
         parser.parse();
-        println!("Trivia: {:#?}\n", parser.trivia_list);
+        let result = parser.finish();
+        println!("Tree:\n-------\n{:#?}\n", result.tree);
 
-        println!(
-            "Events:\n-------\n{:#?}\n",
-            DebugEventBuffer(
-                parser.buffer.clone(),
-                parser.trivia_list.clone().into(),
-                parser.source().clone()
-            )
-        );
-
-        let cst = parser.into_cst();
-        println!("CST:\n----\n{:#?}\n", cst);
-
-        let ast = process_cst_to_ast(source, &cst);
+        let ast = Document::from_syntax(result.tree.node().clone());
         println!("AST:\n----\n{:#?}\n", ast);
-
-        let output = format_ast(&ast);
-        println!("Output: {}", output.unwrap());
-
-        let json = keyless_json::to_string(&ast);
-        println!("JSON: {}", json.unwrap());
+        //
+        // let output = format_ast(&ast);
+        // println!("Output: {}", output.unwrap());
+        //
+        // let json = keyless_json::to_string(&ast);
+        // println!("JSON: {}", json.unwrap());
     }
 }

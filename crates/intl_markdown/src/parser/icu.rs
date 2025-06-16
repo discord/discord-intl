@@ -1,11 +1,11 @@
 use crate::lexer::LexContext;
 use crate::parser::inline::parse_inline;
-use crate::SyntaxKind;
+use crate::syntax::SyntaxKind;
 
 use super::ICUMarkdownParser;
 
 pub(super) fn is_at_normal_icu(p: &mut ICUMarkdownParser) -> bool {
-    (p.at(SyntaxKind::LCURLY) || p.at(SyntaxKind::UNSAFE_LCURLY)) && !p.current_flags().is_escaped()
+    p.at(SyntaxKind::LCURLY) || p.at(SyntaxKind::UNSAFE_LCURLY)
 }
 
 pub(super) fn parse_icu(p: &mut ICUMarkdownParser) -> Option<()> {
@@ -147,6 +147,7 @@ fn parse_icu_plural(
     p.expect_with_context(SyntaxKind::COMMA, LexContext::Icu)?;
     p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
 
+    let arms_mark = p.mark();
     loop {
         if !p.at(SyntaxKind::ICU_IDENT) && !p.at(SyntaxKind::ICU_PLURAL_EXACT) {
             break;
@@ -168,6 +169,7 @@ fn parse_icu_plural(
         p.skip_whitespace_as_trivia_with_context(LexContext::Icu);
         arm_mark.complete(p, SyntaxKind::ICU_PLURAL_ARM)?;
     }
+    arms_mark.complete(p, SyntaxKind::ICU_PLURAL_ARMS)?;
 
     Some(kind)
 }

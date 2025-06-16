@@ -4,23 +4,23 @@ use super::ICUMarkdownParser;
 use crate::cjk::is_cjk_codepoint;
 use crate::delimiter::Delimiter;
 use crate::parser::emphasis::process_emphasis;
-use crate::token::TextSpan;
-use crate::{cjk, delimiter::EmphasisDelimiter, event::Event, SyntaxKind};
+use crate::syntax::{SyntaxKind, TextSpan};
+use crate::{cjk, delimiter::EmphasisDelimiter};
 
 /// Returns the two chars preceding `first` and two chars following `last` in
 /// the source text. If the spans are at the bounds of the text, this will
 /// return [`None`] for the characters in those positions instead.
-fn get_surrounding_chars(
-    p: &mut ICUMarkdownParser,
+pub(crate) fn get_surrounding_chars(
+    p: &ICUMarkdownParser,
     first: TextSpan,
     last: TextSpan,
 ) -> [Option<char>; 3] {
     let mut result: [Option<char>; 3] = [None; 3];
-    if let Some(mut preceding) = p.source.get(..first.start as usize).map(|i| i.chars()) {
+    if let Some(mut preceding) = p.source.get(..first.start).map(|i| i.chars()) {
         result[1] = preceding.next_back();
         result[0] = preceding.next_back();
     }
-    if let Some(mut following) = p.source.get(last.end as usize..).map(|i| i.chars()) {
+    if let Some(mut following) = p.source.get(last.end..).map(|i| i.chars()) {
         result[2] = following.next();
     }
     result
@@ -44,6 +44,115 @@ fn is_preceding_cjk(prev2: Option<char>, prev: Option<char>) -> bool {
     }
 }
 
+pub(crate) struct DelimiterSurroundingsState {
+    pub(crate) has_preceding_whitespace: bool,
+    pub(crate) has_following_whitespace: bool,
+    pub(crate) has_preceding_punctuation: bool,
+    pub(crate) has_following_punctuation: bool,
+    pub(crate) has_preceding_non_cjk_punctuation: bool,
+    pub(crate) has_following_non_cjk_punctuation: bool,
+    pub(crate) has_preceding_cjk: bool,
+    pub(crate) has_following_cjk: bool,
+}
+
+impl DelimiterSurroundingsState {
+    /// Returns true if the delimiter is in the middle of a contiguous word, such as in programming
+    /// identifier names, like `foo_bar`.
+    ///
+    /// This does _not_ include delimeters on the bounds of words, like the last byte in `foo_bar_`.
+    pub(crate) fn is_intraword(&self) -> bool {
+        !self.has_preceding_whitespace
+            && !self.has_preceding_punctuation
+            && !self.has_following_punctuation
+            && !self.has_following_whitespace
+    }
+
+    /// Returns true if this delimiter is flanking on the right side of a span, like `hello**`.
+    pub(crate) fn is_right_flanking(&self) -> bool {
+        // Right-flanking definition:
+        // 1) not preceded by Unicode whitespace AND
+        !self.has_preceding_whitespace
+            // 2. Either:
+            && (
+            // 2a) not preceded by a non-CJK punctuation sequence. OR
+            !self.has_preceding_non_cjk_punctuation ||
+                // 2b) preceded by a non-CJK punctuation character and followed by
+                //   2bα: Unicode whitespace
+                //   2bβ: a non-CJK punctuation character
+                //   2bγ: a CJK character.
+                self.has_following_whitespace || self.has_following_non_cjk_punctuation || self.has_following_cjk
+        )
+    }
+
+    /// Returns true if this delimiter is flanking on the left side of a span, like `**hello`.
+    pub(crate) fn is_left_flanking(&self) -> bool {
+        // Left-flanking definition
+        // 1. Not followed by whitespace AND
+        !self.has_following_whitespace
+            // 2. Either:
+            && (
+            // 2a) not followed by a non-CJK punctuation character. OR
+            !self.has_following_non_cjk_punctuation
+                // 2b) followed by a non-CJK punctuation character and preceded by
+                //   2bα: Unicode whitespace
+                //   2bβ: a non-CJK punctuation sequence
+                //   2bγ: a CJK character
+                //   2bδ: an Ideographic Variation Selector
+                //   2bε: a CJK sequence
+                || self.has_preceding_whitespace || self.has_preceding_non_cjk_punctuation || self.has_preceding_cjk
+        )
+    }
+}
+
+pub(crate) fn get_surrounding_delimiter_state(
+    p: &ICUMarkdownParser,
+    first_span: TextSpan,
+    last_span: TextSpan,
+) -> DelimiterSurroundingsState {
+    let [mut prev2, prev_raw, next] = get_surrounding_chars(p, first_span, last_span);
+    let mut prev = prev_raw;
+    // "Sequences" in this spec say that if `prev` is a non-emoji general use variation selector,
+    // then it's effectively transparent and `prev2` becomes the important character.
+    // https://github.com/tats-u/markdown-cjk-friendly/blob/aa749152266ed889be41a8de40802659ec35758d/packages/markdown-it-cjk-friendly/src/index.ts#L401-L406
+    if prev.map_or(false, cjk::is_non_emoji_general_use_variation_selector) {
+        // If prev2 is whitespace or the start of the text, it's not meaningful.
+        if !prev2.map_or(true, char::is_whitespace) {
+            prev = prev2
+        }
+    } else {
+        // If the previous character isn't a variation selector, then the value
+        // preceding that also isn't usable.
+        prev2 = None;
+    }
+
+    let has_preceding_cjk = is_preceding_cjk(prev2, prev_raw);
+    let has_following_cjk = next.map_or(false, |c| is_cjk_codepoint(c, false));
+    let has_preceding_punctuation = prev.map_or(false, cjk::is_any_punctuation)
+        // NOTE(faulty): This is a little strange, but for cases of Unicode art
+        // messages like `¯\\_(ツ)_/¯`, we don't want the underscores to end up
+        // turning into emphasis on the face, but by Markdown's rules, that's
+        // exactly what should happen. To get around this, we're making a small
+        // exception that `\` is not considered a punctuation character in the
+        // context of emphasis delimiters. This check works because the only
+        // other meaning of a `\` would be to escape the delimiter mark itself,
+        // which gives the same effect as just disallowing `\` as punctuation
+        // anyway. All CommonMark tests still pass with this in place, so it's
+        // clearly not a common nor meaningful semantic that needs to exist.
+        && !prev.is_some_and(|p| p == '\\');
+    let has_following_punctuation = next.map_or(false, cjk::is_any_punctuation);
+
+    DelimiterSurroundingsState {
+        has_preceding_whitespace: prev.map_or(true, |p| p.is_whitespace()),
+        has_following_whitespace: next.map_or(true, |n| n.is_whitespace()),
+        has_preceding_punctuation,
+        has_following_punctuation,
+        has_preceding_non_cjk_punctuation: has_preceding_punctuation && !has_preceding_cjk,
+        has_following_non_cjk_punctuation: has_following_punctuation && !has_following_cjk,
+        has_preceding_cjk,
+        has_following_cjk,
+    }
+}
+
 /// Consume a sequence of contiguous delimiter tokens with the same kind to
 /// create a new Delimiter stack entry with the kind and number of tokens
 /// consumed. This will also collate the bounds of whether the run can start
@@ -63,108 +172,28 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
     // because delimiters are considered "removed from the text" when they
     // are consumed, so once one is consumed, the following ones shift into
     // their place.
-    let first_flags = p.current_flags();
     let first_span = p.lexer.current_byte_span();
-
-    let index = p.buffer_index() + 1;
-    let mut last_flags = first_flags;
+    let index = p.tree_index();
     let mut last_span = first_span.clone();
     let mut count = 0;
-
     while p.current() == kind {
-        last_flags = p.current_flags();
         last_span = p.lexer.current_byte_span();
         count += 1;
-
-        // Wrap each token with a Start and Finish event that the Delimiter will
-        // point to when inserting the actual event kinds while processing.
-        p.push_event(Event::Start(SyntaxKind::TOMBSTONE));
         p.bump();
-        p.push_event(Event::Finish(SyntaxKind::TOMBSTONE));
     }
 
     // Using the expanded spec from:
     // https://github.com/tats-u/markdown-cjk-friendly/blob/main/specification.md
-
-    let [mut prev2, prev_raw, next] = get_surrounding_chars(p, first_span, last_span);
-    let mut prev = prev_raw;
-    // "Sequences" in this spec say that if `prev` is a non-emoji general use variation selector,
-    // then it's effectively transparent and `prev2` becomes the important character.
-    // https://github.com/tats-u/markdown-cjk-friendly/blob/aa749152266ed889be41a8de40802659ec35758d/packages/markdown-it-cjk-friendly/src/index.ts#L401-L406
-    if prev.map_or(false, cjk::is_non_emoji_general_use_variation_selector) {
-        // If prev2 is whitespace or the start of the text, it's not meaningful.
-        if !prev2.map_or(true, char::is_whitespace) {
-            prev = prev2
-        }
-    } else {
-        // If the previous character isn't a variation selector, then the value
-        // preceding that also isn't usable.
-        prev2 = None;
-    }
-
-    let has_preceding_cjk = is_preceding_cjk(prev2, prev_raw);
-
-    let has_following_cjk = next.map_or(false, |c| is_cjk_codepoint(c, false));
-    let has_preceding_punctuation = prev.map_or(false, cjk::is_punctuation)
-        // NOTE(faulty): This is a little strange, but for cases of unicode art
-        // messages like `¯\\_(ツ)_/¯`, we don't want the underscores to end up
-        // turning into emphasis on the face, but by Markdown's rules, that's
-        // exactly what should happen. To get around this, we're making a small
-        // exception that `\` is not considered a punctuation character in the
-        // context of emphasis delimiters. This check works because the only
-        // other meaning of a `\` would be to escape the delimiter mark itself,
-        // which gives the same effect as just disallowing `\` as punctuation
-        // anyway. All CommonMark tests still pass with this in place, so it's
-        // clearly not a common nor meaningful semantic that needs to exist.
-        && !prev.is_some_and(|p| p == '\\');
-    let has_following_punctuation = last_flags.has_following_punctuation();
-    let has_preceding_non_cjk_punctuation = has_preceding_punctuation && !has_preceding_cjk;
-    let has_following_non_cjk_punctuation = has_following_punctuation && !has_following_cjk;
-
-    let has_preceding_whitespace = first_flags.has_preceding_whitespace();
-    let has_following_whitespace = last_flags.has_following_whitespace();
+    let delimiter_state = get_surrounding_delimiter_state(p, first_span, last_span);
 
     // Underscores are not able to create intra-word emphasis, meaning strings
     // like `foo_bar_` do not create emphasis, but `foo*bar*` does.
-    if kind == SyntaxKind::UNDER {
-        if !has_preceding_whitespace
-            && !has_preceding_punctuation
-            && !has_following_punctuation
-            && !has_following_whitespace
-        {
-            return None;
-        }
+    if kind == SyntaxKind::UNDER && delimiter_state.is_intraword() {
+        return None;
     }
 
-    // Right-flanking definition:
-    // 1) not preceded by Unicode whitespace AND
-    let is_right_flanking = !has_preceding_whitespace
-        // 2. Either:
-        && (
-            // 2a) not preceded by a non-CJK punctuation sequence. OR
-            !has_preceding_non_cjk_punctuation ||
-                // 2b) preceded by a non-CJK punctuation character and followed by
-                //   2bα: Unicode whitespace
-                //   2bβ: a non-CJK punctuation character
-                //   2bγ: a CJK character.
-                has_following_whitespace || has_following_non_cjk_punctuation || has_following_cjk
-        );
-
-    // Left-flanking definition
-    // 1. Not followed by whitespace AND
-    let is_left_flanking = !has_following_whitespace
-        // 2. Either:
-        && (
-        // 2a) not followed by a non-CJK punctuation character. OR
-        !has_following_non_cjk_punctuation
-            // 2b) followed by a non-CJK punctuation character and preceded by
-            //   2bα: Unicode whitespace
-            //   2bβ: a non-CJK punctuation sequence
-            //   2bγ: a CJK character
-            //   2bδ: an Ideographic Variation Selector
-            //   2bε: a CJK sequence
-            || has_preceding_whitespace || has_preceding_non_cjk_punctuation || has_preceding_cjk
-    );
+    let is_right_flanking = delimiter_state.is_right_flanking();
+    let is_left_flanking = delimiter_state.is_left_flanking();
 
     // Using the determined flanking and context flags and the `kind` of the
     // token, determine if it can be used to open and/or close emphasis.
@@ -173,13 +202,17 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
         // a left-flanking delimiter run and either (a) not part of a
         // right-flanking delimiter run or (b) part of a right-flanking
         // delimiter run preceded by a Unicode punctuation character.
-        SyntaxKind::UNDER => is_left_flanking && (!is_right_flanking || has_preceding_punctuation),
+        SyntaxKind::UNDER => {
+            is_left_flanking && (!is_right_flanking || delimiter_state.has_preceding_punctuation)
+        }
         SyntaxKind::STAR => is_left_flanking,
         _ => false,
     };
 
     let can_close_emphasis = match kind {
-        SyntaxKind::UNDER => is_right_flanking && (!is_left_flanking || has_following_punctuation),
+        SyntaxKind::UNDER => {
+            is_right_flanking && (!is_left_flanking || delimiter_state.has_following_punctuation)
+        }
         SyntaxKind::STAR => is_right_flanking,
         _ => false,
     };
@@ -195,8 +228,8 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
 /// other inline, non-nestable element (like inline code) that starts with
 /// the delimiter at the given stack index and ends at the top of the stack.
 ///
-/// If `process_inner_emphasis` is true, emphasis from the given opening
-/// index to the top of the delimiter stack will be processed immediately.
+/// As part of closing this delimiter, all emphasis within the range of this
+/// closure will also be processed.
 ///
 /// If `deactivate_previous` is true, all preceding instances of `kind` in the
 /// delimiter stack are also deactivated to prevent nested elements from
@@ -205,20 +238,11 @@ pub(crate) fn process_closed_delimiter(
     p: &mut ICUMarkdownParser,
     delimiter_range: Range<usize>,
     kind: SyntaxKind,
-    process_inner_emphasis: bool,
     deactivate_previous: bool,
 ) {
     // Deactivate the link delimiter since it's been completed now.
     p.deactivate_delimiter(delimiter_range.start);
-
-    // Links act as boundaries for emphasis, so when a completed link is
-    // encountered, all the pending emphasis between the opener and the end
-    // of the link should get processed independently. But inline code spans do
-    // not interpret any of the characters within their span, so only process
-    // them if the caller requested it.
-    if process_inner_emphasis {
-        process_emphasis(p, delimiter_range.clone());
-    }
+    process_emphasis(p, delimiter_range.clone());
 
     // Links cannot be nested, so after finding an opener, all further link
     // openers lower than it in the stack can be marked as inactive.

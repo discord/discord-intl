@@ -1,16 +1,18 @@
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum SyntaxKind {
     // Tokens
+    #[default]
     TOMBSTONE = 0, // The start of the input text, or an emptied token.
-    EOF,           // The end of the input text.
+    EOF, // The end of the input text.
     // Trivia
     WHITESPACE,         // Any non-textual, non-newline space character.
     LINE_ENDING,        // \n, \r, or \r\n
     LEADING_WHITESPACE, // ASCII whitespace occurring at the start of a line matching an expected line depth.
     BLANK_LINE,         // A complete line containing only whitespace and a line ending.
     ESCAPED,            // Any valid, backslash-escaped character.
+    ESCAPED_BACKTICK,   // An escaped backtick, which can close a code span on its own.
     // Block Bounds
     BLOCK_START,  // A zero-width marker of the start of a block element.
     BLOCK_END,    // A zero-width representing the end of a block element.
@@ -167,6 +169,7 @@ pub enum SyntaxKind {
     AUTOLINK,
     CODE_SPAN,
     CODE_SPAN_DELIMITER,
+    CODE_SPAN_CONTENT,
 
     // Markdown extension nodes
     STRIKETHROUGH,
@@ -210,9 +213,9 @@ pub enum SyntaxKind {
     ICU_SELECT,         // {var, select, ...}
     ICU_SELECT_ORDINAL, // {var, selectordinal, ...}
     ICU_VARIABLE,       // `var` in `{var}` or `{var, plural}` and so on.
-    // ICU_PLURAL_ARMS,  // The list of arms in a plural or select node.
-    ICU_PLURAL_ARM,   // The `one {inner}` in `{var, plural, one {inner}}`
-    ICU_PLURAL_VALUE, // The `inner` in `{var, plural, one {inner}}`
+    ICU_PLURAL_ARMS,    // The list of arms in a plural or select node.
+    ICU_PLURAL_ARM,     // The `one {inner}` in `{var, plural, one {inner}}`
+    ICU_PLURAL_VALUE,   // The `inner` in `{var, plural, one {inner}}`
 }
 
 impl SyntaxKind {
@@ -243,6 +246,17 @@ impl SyntaxKind {
 
     pub const fn is_same_line_whitespace(&self) -> bool {
         matches!(self, SyntaxKind::WHITESPACE | SyntaxKind::LINE_ENDING)
+    }
+
+    pub const fn is_block_bound(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::EOF
+                | SyntaxKind::BLOCK_START
+                | SyntaxKind::INLINE_START
+                | SyntaxKind::INLINE_END
+                | SyntaxKind::BLOCK_END
+        )
     }
 
     pub const fn is_block_level(&self) -> bool {

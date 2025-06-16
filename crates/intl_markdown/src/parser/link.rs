@@ -1,12 +1,11 @@
+use super::{delimiter::process_closed_delimiter, ICUMarkdownParser};
 use crate::lexer::LexContext;
 use crate::parser::icu::{is_at_normal_icu, parse_icu};
+use crate::parser::marker::{Marker, MarkerSpan};
 use crate::{
     delimiter::{Delimiter, LinkDelimiter},
-    event::{Event, Marker, MarkerSpan},
-    SyntaxKind,
+    syntax::SyntaxKind,
 };
-
-use super::{delimiter::process_closed_delimiter, ICUMarkdownParser};
 
 fn is_link_kind(kind: SyntaxKind) -> bool {
     matches!(
@@ -44,20 +43,14 @@ pub(super) fn parse_link_like_open(
     // the event stream otherwise.
     let content_start = p.mark();
 
-    let delimiter = LinkDelimiter::new(
-        kind,
-        false,
-        start_marker.event_index(),
-        content_start.event_index(),
-    );
+    let delimiter = LinkDelimiter::new(kind, false, start_marker.get(), content_start.get());
     p.push_delimiter(delimiter.into());
 
     Some(())
 }
 
 pub(super) fn parse_link_like_close(p: &mut ICUMarkdownParser) -> Option<()> {
-    let content_end_index = p.buffer_index();
-    p.push_event(Event::Finish(SyntaxKind::TOMBSTONE));
+    let content_end_index = p.mark();
     p.expect(SyntaxKind::RSQUARE)?;
 
     // Find a potential opener for this link
@@ -117,28 +110,38 @@ pub(super) fn complete_link_like(
     p: &mut ICUMarkdownParser,
     kind: SyntaxKind,
     open_delimiter_index: usize,
-    content_end_index: usize,
+    content_end_index: Marker,
     allow_nesting: bool,
 ) {
-    // The link wrapper uses the `opening_cursor` of each delimiter.
-    Marker::new(p.delimiter_stack()[open_delimiter_index].opening_cursor())
-        .complete_as_start(p, kind);
-    p.push_event(Event::Finish(kind));
-
-    // Link content uses the `closing_cursor` of the delimiters.
-    MarkerSpan::new(
-        p.delimiter_stack()[open_delimiter_index].closing_cursor(),
-        content_end_index,
-    )
-    .complete(p, SyntaxKind::INLINE_CONTENT);
+    // Order of completion is important! Nodes must be completed from inner-most to outer-most
+    // in the tree to ensure that deferred offsets are calculated correctly. Here, that means:
+    // - processing the emphasis within the link (inherently happens from the inside out)
+    // - marking the content of the link as InlineContent
+    // - marking the entire link
 
     process_closed_delimiter(
         p,
         open_delimiter_index..p.delimiter_stack_length(),
         kind,
-        true,
         !allow_nesting,
     );
+
+    // Link content uses the `closing_cursor` of the delimiters.
+    MarkerSpan::new(
+        p.delimiter_stack()[open_delimiter_index]
+            .closing_cursor()
+            .into(),
+        content_end_index.get().into(),
+    )
+    .complete(p, SyntaxKind::INLINE_CONTENT);
+
+    // The link wrapper uses the `opening_cursor` of each delimiter.
+    Marker::new(
+        p.delimiter_stack()[open_delimiter_index]
+            .opening_cursor()
+            .into(),
+    )
+    .complete(p, kind);
 }
 
 fn parse_link_or_hook_resource(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option<()> {
@@ -243,12 +246,9 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
     if token_count == 1 {
         // SAFETY: The condition asserts that a token was pushed, so this must
         // be present _and_ be a token event.
-        let token = p.get_last_event().and_then(Event::as_token).unwrap();
+        let token = p.last_element().unwrap().token();
         // SAFETY: Token ranges are always valid, so this is safe.
-        let text = unsafe {
-            let size_span = token.span().start as usize..token.span().end as usize;
-            p.source().get_unchecked(size_span)
-        };
+        let text = unsafe { p.source().get_unchecked(token.text_span()) };
         // If the text _doesn't_ contain characters that _aren't_ alphanumeric,
         // then it's a valid identifier in this context and counts as a click
         // handler.

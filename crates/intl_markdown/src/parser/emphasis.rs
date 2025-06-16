@@ -1,10 +1,11 @@
 use std::ops::Range;
 
-use crate::delimiter::AnyDelimiter;
-use crate::parser::strikethrough::match_strikethrough;
-use crate::{delimiter::Delimiter, event::MarkerSpan, SyntaxKind};
-
 use super::ICUMarkdownParser;
+use crate::delimiter::AnyDelimiter;
+use crate::delimiter::Delimiter;
+use crate::parser::marker::MarkerSpan;
+use crate::parser::strikethrough::match_strikethrough;
+use crate::syntax::SyntaxKind;
 
 /// Process the delimiter stack entries within the given `range`, matching
 /// emphasis nodes as much as possible.
@@ -135,7 +136,7 @@ pub(super) fn complete_emphasis_and_content_marker_pairs(
         p.delimiter_stack()[opener_index].consume_opening(count);
     let (item_close_index, content_close_index) =
         p.delimiter_stack()[closer_index].consume_closing(count);
-    MarkerSpan::new(content_open_index, content_close_index)
+    MarkerSpan::new(content_open_index.into(), content_close_index.into())
         .complete(p, SyntaxKind::INLINE_CONTENT);
-    MarkerSpan::new(item_open_index, item_close_index).complete(p, kind);
+    MarkerSpan::new(item_open_index.into(), item_close_index.into()).complete(p, kind);
 }
