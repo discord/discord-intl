@@ -1,6 +1,5 @@
 use super::{inline::parse_inline, ICUMarkdownParser};
 use crate::lexer::LexContext;
-use crate::lexer::LexContext::AsciiPunctuationRun;
 use crate::syntax::SyntaxKind;
 
 /// Parse a block element of the given kind. Rules for how the content of the
@@ -107,16 +106,16 @@ fn parse_code_block_content(p: &mut ICUMarkdownParser) {
 }
 
 fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
-    let mark = p.mark();
     let leading_indent = if p.at(SyntaxKind::LEADING_WHITESPACE) {
         let length = p.current_token_len();
+        p.bump_as_trivia(LexContext::AsciiPunctuationRun);
         length
     } else {
+        p.relex_with_context(LexContext::AsciiPunctuationRun);
         0
     };
     p.set_lexer_state(|state| state.indent_depth += leading_indent);
 
-    p.bump_as_trivia(LexContext::AsciiPunctuationRun);
     // The block parser has already asserted that this will create a valid sequence, either from
     // ~~~ or ```.
     p.expect(SyntaxKind::PUNCTUATION_RUN)?;
@@ -145,11 +144,11 @@ fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
     // Finally the closing delimiter, which can be missing if the block ended
     // because of the end of the input.
     p.optional(p.at(SyntaxKind::BACKTICK) || p.at(SyntaxKind::TILDE), |p| {
-        p.relex_with_context(AsciiPunctuationRun);
+        p.relex_with_context(LexContext::AsciiPunctuationRun);
         p.expect(SyntaxKind::PUNCTUATION_RUN)?;
         Some(())
     });
 
     p.set_lexer_state(|state| state.indent_depth -= leading_indent);
-    mark.complete(p, SyntaxKind::FENCED_CODE_BLOCK)
+    Some(())
 }

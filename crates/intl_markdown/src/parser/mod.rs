@@ -98,8 +98,8 @@ impl ICUMarkdownParser {
 
         Self {
             lexer: Lexer::new(source.clone(), block_bounds),
+            builder: TreeBuilder::new(source.clone()),
             source,
-            builder: TreeBuilder::new(),
             delimiter_stacks: vec![],
             state: ParserState::default(),
             include_blocks,
@@ -494,10 +494,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = r#"
-### Foo
-
-Hello bar
+        let content = r#"```rust
 "#;
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());

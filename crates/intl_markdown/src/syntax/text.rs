@@ -105,6 +105,7 @@ impl TextPointer {
             // that the new end position is valid within the original source as well.
             let mut clone = self.clone();
             clone.offset = self.offset - text.len() as TextSize;
+            clone.len += text.len() as TextSize;
             return clone;
         }
 
@@ -115,6 +116,12 @@ impl TextPointer {
         new_text.push_str(text);
         new_text.push_str(&self);
         Self::from_str(&new_text)
+    }
+
+    /// Remove all size and position from this text pointer, but preserve the reference to the
+    /// original text to ensure it can be reused without cloning.
+    pub(super) fn clear(&mut self) {
+        self.len = 0;
     }
 }
 

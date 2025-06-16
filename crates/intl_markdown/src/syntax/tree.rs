@@ -1,6 +1,7 @@
 use crate::syntax::token::SyntaxTokenData;
 pub(crate) use crate::syntax::TextSize;
 use crate::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, TextPointer};
+use crate::SourceText;
 use std::fmt::Debug;
 use std::ops::Deref;
 use std::ptr;
@@ -88,14 +89,14 @@ pub struct TreeBuilder {
 }
 
 impl TreeBuilder {
-    pub fn new() -> Self {
+    pub fn new(source: SourceText) -> Self {
         TreeBuilder {
             parents: Vec::with_capacity(8),
             children: Vec::with_capacity(4),
             deferred_nodes: vec![],
             scratch: Vec::with_capacity(4),
             last_token_data: ptr::null_mut(),
-            pending_leading_trivia: TextPointer::default(),
+            pending_leading_trivia: TextPointer::new(source, 0, 0),
         }
     }
 
@@ -111,7 +112,7 @@ impl TreeBuilder {
             // and that it won't be mutated by anything else.
             unsafe { &mut *self.last_token_data }
                 .prepend_leading_trivia(&self.pending_leading_trivia);
-            self.pending_leading_trivia = TextPointer::default();
+            self.pending_leading_trivia.clear();
         }
     }
 

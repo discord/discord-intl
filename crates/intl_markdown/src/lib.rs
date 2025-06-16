@@ -1,6 +1,7 @@
 #![feature(portable_simd)]
 #![feature(iter_collect_into)]
 #![feature(substr_range)]
+extern crate core;
 
 pub use ast::format::format_ast;
 pub use cst::*;

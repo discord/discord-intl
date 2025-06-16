@@ -39,8 +39,8 @@ impl SyntaxTokenData {
     pub(super) fn prepend_leading_trivia(&mut self, trivia_text: &str) {
         if !trivia_text.is_empty() {
             self.text = self.text.extend_front(trivia_text);
-            self.text_start = self.text_start + trivia_text.len() as TextSize;
-            self.trailing_start = self.trailing_start + trivia_text.len() as TextSize;
+            self.text_start += trivia_text.len() as TextSize;
+            self.trailing_start += trivia_text.len() as TextSize;
         }
     }
 }
@@ -74,7 +74,7 @@ impl SyntaxToken {
     }
 
     pub fn has_trivia(&self) -> bool {
-        self.trailing_start != self.text.len_size()
+        self.text_start > 0 || self.trailing_start != self.text.len_size()
     }
 
     /// Returns the positional range this token represents in the source.
