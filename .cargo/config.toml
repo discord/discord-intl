@@ -5,3 +5,6 @@ rustflags = [
     "-C",
     "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains",
 ]
+
+[alias]
+xtask = "run --package xtask --bin"

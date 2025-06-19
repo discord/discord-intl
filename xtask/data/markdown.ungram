@@ -1,0 +1,220 @@
+Document = AnyBlockNode*
+
+AnyBlockNode =
+      Paragraph
+    | ThematicBreak
+    | AnyHeading
+    | AnyCodeBlock
+    | InlineContent
+
+Paragraph =
+    content: InlineContent
+
+ThematicBreak = ('thematic_break_token')*
+
+AnyHeading =
+      AtxHeading
+    | SetextHeading
+
+AtxHeading =
+    opening_run: 'punctuation_run'
+    content: InlineContent
+    closing_run: 'punctuation_run'?
+
+SetextHeading =
+    content: InlineContent
+    underline: SetextHeadingUnderline
+
+SetextHeadingUnderline = ('-' | '=')*
+
+AnyCodeBlock =
+      IndentedCodeBlock
+    | FencedCodeBlock
+
+IndentedCodeBlock =
+    content: CodeBlockContent
+
+FencedCodeBlock =
+    opening_run: 'punctuation_run'
+    info_string: 'verbatim_line'?
+    content: CodeBlockContent
+    closing_run: 'punctuation_run'?
+
+CodeBlockContent = ('verbatim_line' | 'line_ending')*
+
+InlineContent = AnyInlineNode*
+
+AnyInlineNode =
+      TextSpan
+    | EntityReference
+    | Emphasis
+    | Strong
+    | Link
+    | Image
+    | Autolink
+    | CodeSpan
+    | Hook
+    | Strikethrough
+    | Icu
+
+TextSpan = 'text'
+
+EntityReference =
+    token: ('html_entity' | 'dec_char_ref' | 'hex_char_ref')
+
+Emphasis =
+    open_token: ('*' | '_')
+    content: InlineContent
+    close_token: ('*' | '_')
+
+Strong =
+    open_token: ('*' | '_')
+    open_token_two: ('*' | '_')
+    content: InlineContent
+    close_token: ('*' | '_')
+    close_token_two: ('*' | '_')
+
+Link =
+    '['
+    content: InlineContent
+    ']'
+    resource: LinkResource
+
+Image =
+    '!'
+    '['
+    content: InlineContent
+    ']'
+    resource: LinkResource
+
+LinkResource =
+    '('
+    destination: AnyLinkDestination?
+    title: LinkTitle?
+    ')'
+
+AnyLinkDestination =
+    StaticLinkDestination
+    | DynamicLinkDestination
+    | ClickHandlerLinkDestination
+
+StaticLinkDestination =
+    destination: 'text'
+
+DynamicLinkDestination =
+    url: Icu
+
+ClickHandlerLinkDestination =
+    name: 'text'
+
+LinkTitle =
+    opening_token: ('"' | '\'' | '(')
+    content: LinkTitleContent
+    closing_token: ('"' | '\'' | ')')
+
+LinkTitleContent = 'link_title_piece'*
+
+Autolink =
+    '<'
+    uri: ('absolute_uri' | 'email_address')
+    '>'
+
+CodeSpan =
+    open_backticks: 'punctuation_run'
+    content: CodeSpanContent
+    close_backticks: 'punctuation_run'
+
+CodeSpanContent = ('text')*
+
+Hook =
+    '$'
+    '['
+    content: InlineContent
+    ']'
+    name: HookName
+
+HookName =
+    '('
+    name: 'hook_name'
+    ')'
+
+
+Strikethrough =
+    opening_token: 'punctuation_run'
+    content: InlineContent
+    closing_token: 'punctuation_run'
+
+Icu =
+    '{'
+    value: AnyIcuPlaceholder
+    '}'
+
+AnyIcuPlaceholder =
+      IcuVariable
+    | IcuPlural
+    | IcuSelectOrdinal
+    | IcuSelect
+    | IcuDate
+    | IcuTime
+    | IcuNumber
+
+IcuVariable =
+    ident: 'icu_ident'
+
+IcuPlural =
+    variable: IcuVariable
+    variable_comma_token: ','
+    format_token: 'icu_plural_kw'
+    format_comma_token: ','
+    arms: IcuPluralArms
+
+IcuSelectOrdinal =
+    variable: IcuVariable
+    variable_comma_token: ','
+    format_token: 'icu_select_ordinal_kw'
+    format_comma_token: ','
+    arms: IcuPluralArms
+
+IcuSelect =
+    variable: IcuVariable
+    variable_comma_token: ','
+    format_token: 'icu_select_kw'
+    format_comma_token: ','
+    arms: IcuPluralArms
+
+IcuPluralArms = IcuPluralArm*
+
+IcuPluralArm =
+    selector: ('icu_plural_category' | 'icu_plural_exact')
+    '{'
+    value: IcuPluralValue
+    '}'
+
+IcuPluralValue =
+    content: InlineContent
+
+IcuDate =
+    variable: IcuVariable
+    variable_comma_token: ','
+    format_token: 'icu_date_kw'
+    style: IcuDateTimeStyle?
+
+IcuTime =
+    variable: IcuVariable
+    variable_comma_token: ','
+    format_token: 'icu_time_kw'
+    style: IcuDateTimeStyle?
+
+IcuDateTimeStyle =
+    style_comma_token: ','
+    style_text: 'icu_style_text'
+
+IcuNumber =
+    variable: IcuVariable
+    variable_comma_token: ','
+    format_token: 'icu_number_kw'
+    style: IcuNumberStyle?
+
+IcuNumberStyle =
+    style_comma_token: ','
+    style_text: 'icu_style_text'

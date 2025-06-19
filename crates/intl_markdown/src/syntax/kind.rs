@@ -56,6 +56,22 @@ pub enum SyntaxKind {
 
     PUNCTUATION_RUN, // Sequence of homogenous punctuation characters, often used as delimiters.
 
+    // ICU Extension tokens
+    // ICU keywords
+    ICU_NUMBER_KW,         // number
+    ICU_DATE_KW,           // date
+    ICU_TIME_KW,           // time
+    ICU_SELECT_KW,         // select
+    ICU_SELECT_ORDINAL_KW, // selectordinal
+    ICU_PLURAL_KW,         // plural
+    // ICU tokens
+    ICU_DOUBLE_COLON, // ::
+    // ICU literals
+    ICU_IDENT,           // Any user-created identifier, used for variable names.
+    ICU_PLURAL_CATEGORY, // `one`, `zero`, `other`, etc. in a plural or select ordinal.
+    ICU_PLURAL_EXACT,    // Exact value match in a plural block, like `=0`.
+    ICU_STYLE_TEXT,      // The text token of the ICU_STYLE_ARGUMENT node above.
+
     // Nodes:
     //
     // All token kinds should be placed _above_ this point. All node kinds
@@ -67,6 +83,20 @@ pub enum SyntaxKind {
     /// Any segment of inline content, either contained within a block node or
     /// at the top level on its own.
     INLINE_CONTENT,
+    /// Any list of plain text tokens that require no special treatment.
+    TEXT_SPAN,
+    /// 2.5 Entity and numeric character references - HTML Entities
+    ///
+    /// Entity references consist of & + any of the valid HTML5 entity names + `;`.
+    ///
+    /// Decimal numeric character references consist of `&#` + a string of 1–7 arabic digits + `;`.
+    /// A numeric character reference is parsed as the corresponding Unicode character.
+    ///
+    /// Hexadecimal numeric character references consist of `&#` + either X or x + a string of 1-6
+    /// hexadecimal digits + `;`. They too are parsed as the corresponding Unicode character (this
+    /// time specified with a hexadecimal numeral instead of decimal).
+    ENTITY_REFERENCE,
+
     /// 4.1 Thematic breaks
     ///
     /// A line consisting of optionally up to three spaces of indentation,
@@ -126,10 +156,6 @@ pub enum SyntaxKind {
     /// paragraph’s raw content is formed by concatenating the lines and
     /// removing initial and final spaces or tabs.
     PARAGRAPH,
-    /// 4.9 Blank Lines
-    ///
-    /// Blank lines that appear _between_ block-level nodes are ignored.
-    BLANK_LINES,
 
     // Container blocks
     /// 5.1 Block quotes
@@ -176,7 +202,6 @@ pub enum SyntaxKind {
     STRIKETHROUGH,
     ATX_HASH_SEQUENCE,
     SETEXT_HEADING_UNDERLINE,
-    CODE_FENCE_INFO_STRING,
     CODE_BLOCK_CONTENT,
 
     // Syntax extension nodes
@@ -187,35 +212,20 @@ pub enum SyntaxKind {
     // ICU extension nodes
     ICU,        // The overall container node for any ICU content.
     ICU_UNSAFE, // An additional wrapping node for the `!!{...}!!` syntax.
-    // ICU keywords
-    ICU_NUMBER_KW,         // number
-    ICU_DATE_KW,           // date
-    ICU_TIME_KW,           // time
-    ICU_SELECT_KW,         // select
-    ICU_SELECT_ORDINAL_KW, // selectordinal
-    ICU_PLURAL_KW,         // plural
-    // ICU tokens
-    ICU_DOUBLE_COLON, // ::
-    // ICU literals
-    ICU_IDENT,           // Any user-created identifier, used for variable names.
-    ICU_PLURAL_CATEGORY, // `one`, `zero`, `other`, etc. in a plural or select ordinal.
-    ICU_PLURAL_EXACT,    // Exact value match in a plural block, like `=0`.
-    ICU_STYLE_ARGUMENT,  // Any third argument to a number, date, or time variable.
-    ICU_STYLE_TEXT,      // The text token of the ICU_STYLE_ARGUMENT node above.
+    // ICU Nodes
+    ICU_DATE,            // {var, date} or {var, date, format}
+    ICU_TIME,            // {var, time} or {var, time, format}
+    ICU_NUMBER,          // {var, number} or {var, number, format}
     ICU_DATE_TIME_STYLE, // Either a keyword like `short` or a skeleton like `::hmsGy`
     ICU_NUMBER_STYLE,    // A number style argument, almost always a skeleton like `::.##`.
-    // ICU Nodes
-    ICU_DATE,           // {var, date} or {var, date, format}
-    ICU_TIME,           // {var, time} or {var, time, format}
-    ICU_NUMBER,         // {var, number} or {var, number, format}
-    ICU_PLACEHOLDER,    // {var}
-    ICU_PLURAL,         // {var, plural, ...}
-    ICU_SELECT,         // {var, select, ...}
-    ICU_SELECT_ORDINAL, // {var, selectordinal, ...}
-    ICU_VARIABLE,       // `var` in `{var}` or `{var, plural}` and so on.
-    ICU_PLURAL_ARMS,    // The list of arms in a plural or select node.
-    ICU_PLURAL_ARM,     // The `one {inner}` in `{var, plural, one {inner}}`
-    ICU_PLURAL_VALUE,   // The `inner` in `{var, plural, one {inner}}`
+    ICU_PLACEHOLDER,     // {var}
+    ICU_PLURAL,          // {var, plural, ...}
+    ICU_SELECT,          // {var, select, ...}
+    ICU_SELECT_ORDINAL,  // {var, selectordinal, ...}
+    ICU_VARIABLE,        // `var` in `{var}` or `{var, plural}` and so on.
+    ICU_PLURAL_ARMS,     // The list of arms in a plural or select node.
+    ICU_PLURAL_ARM,      // The `one {inner}` in `{var, plural, one {inner}}`
+    ICU_PLURAL_VALUE,    // The `inner` in `{var, plural, one {inner}}`
 }
 
 impl SyntaxKind {
@@ -245,7 +255,11 @@ impl SyntaxKind {
     }
 
     pub const fn is_same_line_whitespace(&self) -> bool {
-        matches!(self, SyntaxKind::WHITESPACE | SyntaxKind::LINE_ENDING)
+        matches!(self, SyntaxKind::WHITESPACE)
+    }
+
+    pub const fn is_trailing_trivia_boundary(&self) -> bool {
+        matches!(self, SyntaxKind::LINE_ENDING)
     }
 
     pub const fn is_block_bound(&self) -> bool {
@@ -268,10 +282,6 @@ impl SyntaxKind {
             && (*self as u8) <= (Self::CODE_SPAN_DELIMITER as u8)
     }
 
-    pub const fn is_icu(&self) -> bool {
-        (*self as u8) >= (Self::ICU as u8) && (*self as u8) < (Self::ICU_PLURAL_VALUE as u8)
-    }
-
     pub const fn is_icu_keyword(&self) -> bool {
         matches!(
             self,
@@ -289,25 +299,5 @@ impl SyntaxKind {
             self,
             SyntaxKind::HARD_LINE_ENDING | SyntaxKind::BACKSLASH_BREAK
         )
-    }
-
-    /// Returns true if a token of this kind is valid to merge together into a single text element
-    /// with another merge-able kind. This is true for any kind of text and most other plain tokens,
-    /// other than character references and html entities, since those are often treated specially.
-    pub const fn can_merge_as_text(&self) -> bool {
-        !self.is_trivia()
-            && !self.is_html_special_entity()
-            && !matches!(
-                self,
-                SyntaxKind::HARD_LINE_ENDING
-                    | SyntaxKind::BACKSLASH_BREAK
-                    | SyntaxKind::LINE_ENDING
-                    | SyntaxKind::HTML_ENTITY
-                    | SyntaxKind::DEC_CHAR_REF
-                    | SyntaxKind::HEX_CHAR_REF
-                    | SyntaxKind::ABSOLUTE_URI
-                    | SyntaxKind::EMAIL_ADDRESS
-                    | SyntaxKind::VERBATIM_LINE
-            )
     }
 }

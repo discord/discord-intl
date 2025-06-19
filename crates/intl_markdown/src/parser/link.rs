@@ -14,6 +14,10 @@ fn is_link_kind(kind: SyntaxKind) -> bool {
     )
 }
 
+fn is_allowed_link_title_whitespace(kind: SyntaxKind) -> bool {
+    matches!(kind, SyntaxKind::WHITESPACE | SyntaxKind::LINE_ENDING)
+}
+
 pub(super) fn parse_hook_open(p: &mut ICUMarkdownParser) -> Option<()> {
     let hook_start = p.mark();
     p.expect(SyntaxKind::DOLLAR)?;
@@ -43,7 +47,7 @@ pub(super) fn parse_link_like_open(
     // the event stream otherwise.
     let content_start = p.mark();
 
-    let delimiter = LinkDelimiter::new(kind, false, start_marker.get(), content_start.get());
+    let delimiter = LinkDelimiter::new(kind, false, *start_marker, *content_start);
     p.push_delimiter(delimiter.into());
 
     Some(())
@@ -57,7 +61,7 @@ pub(super) fn parse_link_like_close(p: &mut ICUMarkdownParser) -> Option<()> {
     let Some(opener_index) = p
         .delimiter_stack()
         .iter()
-        .rposition(|delim| is_link_kind(delim.kind()) && delim.count() > 0)
+        .rposition(|delim| is_link_kind(delim.syntax_kind()) && delim.count() > 0)
     else {
         // If no opener is found, then this can't be a link no matter what, so
         // there's nothing left to do, it's just plain text.
@@ -76,7 +80,7 @@ pub(super) fn parse_link_like_close(p: &mut ICUMarkdownParser) -> Option<()> {
             return None;
         }
 
-        delimiter.kind()
+        delimiter.syntax_kind()
     };
 
     // Otherwise, try to finish out the link as an inline resource. If the
@@ -113,12 +117,6 @@ pub(super) fn complete_link_like(
     content_end_index: Marker,
     allow_nesting: bool,
 ) {
-    // Order of completion is important! Nodes must be completed from inner-most to outer-most
-    // in the tree to ensure that deferred offsets are calculated correctly. Here, that means:
-    // - processing the emphasis within the link (inherently happens from the inside out)
-    // - marking the content of the link as InlineContent
-    // - marking the entire link
-
     process_closed_delimiter(
         p,
         open_delimiter_index..p.delimiter_stack_length(),
@@ -126,22 +124,18 @@ pub(super) fn complete_link_like(
         !allow_nesting,
     );
 
+    let (content_marker, link_marker) = {
+        let delimiter = p.delimiter_stack()[open_delimiter_index]
+            .as_link_delimiter()
+            .unwrap();
+        (*delimiter.content_cursor(), *delimiter.link_cursor())
+    };
+
     // Link content uses the `closing_cursor` of the delimiters.
-    MarkerSpan::new(
-        p.delimiter_stack()[open_delimiter_index]
-            .closing_cursor()
-            .into(),
-        content_end_index.get().into(),
-    )
-    .complete(p, SyntaxKind::INLINE_CONTENT);
+    MarkerSpan::new(content_marker, *content_end_index).complete(p, SyntaxKind::INLINE_CONTENT);
 
     // The link wrapper uses the `opening_cursor` of each delimiter.
-    Marker::new(
-        p.delimiter_stack()[open_delimiter_index]
-            .opening_cursor()
-            .into(),
-    )
-    .complete(p, kind);
+    Marker::new(link_marker).complete(p, kind);
 }
 
 fn parse_link_or_hook_resource(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option<()> {
@@ -173,9 +167,10 @@ fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
     p.expect(SyntaxKind::LPAREN)?;
     p.skip_whitespace_as_trivia();
 
-    // If the next token is a closing parenthesis, that's fine, the url just
-    // becomes empty.
-    if p.expect(SyntaxKind::RPAREN).is_some() {
+    if p.at(SyntaxKind::RPAREN) {
+        p.push_missing(); // Missing destination element
+        p.push_missing(); // Missing title token
+        p.bump();
         marker.complete(p, SyntaxKind::LINK_RESOURCE);
         return Some(());
     }
@@ -185,7 +180,7 @@ fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
     // Whitespace and a single newline are allowed between the destination and
     // the title, and the title can _only_ appear if there is some whitespace
     // between them, so it is nested inside here.
-    p.optional(p.current().is_same_line_whitespace(), |p| {
+    p.optional(is_allowed_link_title_whitespace(p.current()), |p| {
         p.skip_whitespace_as_trivia();
         // Not using ? since it's okay for this to be empty.
         parse_link_title(p)?;

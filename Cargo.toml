@@ -16,6 +16,7 @@ members = [
     "crates/intl_validator",
     "crates/keyless_json",
     "packages/swc-intl-message-transformer",
+    "xtask",
 ]
 resolver = "2"
 

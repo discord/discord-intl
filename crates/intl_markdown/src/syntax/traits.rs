@@ -13,3 +13,8 @@ impl<T: FromSyntax + Sized> FromSyntaxElement for T {
 pub trait FromSyntaxElement {
     fn from_syntax_element(node: SyntaxElement) -> Self;
 }
+
+pub trait Syntax {
+    /// Return the raw syntax node backing this element.
+    fn syntax(&self) -> &SyntaxNode;
+}

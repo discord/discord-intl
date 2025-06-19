@@ -21,12 +21,13 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
 
     // First inline phase: tokenizing.
     loop {
+        // Leading trivia is allowed for a complete segment of inline content, but if some trivia would
+        // be considered leading while _within_ the inilne content, it is instead treated as actual
+        // token text. So, to start, we skip the leading whitespace as trivia, but all other methods
         p.skip_whitespace_as_trivia();
 
         match p.current() {
             SyntaxKind::EOF | SyntaxKind::BLOCK_END | SyntaxKind::INLINE_END => break,
-            // Plain text
-            SyntaxKind::TEXT => parse_plain_text(p),
             // Emphasis
             SyntaxKind::STAR | SyntaxKind::UNDER => parse_delimiter_run(p, p.current()),
             // Images or ICU unsafe variables
@@ -68,11 +69,22 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
             // ICU
             SyntaxKind::LCURLY | SyntaxKind::UNSAFE_LCURLY => parse_icu(p),
             SyntaxKind::RCURLY if is_inside_icu => break,
-
-            // Anything else is effectively plain text, but kept separate in
-            // the event stream for clarity.
-            _ => Some(p.bump()),
+            // Plain text
+            // Anything else is effectively plain text, but kept separate in the event stream for
+            // clarity. These are left as _tokens_ in the tree, so they are allowed to have
+            // trailing trivia tacked on, and so we skip the whitespace re-lexing done after this
+            // match that breaks trailing whitespace out of tokens contained by other nodes.
+            SyntaxKind::TEXT | _ => {
+                Some(p.bump());
+                continue;
+            }
         };
+
+        // For all _nodes_ in inline content, re-lex any trailing inline whitespace as a separate
+        // token, so that it does not get attached to a token inside a nested node. Keeping them
+        // separate ensures downstream processing can easily preserve this space without having to
+        // traverse adjacent nodes to find trivia text.
+        p.relex_inline_whitespace_as_text();
     }
 
     // Second inline phase: process nestable delimiters.

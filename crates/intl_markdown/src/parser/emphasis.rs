@@ -15,14 +15,14 @@ pub(super) fn process_emphasis(p: &mut ICUMarkdownParser, range: Range<usize>) {
         if !closer.can_close() || !closer.is_active() {
             continue;
         }
-        let closer_kind = closer.kind();
+        let closer_kind = closer.syntax_kind();
 
         // Then start looking backwards to find active openers for that
         // closer, either until there are no more openers or until the
         // closer becomes inactive.
         for opener_index in (range.start..closer_index).rev() {
             let opener = &p.delimiter_stack()[opener_index];
-            if !opener.is_active() || !opener.can_open() || opener.kind() != closer_kind {
+            if !opener.is_active() || !opener.can_open() || opener.syntax_kind() != closer_kind {
                 continue;
             }
 
@@ -132,11 +132,8 @@ pub(super) fn complete_emphasis_and_content_marker_pairs(
     closer_index: usize,
     count: usize,
 ) {
-    let (item_open_index, content_open_index) =
-        p.delimiter_stack()[opener_index].consume_opening(count);
-    let (item_close_index, content_close_index) =
-        p.delimiter_stack()[closer_index].consume_closing(count);
-    MarkerSpan::new(content_open_index.into(), content_close_index.into())
-        .complete(p, SyntaxKind::INLINE_CONTENT);
-    MarkerSpan::new(item_open_index.into(), item_close_index.into()).complete(p, kind);
+    let (item_open, content_open) = p.delimiter_stack()[opener_index].consume_opening(count);
+    let (item_close, content_close) = p.delimiter_stack()[closer_index].consume_closing(count);
+    MarkerSpan::new(content_open, content_close).complete(p, SyntaxKind::INLINE_CONTENT);
+    MarkerSpan::new(item_open, item_close).complete(p, kind);
 }

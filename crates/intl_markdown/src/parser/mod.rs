@@ -8,7 +8,7 @@ use super::{
 use crate::lexer::{LexContext, LexerState};
 use crate::syntax::{
     FromSyntaxElement, SourceText, SyntaxElement, SyntaxKind, SyntaxToken, TextSize, TreeBuilder,
-    TreeCheckpoint,
+    TreeMarker,
 };
 use marker::Marker;
 
@@ -29,7 +29,7 @@ pub(super) struct ParserState {}
 #[derive(Debug)]
 pub(super) struct ParserCheckpoint {
     lexer_checkpoint: LexerCheckpoint,
-    builder_checkpoint: TreeCheckpoint,
+    builder_checkpoint: TreeMarker,
     delimiter_stack_length: usize,
     state: ParserState,
 }
@@ -222,7 +222,7 @@ impl ICUMarkdownParser {
     #[inline]
     #[must_use = "The result of `expect` is a None if the current token does not match, which should be propagated or handled."]
     pub(super) fn expect(&mut self, kind: SyntaxKind) -> Option<SyntaxKind> {
-        self.expect_with_context(kind, LexContext::Regular)
+        self.expect_with_context(kind, Default::default())
     }
 
     /// Advances by 1 if the current token matches the given kind and returns
@@ -261,18 +261,14 @@ impl ICUMarkdownParser {
     /// Assert that the parser has reached the end of the input, and consume
     /// that final token to pick up any trailing trivia.
     pub(super) fn expect_end_of_file(&mut self) {
-        // At the end of parsing, the lexer must be at the end of the input.
         assert!(self.at(SyntaxKind::EOF));
-        // Add the EOF token to the input so that trailing trivia on the
-        // document are picked up.
-        self.bump();
     }
 
     /// Advances the lexer by one token, adding the current token to the end of
     /// the event buffer as a Token event.
     #[inline]
     pub(super) fn bump(&mut self) {
-        self.bump_as(self.current(), LexContext::Regular);
+        self.bump_as(self.current(), Default::default());
     }
 
     /// Advances the lexer by one token, adding the current token to the end of
@@ -314,7 +310,7 @@ impl ICUMarkdownParser {
 
     #[inline]
     pub(super) fn eat(&mut self) -> SyntaxToken {
-        self.eat_with_context(LexContext::Regular, self.current())
+        self.eat_with_context(Default::default(), self.current())
     }
 
     /// Eats the next token from the input as a Trivia token, adds it to the
@@ -330,7 +326,7 @@ impl ICUMarkdownParser {
             "Attempted to eat a token as trivia, but it is not a trivial kind: {:?}",
             self.current()
         );
-        self.builder.add_trivia(self.lexer.current_text());
+        self.builder.add_trivia(self.lexer.current_text(), "");
         self.lexer.next_token(context);
     }
 
@@ -340,7 +336,7 @@ impl ICUMarkdownParser {
     pub(super) fn eat_block_bound(&mut self) -> SyntaxKind {
         let bound_kind = self.lexer.current_block_kind();
         self.lexer.advance_block_bound();
-        self.lexer.next_token(LexContext::Regular);
+        self.lexer.next_token(Default::default());
         bound_kind
     }
 
@@ -375,20 +371,15 @@ impl ICUMarkdownParser {
         self.builder.start_node(kind)
     }
 
-    pub(super) fn start_node_at(&mut self, kind: SyntaxKind, checkpoint: TreeCheckpoint) {
-        self.builder.start_node_at(kind, checkpoint)
+    pub(super) fn start_node_at(&mut self, kind: SyntaxKind, marker: TreeMarker) {
+        self.builder.start_node_at(kind, marker)
     }
 
     pub(super) fn finish_node(&mut self) {
         self.builder.finish_node()
     }
 
-    pub(super) fn wrap_with_node(
-        &mut self,
-        kind: SyntaxKind,
-        start: TreeCheckpoint,
-        end: TreeCheckpoint,
-    ) {
+    pub(super) fn wrap_with_node(&mut self, kind: SyntaxKind, start: TreeMarker, end: TreeMarker) {
         self.builder.wrap_with_node(kind, start, end);
     }
 
@@ -412,8 +403,7 @@ impl ICUMarkdownParser {
     /// Creates a new Start event in the buffer and returns a Marker pointing to
     /// it that can be used to resolve a Node in the future.
     pub(super) fn mark(&mut self) -> Marker {
-        let index = self.builder.checkpoint();
-        Marker::new(index)
+        Marker::new(self.builder.checkpoint())
     }
 
     /// Push a plain token onto the back of the event stream. If the token is a
@@ -455,29 +445,59 @@ impl ICUMarkdownParser {
             .unwrap_or_else(|| self.push_missing())
     }
 
-    pub(super) fn tree_index(&mut self) -> u32 {
-        self.builder.index()
-    }
-
-    /// Skip consecutive whitespace and newline tokens as Trivia. The resulting
-    /// list of Trivia is returned for the caller to determine if it should
-    /// become leading or trailing trivia for a token.
+    /// Skip consecutive whitespace and newline tokens as trivia. The parser
+    /// will automatically determine whether each trivia piece is added as
+    /// leading or trailing trivia.
     pub(super) fn skip_whitespace_as_trivia(&mut self) {
-        self.skip_whitespace_as_trivia_with_context(LexContext::Regular)
+        self.skip_whitespace_as_trivia_with_context(Default::default())
     }
 
-    pub(super) fn skip_whitespace_as_trivia_with_context(&mut self, context: LexContext) {
+    /// Skip consecutive whitespace and newline tokens as leading trivia.
+    /// Use this method for nodes where trailing trivia should not be allowed
+    /// even when it would otherwise be determined that way by the parser's
+    /// normal rules.
+    pub(super) fn skip_whitespace_as_leading_trivia(&mut self, context: ParseContext) {
+        self.skip_whitespace_as_trivia_with_context(context.with_allow_trailing_trivia(false))
+    }
+
+    pub(super) fn skip_whitespace_as_trivia_with_context(&mut self, context: ParseContext) {
         let trivia_start = self.lexer.current_byte_span().start;
         let mut trivia_end = trivia_start;
-        let mut consumed = false;
+        let mut trailing_trivia_end = trivia_end;
         while self.current().is_trivia() {
-            consumed = true;
             trivia_end = self.lexer.position();
-            self.skip_with_context(context);
+            if context.allow_trailing_trivia && self.current().is_trailing_trivia_boundary() {
+                trailing_trivia_end = trivia_end;
+            }
+            self.skip_with_context(context.lex_context);
         }
-        if consumed {
-            self.builder
-                .add_trivia(self.lexer.text(trivia_start..trivia_end))
+        // If no trailing trivia boundary was found, then all trivia is trailing.
+        if context.allow_trailing_trivia && trailing_trivia_end == trivia_start {
+            trailing_trivia_end = trivia_end;
+        }
+        self.builder.add_trivia(
+            // trailing trivia for the last token
+            self.lexer.text(trivia_start..trailing_trivia_end),
+            // leading trivia for the next token
+            self.lexer.text(trailing_trivia_end..trivia_end),
+        )
+    }
+
+    /// Special method for parsing whitespace in contexts where leading and trailing trivia are not
+    /// meaningful (and typically cause more complication than they help). For example, inline
+    /// content is made up of heterogeneous mixes of tokens and nodes, but whitespace between nodes
+    /// and tokens must be respected. Since trivia is by default added as trailing trivia of a
+    /// _token_, ensuring that the trivia appears _outside_ of a node (like spaces after an
+    /// emphasis, like `**foo** bar`) becomes a complex traversal of the node tree. Similarly, if
+    /// it is treated as leading trivia of the _following_ token, it requires conditional logic for
+    /// when leading trivia should be rendered, since we typically skip leading trivia for all
+    /// block nodes (like the leading text of a paragraph, `   foo`, would become `foo`).
+    ///
+    /// By allowing the parser to instead treat these trivia as text tokens, it can maintain
+    /// significance and be preserved in all formatting contexts _without_ any special processing.
+    pub(super) fn relex_inline_whitespace_as_text(&mut self) {
+        if self.current().is_trivia() {
+            self.relex_with_context(LexContext::InlineWhitespace);
         }
     }
 
@@ -486,28 +506,63 @@ impl ICUMarkdownParser {
     }
 }
 
+pub struct ParseContext {
+    lex_context: LexContext,
+    allow_trailing_trivia: bool,
+}
+
+impl Default for ParseContext {
+    fn default() -> Self {
+        Self {
+            lex_context: Default::default(),
+            allow_trailing_trivia: true,
+        }
+    }
+}
+
+impl ParseContext {
+    pub fn with_lex_context(mut self, lex_context: LexContext) -> Self {
+        self.lex_context = lex_context;
+        self
+    }
+    pub fn with_allow_trailing_trivia(mut self, allow_trailing_trivia: bool) -> Self {
+        self.allow_trailing_trivia = allow_trailing_trivia;
+        self
+    }
+}
+
+impl From<LexContext> for ParseContext {
+    fn from(lex_context: LexContext) -> Self {
+        Self::default().with_lex_context(lex_context)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::ICUMarkdownParser;
+    use crate::commonmark_html;
     use crate::cst::Document;
     use crate::syntax::{FromSyntax, SourceText};
 
     #[test]
     fn test_debug() {
-        let content = r#"```rust
-"#;
+        let content = "```\n\n  \n```";
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         println!("Blocks: {:?}\n", parser.lexer.block_bounds());
 
         parser.parse();
+        #[cfg(feature = "debug-tracing")]
+        println!("Tokens:\n-------\n{:#?}\n", parser.lexer.debug_token_list);
+
         let result = parser.finish();
         println!("Tree:\n-------\n{:#?}\n", result.tree);
 
         let ast = Document::from_syntax(result.tree.node().clone());
         println!("AST:\n----\n{:#?}\n", ast);
-        //
-        // let output = format_ast(&ast);
-        // println!("Output: {}", output.unwrap());
+
+        let mut output = String::new();
+        commonmark_html::format_document(&mut output, &ast).ok();
+        println!("HTML Format:\n------------\n{}\n{:?}", output, output);
         //
         // let json = keyless_json::to_string(&ast);
         // println!("JSON: {}", json.unwrap());

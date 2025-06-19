@@ -126,7 +126,7 @@ impl SyntaxToken {
 
     /// Returns the ending character position of this token's trailing trivia.
     pub fn trailing_trivia_end(&self) -> TextSize {
-        self.text.end()
+        self.text.len_size()
     }
 
     /// Returns the total length of this token, including trivia.
@@ -149,6 +149,16 @@ impl SyntaxToken {
         self.text.len() as u32 - self.trailing_start
     }
 
+    pub fn text_pointer(&self) -> &TextPointer {
+        &self.text
+    }
+
+    /// Returns a new TextPointer to the text of this token _excluding_ its leading trivia.
+    // TODO: Rename/change this to be more normal
+    pub fn text_pointer_with_no_leading_trivia(&self) -> TextPointer {
+        self.text.clone().trim_front(self.leading_trivia_len())
+    }
+
     /// Returns the text of this token excluding all attached trivia.
     pub fn text(&self) -> &str {
         &self.text[self.text_span()]
@@ -165,13 +175,21 @@ impl SyntaxToken {
     }
 
     /// Returns the complete text of this token, including the token itself and any attached trivia.
-    pub fn text_with_trivia(&self) -> &str {
+    pub fn text_with_trailing_trivia(&self) -> &str {
+        &self.text[self.text_start() as usize..self.trailing_trivia_end() as usize]
+    }
+
+    pub fn text_with_leading_trivia(&self) -> &str {
+        &self.text[self.leading_trivia_start() as usize..self.text_end() as usize]
+    }
+
+    pub fn full_text(&self) -> &str {
         &self.text
     }
 
     // NOTE: Internal-only methods for efficiently constructing the tree with trivia that may only
     // be added after a token has been pushed elsewhere into the tree structure.
-    // See [TreeBuilder::append_token_trivia] for context on the usage.
+    // See [TreeBuilder::add_trivia] for context on the usage.
 
     pub(super) fn raw_data(&self) -> Rc<SyntaxTokenData> {
         self.0.clone()

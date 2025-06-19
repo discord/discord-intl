@@ -40,15 +40,20 @@ pub(super) struct LexerCheckpoint {
     state: LexerState,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub enum LexContext {
     /// Normal lexing, where all tokens are treated as they are intuitively, with no context-
     /// sensitive components. This context is the default where Markdown syntax is parsed.
+    #[default]
     Regular,
+    /// Normal lexing, but treating whitespace as plain text, even if it's the first byte of the
+    /// token. Used while lexing inside of inline content to preserve the significance of whitespace
+    /// that would otherwise be ignored or removed if it were treated as trivia.
+    InlineWhitespace,
     /// Lex a contiguous set of a single punctuation character as a single token. Used for
     /// delimiter runs like fenced code blocks and strikethrough delimiters.
     AsciiPunctuationRun,
-    /// Code blocks treat enitre lines as single tokens, with no semantics inside of them.
+    /// Code blocks treat entire lines as single tokens, with no semantics inside of them.
     CodeBlock,
     /// Link destinations allow plain text but
     LinkDestination,
@@ -65,6 +70,55 @@ pub enum LexContext {
     IcuStyle,
 }
 
+#[cfg(feature = "debug-tracing")]
+pub struct DebugLexerToken {
+    kind: SyntaxKind,
+    pointer: TextPointer,
+}
+
+#[cfg(feature = "debug-tracing")]
+#[derive(Default)]
+pub struct DebugLexerTokenList {
+    tokens: Vec<DebugLexerToken>,
+}
+
+#[cfg(feature = "debug-tracing")]
+impl DebugLexerTokenList {
+    fn append_token(&mut self, token: DebugLexerToken) {
+        // Remove any re-lexed tokens from the stream.
+        match self
+            .tokens
+            .iter()
+            .rposition(|p| token.pointer.start() < p.pointer.end())
+        {
+            Some(last_preserved_index) => {
+                if last_preserved_index < self.tokens.len() {
+                    self.tokens.truncate(last_preserved_index);
+                }
+            }
+            _ => {}
+        }
+        self.tokens.push(token)
+    }
+}
+
+#[cfg(feature = "debug-tracing")]
+impl std::fmt::Debug for DebugLexerTokenList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for token in &self.tokens {
+            write!(
+                f,
+                "  {:4}..{:4} {:?} {:?}\n",
+                token.pointer.start(),
+                token.pointer.end(),
+                token.kind,
+                token.pointer.as_str()
+            )?;
+        }
+        Ok(())
+    }
+}
+
 pub struct Lexer {
     text: SourceText,
     block_bounds: Vec<BlockBound>,
@@ -73,6 +127,8 @@ pub struct Lexer {
     position: usize,
     last_position: usize,
     state: LexerState,
+    #[cfg(feature = "debug-tracing")]
+    pub(super) debug_token_list: DebugLexerTokenList,
 }
 
 impl Lexer {
@@ -84,6 +140,8 @@ impl Lexer {
             position: 0,
             last_position: 0,
             state: LexerState::new(),
+            #[cfg(feature = "debug-tracing")]
+            debug_token_list: DebugLexerTokenList::default(),
         }
     }
 
@@ -116,16 +174,22 @@ impl Lexer {
     pub fn next_token(&mut self, context: LexContext) -> SyntaxKind {
         // Block endings are always present
         if self.is_at_block_bound() {
-            return self.consume_block_bound();
+            let block_kind = self.consume_block_bound();
+            #[cfg(feature = "debug-tracing")]
+            self.push_debug_token(block_kind);
+            return block_kind;
         }
 
         if self.is_eof() {
             self.current_kind = SyntaxKind::EOF;
+            #[cfg(feature = "debug-tracing")]
+            self.push_debug_token(self.current_kind);
             return self.current_kind;
         }
 
         self.current_kind = match context {
             LexContext::Regular => self.next_regular_token(true),
+            LexContext::InlineWhitespace => self.next_inline_whitespace_or_text(),
             LexContext::AsciiPunctuationRun => self.next_ascii_punctuation_run(),
             LexContext::CodeBlock => self.next_code_block_token(),
             LexContext::LinkDestination => self.next_regular_token(false),
@@ -134,6 +198,8 @@ impl Lexer {
             LexContext::IcuStyle => self.next_icu_style_token(),
         };
 
+        #[cfg(feature = "debug-tracing")]
+        self.push_debug_token(self.current_kind);
         self.current_kind
     }
 
@@ -167,6 +233,14 @@ impl Lexer {
         }
     }
 
+    fn next_inline_whitespace_or_text(&mut self) -> SyntaxKind {
+        if self.current().is_ascii_whitespace() {
+            self.consume_plain_text(true)
+        } else {
+            self.next_regular_token(true)
+        }
+    }
+
     fn next_ascii_punctuation_run(&mut self) -> SyntaxKind {
         if self.is_eof() {
             return SyntaxKind::EOF;
@@ -177,7 +251,8 @@ impl Lexer {
         );
 
         if self.current().is_ascii_punctuation() {
-            while self.current().is_ascii_punctuation() {
+            let expected = self.current();
+            while !self.is_eof() && self.current() == expected {
                 self.advance();
             }
             SyntaxKind::PUNCTUATION_RUN
@@ -188,10 +263,16 @@ impl Lexer {
 
     fn next_code_block_token(&mut self) -> SyntaxKind {
         match self.current() {
+            b'\0' => self.consume_byte(SyntaxKind::EOF),
             // Consecutive newlines immediately become blank lines
-            b'\n' if self.last_was_newline() => {
+            b'\n' => {
+                let kind = if self.last_was_newline() {
+                    SyntaxKind::BLANK_LINE
+                } else {
+                    SyntaxKind::LINE_ENDING
+                };
                 self.advance();
-                SyntaxKind::BLANK_LINE
+                kind
             }
             // Any other whitespaces character after a newline becomes leading
             // whitespace, if the configured `indent_depth` is more than 0. If
@@ -202,7 +283,6 @@ impl Lexer {
             {
                 self.consume_leading_whitespace()
             }
-            b'\0' => self.consume_byte(SyntaxKind::EOF),
             _ => self.consume_verbatim_line(),
         }
     }
@@ -731,7 +811,6 @@ impl Lexer {
                 break;
             }
             if self.current() == b'\n' {
-                self.advance();
                 break;
             }
             self.advance();
@@ -948,7 +1027,13 @@ impl Lexer {
     }
 
     fn last_was_newline(&self) -> bool {
-        self.peek_back(1) == b'\n'
+        // https://spec.commonmark.org/0.31.2/#left-flanking-delimiter-run
+        // "For purposes of this definition, the beginning and the end of the line count as Unicode
+        // whitespace."
+        // This technically only applies for emphasis flanking, but it's also a helpful default to
+        // say that the beginning and end of the input (i.e., when there's no adjacent character)
+        // count as newlines in general.
+        matches!(self.peek_back(1), b'\n' | 0)
     }
 
     /// Advance the lexer by one Unicode character.
@@ -1032,5 +1117,19 @@ impl Lexer {
                 (range.end - range.start) as TextSize,
             ),
         )
+    }
+}
+
+#[cfg(feature = "debug-tracing")]
+impl Lexer {
+    fn push_debug_token(&mut self, kind: SyntaxKind) {
+        self.debug_token_list.append_token(DebugLexerToken {
+            kind,
+            pointer: TextPointer::new(
+                self.text.clone(),
+                self.last_position as TextSize,
+                (self.position - self.last_position) as TextSize,
+            ),
+        })
     }
 }

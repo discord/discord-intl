@@ -11,6 +11,11 @@ bench = false
 # Not using doctests currently
 doctest = false
 
+[features]
+# Enable extra tracking and tracing within the parser to aid debugging.
+test = ["debug-tracing"]
+debug-tracing = []
+
 [dependencies]
 bitflags = "2"
 intl_markdown_macros = { workspace = true }

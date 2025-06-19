@@ -29,6 +29,10 @@ impl TextPointer {
         }
     }
 
+    pub fn as_str(&self) -> &str {
+        &self.source[self.range()]
+    }
+
     pub fn start(&self) -> TextSize {
         self.offset
     }
@@ -51,6 +55,55 @@ impl TextPointer {
         self.len() == self.source.len()
     }
 
+    /// Returns true if this text pointer references a text range that is immediately before the
+    /// range that `next` points to within the same source string.
+    pub fn is_adjacent_before(&self, next: &Self) -> bool {
+        Rc::ptr_eq(&self.source, &next.source) && self.offset + self.len == next.offset
+    }
+
+    /// Returns true if this text pointer references a text range that is immediately after the
+    /// range that `next` points to within the same source string.
+    pub fn is_adjacent_after(&self, next: &Self) -> bool {
+        next.is_adjacent_before(self)
+    }
+
+    /// Return a slice of this text pointer, almost identically to `&text[start..end]`, but
+    /// returning a new TextPointer to avoid lifetime issues when dealing with syntax elements.
+    /// Consumers are effectively able to treat this as a `&str` when they need it, since
+    /// `TextPointer` dereferences to a string slice directly.
+    pub fn substr(&self, range: Range<usize>) -> TextPointer {
+        TextPointer::new(
+            self.source.clone(),
+            self.offset + range.start as TextSize,
+            range.len() as TextSize,
+        )
+    }
+
+    /// Remove the first `n` bytes from this pointer's range.
+    #[must_use = "TextPointers are immutable and any changes must be propagated to the parent for them to have an effect"]
+    pub fn trim_front(mut self, n: TextSize) -> Self {
+        debug_assert!(
+            n <= self.len,
+            "Tried to trim {n} bytes from a text pointer of length {}",
+            self.len
+        );
+        self.offset += n;
+        self.len -= n;
+        self
+    }
+
+    /// Remove the last `n` bytes from this pointer's range.
+    #[must_use = "TextPointers are immutable and any changes must be propagated to the parent for them to have an effect"]
+    pub fn trim_back(mut self, n: TextSize) -> Self {
+        debug_assert!(
+            n <= self.len,
+            "Tried to trim {n} bytes from a text pointer of length {}",
+            self.len
+        );
+        self.len -= n;
+        self
+    }
+
     /// Extend this text pointer to include the given `text`. If the text slice points to an
     /// adjacent subrange of this pointer's source, then this pointer is simply expanded to include
     /// that text in its range. If the given text is _not_ adjacent to this pointer's range in the
@@ -65,6 +118,18 @@ impl TextPointer {
         if text.is_empty() {
             return self.clone();
         }
+
+        // If this pointer is empty but the given text is a substring of the same source, then pivot
+        // this pointer to just be the given text.
+        if self.is_empty() {
+            if let Some(range) = self.source.substr_range(text) {
+                let mut clone = self.clone();
+                clone.offset = range.start as TextSize;
+                clone.len = range.len() as TextSize;
+                return clone;
+            }
+        }
+
         let is_adjacent_end = self
             .source
             .substr_range(text)
@@ -95,6 +160,21 @@ impl TextPointer {
     /// whether the text is empty before calling this method.
     #[must_use = "TextPointers are immutable and any changes must be propagated to the parent for them to have an effect"]
     pub fn extend_front(&self, text: &str) -> Self {
+        if text.is_empty() {
+            return self.clone();
+        }
+
+        // If this pointer is empty but the given text is a substring of the same source, then pivot
+        // this pointer to just be the given text.
+        if self.is_empty() {
+            if let Some(range) = self.source.substr_range(text) {
+                let mut clone = self.clone();
+                clone.offset = range.start as TextSize;
+                clone.len = range.len() as TextSize;
+                return clone;
+            }
+        }
+
         let is_adjacent_start = self
             .source
             .substr_range(text)
@@ -134,7 +214,7 @@ impl From<&str> for TextPointer {
 impl Deref for TextPointer {
     type Target = str;
     fn deref(&self) -> &Self::Target {
-        &self.source[self.range()]
+        self.as_str()
     }
 }
 

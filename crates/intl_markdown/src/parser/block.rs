@@ -1,4 +1,4 @@
-use super::{inline::parse_inline, ICUMarkdownParser};
+use super::{inline::parse_inline, ICUMarkdownParser, ParseContext};
 use crate::lexer::LexContext;
 use crate::syntax::SyntaxKind;
 
@@ -94,7 +94,7 @@ fn parse_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
 fn parse_code_block_content(p: &mut ICUMarkdownParser) {
     p.relex_with_context(LexContext::CodeBlock);
     loop {
-        p.skip_whitespace_as_trivia_with_context(LexContext::CodeBlock);
+        p.skip_whitespace_as_trivia_with_context(LexContext::CodeBlock.into());
         if matches!(
             p.current(),
             SyntaxKind::EOF | SyntaxKind::INLINE_END | SyntaxKind::BLOCK_END
@@ -119,16 +119,16 @@ fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
     // The block parser has already asserted that this will create a valid sequence, either from
     // ~~~ or ```.
     p.expect(SyntaxKind::PUNCTUATION_RUN)?;
-    p.skip_whitespace_as_trivia();
+    p.skip_whitespace_as_leading_trivia(ParseContext::default());
 
     // If that's not the end of the line, then consume everything else as the
     // info string.
     p.optional(
         !p.at(SyntaxKind::INLINE_START) && !p.at(SyntaxKind::BLOCK_END),
         |p| {
-            let info_string = p.mark();
-            parse_remainder_as_token_list(p);
-            info_string.complete(p, SyntaxKind::CODE_FENCE_INFO_STRING)
+            p.relex_with_context(LexContext::CodeBlock);
+            p.expect(SyntaxKind::VERBATIM_LINE)?;
+            Some(())
         },
     );
 
@@ -139,7 +139,7 @@ fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
     content_mark.complete(p, SyntaxKind::CODE_BLOCK_CONTENT);
     p.expect_block_bound(SyntaxKind::INLINE_END)?;
 
-    p.skip_whitespace_as_trivia();
+    p.skip_whitespace_as_leading_trivia(Default::default());
 
     // Finally the closing delimiter, which can be missing if the block ended
     // because of the end of the input.

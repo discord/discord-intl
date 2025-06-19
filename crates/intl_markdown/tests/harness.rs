@@ -1,19 +1,18 @@
 use intl_markdown::{
-    compile_to_format_js, format_ast, format_icu_string, process_to_ast, CstDocument, Document,
-    ICUMarkdownParser, SourceText,
+    commonmark_html, compile_to_format_js, format_icu_string, Document, ICUMarkdownParser,
+    SourceText,
 };
 
-pub fn parse(content: &str, include_blocks: bool) -> CstDocument {
+pub fn parse(content: &str, include_blocks: bool) -> Document {
     let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     parser.parse();
-    parser.finish()
+    parser.finish().to_document()
 }
 
 pub fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
     let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
-    let source = parser.source().clone();
     parser.parse();
-    process_to_ast(source, &parser.finish())
+    parser.finish().to_document()
 }
 
 /// Test that the input is parsed and formatted as HTML as given.
@@ -21,9 +20,10 @@ pub fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
 pub fn run_spec_test(input: &str, expected: &str) {
     // AST-based formatting
     let ast = parse_to_ast(input, true);
-    let output = format_ast(&ast).unwrap();
+    let mut buffer = String::new();
+    let output = commonmark_html::format_document(&mut buffer, &ast).unwrap();
 
-    assert_eq!(expected, output);
+    assert_eq!(expected, buffer);
 }
 
 /// Test that the input is parsed and formatted as an ICU string as given.
@@ -31,9 +31,9 @@ pub fn run_spec_test(input: &str, expected: &str) {
 pub fn run_icu_string_test(input: &str, expected: &str, include_blocks: bool) {
     // AST-based formatting
     let ast = parse_to_ast(input, include_blocks);
-    let output = format_icu_string(&ast).unwrap();
+    // let output = format_icu_string(&ast).unwrap();
 
-    assert_eq!(expected, output);
+    assert_eq!(expected, "");
 }
 
 /// Test that the input is parsed and formatted as an ICU AST as given.
@@ -41,9 +41,9 @@ pub fn run_icu_string_test(input: &str, expected: &str, include_blocks: bool) {
 pub fn run_icu_ast_test(input: &str, expected: &str, include_blocks: bool) {
     // AST-based formatting
     let ast = parse_to_ast(input, include_blocks);
-    let output = keyless_json::to_string(&compile_to_format_js(&ast)).unwrap();
+    // let output = keyless_json::to_string(&compile_to_format_js(&ast)).unwrap();
 
-    assert_eq!(expected, output);
+    assert_eq!(expected, "");
 }
 
 macro_rules! ast_test {

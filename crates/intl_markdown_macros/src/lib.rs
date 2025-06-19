@@ -4,7 +4,10 @@ use proc_macro2::Ident;
 use quote::{format_ident, quote_spanned};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{bracketed, parse_macro_input, DeriveInput, LitByteStr, LitInt, Token, Type};
+use syn::spanned::Spanned;
+use syn::{
+    bracketed, parse_macro_input, DeriveInput, Expr, ExprClosure, LitByteStr, LitInt, Token, Type,
+};
 
 #[proc_macro_derive(FromSyntax)]
 pub fn derive_from_syntax(input: TokenStream) -> TokenStream {
@@ -206,4 +209,47 @@ pub fn generate_byte_lookup_table(input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+struct ImplFormatInput {
+    trait_name: Ident,
+    node_name: Ident,
+    implementation: ExprClosure,
+}
+
+impl Parse for ImplFormatInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let trait_name = input.parse::<Ident>()?;
+        input.parse::<Token![,]>()?;
+        let node_name = input.parse::<Ident>()?;
+        let implementation = input.parse::<ExprClosure>()?;
+        Ok(Self {
+            trait_name,
+            node_name,
+            implementation,
+        })
+    }
+}
+
+#[proc_macro]
+pub fn impl_format(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ImplFormatInput);
+
+    let trait_name = input.trait_name;
+    let node_name = input.node_name;
+    let format_name = input.implementation.inputs.first().unwrap();
+    let body = input.implementation.body;
+    let body_span = body.span();
+    let body = if matches!(*body, Expr::Block(_)) {
+        quote_spanned! { body_span => #body }
+    } else {
+        quote_spanned! { body_span => { #body }}
+    };
+
+    quote_spanned! { proc_macro2::Span::call_site() =>
+        impl #trait_name for #node_name {
+            fn fmt(&self, #format_name: &mut impl std::fmt::Write) -> std::fmt::Result #body
+        }
+    }
+    .into()
 }

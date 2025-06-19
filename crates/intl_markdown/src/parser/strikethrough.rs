@@ -1,7 +1,6 @@
 use crate::delimiter::{Delimiter, StrikethroughDelimiter};
 use crate::parser::delimiter::get_surrounding_delimiter_state;
 use crate::parser::emphasis::{complete_emphasis_and_content_marker_pairs, EmphasisMatchResult};
-use crate::parser::marker::MarkerSpan;
 use crate::{syntax::SyntaxKind, ICUMarkdownParser};
 
 /// Consume a sequence of contiguous delimiter tokens of the same kind to
@@ -18,7 +17,7 @@ pub(super) fn parse_strikethrough_delimiter_run(
     p: &mut ICUMarkdownParser,
     kind: SyntaxKind,
 ) -> Option<()> {
-    let marker_index = p.tree_index();
+    let cursor = p.mark();
 
     // Determining whether the run can open or close relies on the fact that
     // the property is transitive across the sequence of delimiter tokens. If
@@ -62,14 +61,8 @@ pub(super) fn parse_strikethrough_delimiter_run(
     };
 
     p.push_delimiter(
-        StrikethroughDelimiter::new(
-            kind,
-            count,
-            can_open_emphasis,
-            can_close_emphasis,
-            marker_index,
-        )
-        .into(),
+        StrikethroughDelimiter::new(kind, count, can_open_emphasis, can_close_emphasis, *cursor)
+            .into(),
     );
 
     Some(())

@@ -1,15 +1,19 @@
 mod element;
 mod kind;
 mod node;
+pub mod support;
 mod text;
 mod token;
 mod traits;
 mod tree;
 
-pub(crate) use traits::{FromSyntax, FromSyntaxElement};
-pub(crate) use tree::{TreeBuilder, TreeCheckpoint};
+pub(crate) use traits::{FromSyntax, FromSyntaxElement, Syntax};
+pub(crate) use tree::{TreeBuilder, TreeMarker};
 
-pub use element::{SyntaxElement, SyntaxElementChildren, SyntaxNodeChildren, SyntaxTokenChildren};
+pub use element::{
+    ContiguousTokenChunksIterator, ContiguousTokenChunksIteratorOptions, SyntaxElement,
+    SyntaxElementChildren, SyntaxNodeChildren, SyntaxTokenChildren, TrimKind,
+};
 pub use kind::SyntaxKind;
 #[allow(unused)]
 pub use node::{SyntaxNode, SyntaxNodeHeader};

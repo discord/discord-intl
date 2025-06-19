@@ -1,10 +1,9 @@
 use std::fmt::Write;
 
 use crate::ast::{
-    BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
-    IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect,
-    IcuTime, IcuVariable, InlineContent, Link, LinkDestination, LinkKind, Paragraph, Strikethrough,
-    Strong,
+    CodeBlock, CodeSpan, Emphasis, Heading, Hook, Icu, IcuDate, IcuDateTimeStyle, IcuNumber,
+    IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable,
+    InlineContent, Link, LinkDestination, LinkKind, Paragraph, Strikethrough, Strong,
 };
 
 use super::util::{escape_body_text, escape_href, format_plain_text};
@@ -79,26 +78,6 @@ impl<T: FormatHtml> FormatHtml for [T] {
 
         Ok(())
     }
-}
-
-pub fn format_ast(document: &Document) -> FormatResult<String> {
-    let mut f = String::new();
-
-    for (index, block) in document.blocks().iter().enumerate() {
-        if index > 0 {
-            f.push('\n');
-        }
-
-        match block {
-            BlockNode::Paragraph(paragraph) => write!(f, [paragraph])?,
-            BlockNode::Heading(heading) => write!(f, [heading])?,
-            BlockNode::CodeBlock(code_block) => write!(f, [code_block])?,
-            BlockNode::ThematicBreak => write!(f, ["<hr />"])?,
-            BlockNode::InlineContent(content) => write!(f, [content])?,
-        }
-    }
-
-    Ok(f)
 }
 
 impl FormatHtml for Paragraph {

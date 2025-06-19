@@ -172,8 +172,8 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
     // because delimiters are considered "removed from the text" when they
     // are consumed, so once one is consumed, the following ones shift into
     // their place.
+    let cursor = p.mark();
     let first_span = p.lexer.current_byte_span();
-    let index = p.tree_index();
     let mut last_span = first_span.clone();
     let mut count = 0;
     while p.current() == kind {
@@ -218,7 +218,7 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
     };
 
     p.push_delimiter(
-        EmphasisDelimiter::new(kind, count, can_open_emphasis, can_close_emphasis, index).into(),
+        EmphasisDelimiter::new(kind, count, can_open_emphasis, can_close_emphasis, *cursor).into(),
     );
 
     Some(())
@@ -252,7 +252,7 @@ pub(crate) fn process_closed_delimiter(
     if deactivate_previous {
         for i in 0..delimiter_range.start {
             let delimiter = &mut p.delimiter_stack()[i];
-            if delimiter.kind() == kind && delimiter.is_active() {
+            if delimiter.syntax_kind() == kind && delimiter.is_active() {
                 p.deactivate_delimiter(i);
             }
         }

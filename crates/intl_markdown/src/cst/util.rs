@@ -17,11 +17,11 @@ pub(super) fn optional_token(syntax: &SyntaxNode, slot: usize) -> Option<SyntaxT
     syntax.optional_token(slot)
 }
 
-pub struct AstNodeChildren<'a, T: FromSyntax> {
+pub struct TypedNodeChildren<'a, T: FromSyntax> {
     children: SyntaxNodeChildren<'a>,
     _phantom: PhantomData<&'a T>,
 }
-impl<'a, T: FromSyntax> AstNodeChildren<'a, T> {
+impl<'a, T: FromSyntax> TypedNodeChildren<'a, T> {
     pub fn new(children: SyntaxNodeChildren<'a>) -> Self {
         Self {
             children,
@@ -29,7 +29,7 @@ impl<'a, T: FromSyntax> AstNodeChildren<'a, T> {
         }
     }
 }
-impl<'a, T: FromSyntax> Iterator for AstNodeChildren<'a, T> {
+impl<'a, T: FromSyntax> Iterator for TypedNodeChildren<'a, T> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         self.children.next().map(T::from_syntax)
