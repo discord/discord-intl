@@ -102,10 +102,6 @@ impl From<&Autolink> for AnyLink {
     }
 }
 
-impl FencedCodeBlock {
-    fn foo() {}
-}
-
 impl AtxHeading {
     /// Returns the heading level (1-6, inclusive) that this heading should
     /// have according to the opening sequence

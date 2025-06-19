@@ -118,36 +118,6 @@ impl From<&SyntaxToken> for SyntaxElement {
 }
 
 #[derive(Debug, Clone)]
-pub struct SyntaxElementChildren<'a> {
-    elements: &'a [SyntaxElement],
-    cursor: usize,
-}
-
-impl<'a> SyntaxElementChildren<'a> {
-    pub fn new(elements: &'a [SyntaxElement]) -> Self {
-        Self {
-            elements,
-            cursor: 0,
-        }
-    }
-}
-
-impl<'a> Iterator for SyntaxElementChildren<'a> {
-    type Item = SyntaxElement;
-    fn next(&mut self) -> Option<Self::Item> {
-        let element = self.elements.get(self.cursor).cloned();
-        self.cursor += 1;
-        element
-    }
-}
-
-impl ExactSizeIterator for SyntaxElementChildren<'_> {
-    fn len(&self) -> usize {
-        self.elements.len()
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct SyntaxNodeChildren<'a> {
     elements: &'a [SyntaxElement],
     cursor: usize,

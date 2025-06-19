@@ -9,6 +9,5 @@ heck = "0.5.0"
 ungrammar = "1.16.1"
 quote = "1.0.40"
 xshell = "0"
-
-[[bin]]
-name = "codegen-syntax"
+serde = { workspace = true }
+serde_json = { workspace = true }

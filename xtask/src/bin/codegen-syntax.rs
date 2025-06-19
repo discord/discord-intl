@@ -4,21 +4,17 @@ use quote::{format_ident, quote, ToTokens};
 use std::fmt::Formatter;
 use std::str::FromStr;
 use ungrammar::{Grammar, NodeData, Rule, TokenData};
-use xshell::{cmd, Shell};
+use xtask::util;
 
 fn main() {
-    try_main().unwrap_or_else(|e| eprintln!("{}", e));
+    try_main().unwrap_or_else(|e| {
+        eprintln!("{}", e);
+        std::process::exit(1);
+    });
 }
 
 fn try_main() -> anyhow::Result<()> {
-    let repo_root = std::path::Path::new(
-        &std::env::var("CARGO_MANIFEST_DIR")
-            .unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_owned()),
-    )
-    .ancestors()
-    .nth(1)
-    .unwrap()
-    .to_path_buf();
+    let repo_root = util::repo_root();
 
     let grammar = Grammar::from_str(include_str!("../../data/markdown.ungram"))?;
     let generated = generate_tree_from_grammar(&grammar);
@@ -26,8 +22,7 @@ fn try_main() -> anyhow::Result<()> {
     let ast_nodes_path = repo_root.join("crates/intl_markdown/src/cst/nodes.rs");
     println!("{:?}", ast_nodes_path);
     std::fs::write(&ast_nodes_path, generated)?;
-    let shell = Shell::new()?;
-    cmd!(shell, "cargo fmt -- {ast_nodes_path}").run()?;
+    util::format_file(&ast_nodes_path)?;
     Ok(())
 }
 

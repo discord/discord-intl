@@ -11,8 +11,8 @@ pub(crate) use traits::{FromSyntax, FromSyntaxElement, Syntax};
 pub(crate) use tree::{TreeBuilder, TreeMarker};
 
 pub use element::{
-    ContiguousTokenChunksIterator, ContiguousTokenChunksIteratorOptions, SyntaxElement,
-    SyntaxElementChildren, SyntaxNodeChildren, SyntaxTokenChildren, TrimKind,
+    ContiguousTokenChunksIteratorOptions, SyntaxElement, SyntaxNodeChildren, SyntaxTokenChildren,
+    TrimKind,
 };
 pub use kind::SyntaxKind;
 #[allow(unused)]

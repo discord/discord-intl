@@ -11,7 +11,7 @@ struct HTMLEntity {
 
 fn main() {
     let entities: HashMap<String, HTMLEntity> =
-        serde_json::from_str(include_str!("./html-entities.json"))
+        serde_json::from_str(include_str!("html-entities.json"))
             .expect("Failed to parse html entities");
 
     // Output the test contents into test case folders to read as individual
