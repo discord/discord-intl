@@ -168,11 +168,21 @@ impl ICUMarkdownParser {
                     self.finish_node();
                     self.reset_inline_state();
                 }
-                _ => unreachable!(
-                    "Encountered unexpected kind while parsing at the block level: {:?}.\nTree:---\n{:#?}",
-                    self.current(),
-                    self.builder,
-                ),
+                _ => {
+                    #[cfg(feature = "debug-tracing")]
+                    unreachable!(
+                        "Encountered unexpected kind while parsing at the block level: {:?}.\nTokens:\n-------\n{:#?}Tree:\n-----\n{:#?}",
+                        self.current(),
+                        self.debug_token_list(),
+                        self.builder,
+                    );
+                    #[cfg(not(feature = "debug-tracing"))]
+                    unreachable!(
+                        "Encountered unexpected kind while parsing at the block level: {:?}.\nTree:---\n{:#?}",
+                        self.current(),
+                        self.builder,
+                    );
+                }
             }
         }
     }

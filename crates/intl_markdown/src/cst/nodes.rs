@@ -630,22 +630,22 @@ impl FromSyntax for Emphasis {
     }
 }
 impl Emphasis {
-    pub fn open_token_token(&self) -> SyntaxToken {
+    pub fn open_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
     pub fn content(&self) -> InlineContent {
         support::required_node(&self.syntax, 1usize)
     }
-    pub fn close_token_token(&self) -> SyntaxToken {
+    pub fn close_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
 }
 impl std::fmt::Debug for Emphasis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Emphasis")
-            .field("[0] open_token_token", &self.open_token_token())
+            .field("[0] open_token", &self.open_token())
             .field("[1] content", &self.content())
-            .field("[2] close_token_token", &self.close_token_token())
+            .field("[2] close_token", &self.close_token())
             .finish()
     }
 }
@@ -665,30 +665,30 @@ impl FromSyntax for Strong {
     }
 }
 impl Strong {
-    pub fn open_token_token(&self) -> SyntaxToken {
+    pub fn open_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn open_token_two_token(&self) -> SyntaxToken {
+    pub fn open_two_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn content(&self) -> InlineContent {
         support::required_node(&self.syntax, 2usize)
     }
-    pub fn close_token_token(&self) -> SyntaxToken {
+    pub fn close_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 3usize)
     }
-    pub fn close_token_two_token(&self) -> SyntaxToken {
+    pub fn close_two_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 4usize)
     }
 }
 impl std::fmt::Debug for Strong {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Strong")
-            .field("[0] open_token_token", &self.open_token_token())
-            .field("[1] open_token_two_token", &self.open_token_two_token())
+            .field("[0] open_token", &self.open_token())
+            .field("[1] open_two_token", &self.open_two_token())
             .field("[2] content", &self.content())
-            .field("[3] close_token_token", &self.close_token_token())
-            .field("[4] close_token_two_token", &self.close_token_two_token())
+            .field("[3] close_token", &self.close_token())
+            .field("[4] close_two_token", &self.close_two_token())
             .finish()
     }
 }
@@ -825,22 +825,22 @@ impl FromSyntax for CodeSpan {
     }
 }
 impl CodeSpan {
-    pub fn open_backticks_token(&self) -> SyntaxToken {
+    pub fn open_run_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
     pub fn content(&self) -> CodeSpanContent {
         support::required_node(&self.syntax, 1usize)
     }
-    pub fn close_backticks_token(&self) -> SyntaxToken {
+    pub fn close_run_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
 }
 impl std::fmt::Debug for CodeSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CodeSpan")
-            .field("[0] open_backticks_token", &self.open_backticks_token())
+            .field("[0] open_run_token", &self.open_run_token())
             .field("[1] content", &self.content())
-            .field("[2] close_backticks_token", &self.close_backticks_token())
+            .field("[2] close_run_token", &self.close_run_token())
             .finish()
     }
 }
@@ -903,22 +903,22 @@ impl FromSyntax for Strikethrough {
     }
 }
 impl Strikethrough {
-    pub fn opening_token_token(&self) -> SyntaxToken {
+    pub fn opening_run_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
     pub fn content(&self) -> InlineContent {
         support::required_node(&self.syntax, 1usize)
     }
-    pub fn closing_token_token(&self) -> SyntaxToken {
+    pub fn closing_run_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
 }
 impl std::fmt::Debug for Strikethrough {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Strikethrough")
-            .field("[0] opening_token_token", &self.opening_token_token())
+            .field("[0] opening_run_token", &self.opening_run_token())
             .field("[1] content", &self.content())
-            .field("[2] closing_token_token", &self.closing_token_token())
+            .field("[2] closing_run_token", &self.closing_run_token())
             .finish()
     }
 }
@@ -1057,22 +1057,22 @@ impl FromSyntax for LinkTitle {
     }
 }
 impl LinkTitle {
-    pub fn opening_token_token(&self) -> SyntaxToken {
+    pub fn open_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
     pub fn content(&self) -> LinkTitleContent {
         support::required_node(&self.syntax, 1usize)
     }
-    pub fn closing_token_token(&self) -> SyntaxToken {
+    pub fn close_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
 }
 impl std::fmt::Debug for LinkTitle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LinkTitle")
-            .field("[0] opening_token_token", &self.opening_token_token())
+            .field("[0] open_token", &self.open_token())
             .field("[1] content", &self.content())
-            .field("[2] closing_token_token", &self.closing_token_token())
+            .field("[2] close_token", &self.close_token())
             .finish()
     }
 }
@@ -1382,13 +1382,13 @@ impl IcuPlural {
     pub fn variable(&self) -> IcuVariable {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token_token(&self) -> SyntaxToken {
+    pub fn variable_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn format_token_token(&self) -> SyntaxToken {
+    pub fn format_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
-    pub fn format_comma_token_token(&self) -> SyntaxToken {
+    pub fn format_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 3usize)
     }
     pub fn arms(&self) -> IcuPluralArms {
@@ -1399,15 +1399,9 @@ impl std::fmt::Debug for IcuPlural {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuPlural")
             .field("[0] variable", &self.variable())
-            .field(
-                "[1] variable_comma_token_token",
-                &self.variable_comma_token_token(),
-            )
-            .field("[2] format_token_token", &self.format_token_token())
-            .field(
-                "[3] format_comma_token_token",
-                &self.format_comma_token_token(),
-            )
+            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[2] format_token", &self.format_token())
+            .field("[3] format_comma_token", &self.format_comma_token())
             .field("[4] arms", &self.arms())
             .finish()
     }
@@ -1431,13 +1425,13 @@ impl IcuSelectOrdinal {
     pub fn variable(&self) -> IcuVariable {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token_token(&self) -> SyntaxToken {
+    pub fn variable_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn format_token_token(&self) -> SyntaxToken {
+    pub fn format_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
-    pub fn format_comma_token_token(&self) -> SyntaxToken {
+    pub fn format_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 3usize)
     }
     pub fn arms(&self) -> IcuPluralArms {
@@ -1448,15 +1442,9 @@ impl std::fmt::Debug for IcuSelectOrdinal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuSelectOrdinal")
             .field("[0] variable", &self.variable())
-            .field(
-                "[1] variable_comma_token_token",
-                &self.variable_comma_token_token(),
-            )
-            .field("[2] format_token_token", &self.format_token_token())
-            .field(
-                "[3] format_comma_token_token",
-                &self.format_comma_token_token(),
-            )
+            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[2] format_token", &self.format_token())
+            .field("[3] format_comma_token", &self.format_comma_token())
             .field("[4] arms", &self.arms())
             .finish()
     }
@@ -1480,13 +1468,13 @@ impl IcuSelect {
     pub fn variable(&self) -> IcuVariable {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token_token(&self) -> SyntaxToken {
+    pub fn variable_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn format_token_token(&self) -> SyntaxToken {
+    pub fn format_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
-    pub fn format_comma_token_token(&self) -> SyntaxToken {
+    pub fn format_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 3usize)
     }
     pub fn arms(&self) -> IcuPluralArms {
@@ -1497,15 +1485,9 @@ impl std::fmt::Debug for IcuSelect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuSelect")
             .field("[0] variable", &self.variable())
-            .field(
-                "[1] variable_comma_token_token",
-                &self.variable_comma_token_token(),
-            )
-            .field("[2] format_token_token", &self.format_token_token())
-            .field(
-                "[3] format_comma_token_token",
-                &self.format_comma_token_token(),
-            )
+            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[2] format_token", &self.format_token())
+            .field("[3] format_comma_token", &self.format_comma_token())
             .field("[4] arms", &self.arms())
             .finish()
     }
@@ -1529,10 +1511,10 @@ impl IcuDate {
     pub fn variable(&self) -> IcuVariable {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token_token(&self) -> SyntaxToken {
+    pub fn variable_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn format_token_token(&self) -> SyntaxToken {
+    pub fn format_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
     pub fn style(&self) -> Option<IcuDateTimeStyle> {
@@ -1543,11 +1525,8 @@ impl std::fmt::Debug for IcuDate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuDate")
             .field("[0] variable", &self.variable())
-            .field(
-                "[1] variable_comma_token_token",
-                &self.variable_comma_token_token(),
-            )
-            .field("[2] format_token_token", &self.format_token_token())
+            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[2] format_token", &self.format_token())
             .field("[3] style", &self.style())
             .finish()
     }
@@ -1571,10 +1550,10 @@ impl IcuTime {
     pub fn variable(&self) -> IcuVariable {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token_token(&self) -> SyntaxToken {
+    pub fn variable_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn format_token_token(&self) -> SyntaxToken {
+    pub fn format_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
     pub fn style(&self) -> Option<IcuDateTimeStyle> {
@@ -1585,11 +1564,8 @@ impl std::fmt::Debug for IcuTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuTime")
             .field("[0] variable", &self.variable())
-            .field(
-                "[1] variable_comma_token_token",
-                &self.variable_comma_token_token(),
-            )
-            .field("[2] format_token_token", &self.format_token_token())
+            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[2] format_token", &self.format_token())
             .field("[3] style", &self.style())
             .finish()
     }
@@ -1613,10 +1589,10 @@ impl IcuNumber {
     pub fn variable(&self) -> IcuVariable {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token_token(&self) -> SyntaxToken {
+    pub fn variable_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn format_token_token(&self) -> SyntaxToken {
+    pub fn format_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 2usize)
     }
     pub fn style(&self) -> Option<IcuNumberStyle> {
@@ -1627,11 +1603,8 @@ impl std::fmt::Debug for IcuNumber {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuNumber")
             .field("[0] variable", &self.variable())
-            .field(
-                "[1] variable_comma_token_token",
-                &self.variable_comma_token_token(),
-            )
-            .field("[2] format_token_token", &self.format_token_token())
+            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[2] format_token", &self.format_token())
             .field("[3] style", &self.style())
             .finish()
     }
@@ -1758,7 +1731,7 @@ impl FromSyntax for IcuDateTimeStyle {
     }
 }
 impl IcuDateTimeStyle {
-    pub fn style_comma_token_token(&self) -> SyntaxToken {
+    pub fn style_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
     pub fn style_text_token(&self) -> SyntaxToken {
@@ -1768,10 +1741,7 @@ impl IcuDateTimeStyle {
 impl std::fmt::Debug for IcuDateTimeStyle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuDateTimeStyle")
-            .field(
-                "[0] style_comma_token_token",
-                &self.style_comma_token_token(),
-            )
+            .field("[0] style_comma_token", &self.style_comma_token())
             .field("[1] style_text_token", &self.style_text_token())
             .finish()
     }
@@ -1792,7 +1762,7 @@ impl FromSyntax for IcuNumberStyle {
     }
 }
 impl IcuNumberStyle {
-    pub fn style_comma_token_token(&self) -> SyntaxToken {
+    pub fn style_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
     pub fn style_text_token(&self) -> SyntaxToken {
@@ -1802,10 +1772,7 @@ impl IcuNumberStyle {
 impl std::fmt::Debug for IcuNumberStyle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuNumberStyle")
-            .field(
-                "[0] style_comma_token_token",
-                &self.style_comma_token_token(),
-            )
+            .field("[0] style_comma_token", &self.style_comma_token())
             .field("[1] style_text_token", &self.style_text_token())
             .finish()
     }

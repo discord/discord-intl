@@ -1,3 +1,4 @@
+use quote::format_ident;
 use std::ops::Deref;
 use std::path::PathBuf;
 use xshell::{cmd, Shell};
@@ -13,16 +14,14 @@ pub fn repo_root() -> PathBuf {
     .to_path_buf()
 }
 
-pub fn format_file(path: &PathBuf) -> anyhow::Result<()> {
-    let shell = Shell::new()?;
-    cmd!(shell, "cargo fmt -- {path}").run()?;
-    Ok(())
-}
-
 pub fn format_files<'a>(paths: impl IntoIterator<Item = &'a PathBuf>) -> anyhow::Result<()> {
     let shell = Shell::new()?;
     cmd!(shell, "cargo fmt -- {paths...}").run()?;
     Ok(())
+}
+
+pub fn as_ident(name: &str) -> proc_macro2::Ident {
+    format_ident!("{}", &*name)
 }
 
 pub struct Codegen {

@@ -10,7 +10,7 @@ AnyBlockNode =
 Paragraph =
     content: InlineContent
 
-ThematicBreak = 'thematic_break_token'*
+ThematicBreak = 'text'*
 
 AnyHeading =
       AtxHeading
@@ -63,16 +63,16 @@ EntityReference =
     token: ('html_entity' | 'dec_char_ref' | 'hex_char_ref')
 
 Emphasis =
-    open_token: ('*' | '_')
+    open: ('*' | '_')
     content: InlineContent
-    close_token: ('*' | '_')
+    close: ('*' | '_')
 
 Strong =
-    open_token: ('*' | '_')
-    open_token_two: ('*' | '_')
+    open: ('*' | '_')
+    open_two: ('*' | '_')
     content: InlineContent
-    close_token: ('*' | '_')
-    close_token_two: ('*' | '_')
+    close: ('*' | '_')
+    close_two: ('*' | '_')
 
 Link =
     '['
@@ -107,9 +107,9 @@ ClickHandlerLinkDestination =
     name: 'text'
 
 LinkTitle =
-    opening_token: ('"' | '\'' | '(')
+    open: ('"' | '\'' | '(')
     content: LinkTitleContent
-    closing_token: ('"' | '\'' | ')')
+    close: ('"' | '\'' | ')')
 
 LinkTitleContent = 'link_title_piece'*
 
@@ -119,9 +119,9 @@ Autolink =
     '>'
 
 CodeSpan =
-    open_backticks: 'punctuation_run'
+    open_run: 'punctuation_run'
     content: CodeSpanContent
-    close_backticks: 'punctuation_run'
+    close_run: 'punctuation_run'
 
 CodeSpanContent = 'text'*
 
@@ -139,9 +139,9 @@ HookName =
 
 
 Strikethrough =
-    opening_token: 'punctuation_run'
+    opening_run: 'punctuation_run'
     content: InlineContent
-    closing_token: 'punctuation_run'
+    closing_run: 'punctuation_run'
 
 Icu =
     '{'
@@ -162,23 +162,23 @@ IcuVariable =
 
 IcuPlural =
     variable: IcuVariable
-    variable_comma_token: ','
-    format_token: 'icu_plural_kw'
-    format_comma_token: ','
+    variable_comma: ','
+    format: 'icu_plural_kw'
+    format_comma: ','
     arms: IcuPluralArms
 
 IcuSelectOrdinal =
     variable: IcuVariable
-    variable_comma_token: ','
-    format_token: 'icu_select_ordinal_kw'
-    format_comma_token: ','
+    variable_comma: ','
+    format: 'icu_select_ordinal_kw'
+    format_comma: ','
     arms: IcuPluralArms
 
 IcuSelect =
     variable: IcuVariable
-    variable_comma_token: ','
-    format_token: 'icu_select_kw'
-    format_comma_token: ','
+    variable_comma: ','
+    format: 'icu_select_kw'
+    format_comma: ','
     arms: IcuPluralArms
 
 IcuPluralArms = IcuPluralArm*
@@ -194,26 +194,26 @@ IcuPluralValue =
 
 IcuDate =
     variable: IcuVariable
-    variable_comma_token: ','
-    format_token: 'icu_date_kw'
+    variable_comma: ','
+    format: 'icu_date_kw'
     style: IcuDateTimeStyle?
 
 IcuTime =
     variable: IcuVariable
-    variable_comma_token: ','
-    format_token: 'icu_time_kw'
+    variable_comma: ','
+    format: 'icu_time_kw'
     style: IcuDateTimeStyle?
 
 IcuDateTimeStyle =
-    style_comma_token: ','
+    style_comma: ','
     style_text: 'icu_style_text'
 
 IcuNumber =
     variable: IcuVariable
-    variable_comma_token: ','
-    format_token: 'icu_number_kw'
+    variable_comma: ','
+    format: 'icu_number_kw'
     style: IcuNumberStyle?
 
 IcuNumberStyle =
-    style_comma_token: ','
+    style_comma: ','
     style_text: 'icu_style_text'

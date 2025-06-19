@@ -207,24 +207,17 @@ fn try_main() -> anyhow::Result<()> {
         .keys()
         .map(|section| format_ident!("{}", section))
         .collect::<Vec<_>>();
-    std::fs::write(
-        "mod.rs",
-        quote! {
-            #(mod #sections;)*
-        }
-        .to_string(),
-    )?;
+    std::fs::write("mod.rs", quote! {#(mod #sections;)*}.to_string())?;
 
     let module_prelude = get_module_prelude();
     for (section, cases) in cases_by_section {
-        let output_file = format!("{}.rs", section);
         let mut file_content = quote!();
         module_prelude.to_tokens(&mut file_content);
 
         for case in cases {
             case.test_def().to_tokens(&mut file_content);
         }
-        codegen.write_file(&output_file, file_content.to_string())?;
+        codegen.write_file(format!("{}.rs", section), file_content.to_string())?;
     }
 
     codegen.finish()
