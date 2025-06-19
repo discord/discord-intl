@@ -8,7 +8,7 @@ use std::rc::Rc;
 /// A transparent representation of an index and state of the tree, used for creating markers to
 /// indicate where nodes should begin and end. `child_idx` is used as a starting marker, indicating
 /// an index in the in-progress tree's child list that can be immediately jumped to when starting a
-/// node. `token_offset` is the count of tokens parsed into the tree when the marker was made.
+/// node. `text_offset` is the length of text parsed into the tree when the marker was made.
 ///
 /// These values are _not_ interchangeable or pairable in any other direction, because the tree
 /// builder's list is mutable and will change child indices for _current_ nodes arbitrarily using
@@ -20,38 +20,42 @@ use std::rc::Rc;
 pub struct TreeMarker {
     parent_idx: usize,
     child_idx: usize,
-    token_offset: usize,
+    text_offset: usize,
 }
 
 impl TreeMarker {
-    pub fn new(parent_idx: usize, child_idx: usize, token_offset: usize) -> Self {
+    pub fn new(parent_idx: usize, child_idx: usize, text_offset: usize) -> Self {
         Self {
             parent_idx,
             child_idx,
-            token_offset,
+            text_offset,
         }
     }
 
+    /// NOTE: This only works when each child element is a single byte. Resolving multi-byte tokens
+    /// and text offsets would require calculating from the content of the tree.
     pub fn add_child_offset(mut self, offset: usize) -> Self {
         self.child_idx += offset;
-        self.token_offset += offset;
+        self.text_offset += offset;
         self
     }
 
-    pub fn add_token_offset(mut self, offset: usize) -> Self {
-        self.token_offset += offset;
+    pub fn add_text_offset(mut self, offset: usize) -> Self {
+        self.text_offset += offset;
         self
     }
 
+    /// NOTE: This only works when each child element is a single byte. Resolving multi-byte tokens
+    /// and text offsets would require calculating from the content of the tree.
     pub fn sub_child_offset(mut self, offset: usize) -> Self {
         self.child_idx -= offset;
-        self.token_offset -= offset;
+        self.text_offset -= offset;
         self
     }
 
-    pub fn sub_token_offset(mut self, offset: usize) -> Self {
+    pub fn sub_text_offset(mut self, offset: usize) -> Self {
         self.child_idx -= offset;
-        self.token_offset -= offset;
+        self.text_offset -= offset;
         self
     }
 
@@ -59,8 +63,8 @@ impl TreeMarker {
         self.child_idx
     }
 
-    pub fn token_offset(&self) -> usize {
-        self.token_offset
+    pub fn text_offset(&self) -> usize {
+        self.text_offset
     }
 }
 
@@ -93,10 +97,10 @@ pub struct TreeBuilder {
     /// List of children that have not yet been grouped into a parent node. At the end of parsing,
     /// this list should be length 1 and contain the root node of the tree.
     children: Vec<SyntaxElement>,
-    /// Count of how many tokens are currently in the tree. Markers are created using the current
-    /// token count as a persistent position marker in the tree, no matter how nodes may get
+    /// Count of how much text has been parsed into the tree. Markers are created using the current
+    /// text offset as a persistent position marker in the tree, no matter how nodes may get
     /// restructured.
-    token_count: usize,
+    text_offset: usize,
     /// List of child nodes to create only when finishing the current node. Deferred nodes are used
     /// to wrap earlier sections of the child list with new nodes without disturbing the indices of
     /// any other checkpoints or building actions in the meantime.
@@ -125,7 +129,7 @@ impl TreeBuilder {
             parents: Vec::with_capacity(8),
             children: Vec::with_capacity(4),
             deferred_nodes: vec![],
-            token_count: 0,
+            text_offset: 0,
             scratch: Vec::with_capacity(4),
             last_token_data: ptr::null_mut(),
             pending_leading_trivia: TextPointer::new(source, 0, 0),
@@ -135,8 +139,8 @@ impl TreeBuilder {
     pub fn push_token(&mut self, token: SyntaxToken) {
         // SAFETY: We should be the only ones mutating this data, meaning we can safely
         self.last_token_data = Rc::as_ptr(&token.raw_data()) as *mut SyntaxTokenData;
+        self.text_offset += token.len() as usize;
         self.children.push(token.into());
-        self.token_count += 1;
 
         // Add any unconsumed leading trivia to the token after it's been added.
         if !self.pending_leading_trivia.is_empty() {
@@ -171,6 +175,7 @@ impl TreeBuilder {
                 None => self.prepend_leading_trivia(trailing_text),
             }
         }
+        self.text_offset += trailing_text.len() + next_leading_text.len();
     }
 
     pub fn push_missing(&mut self) {
@@ -191,7 +196,7 @@ impl TreeBuilder {
             "Tree marker is no longer valid, referencing children that no longer exist"
         );
         assert!(
-            marker.token_offset <= self.token_count,
+            marker.text_offset <= self.text_offset,
             "Tree marker is no longer valid, referencing tokens that no longer exist"
         );
         if let Some(&(_, first_child)) = self.parents.last() {
@@ -220,14 +225,14 @@ impl TreeBuilder {
             for node in self.deferred_nodes.drain(..).rev() {
                 let start = node.start.child_idx - first_child;
                 let end = {
-                    let mut offset = node.start.token_offset;
-                    let target = node.end.token_offset;
+                    let mut offset = node.start.text_offset;
+                    let target = node.end.text_offset;
                     let mut end = start;
                     for element in &self.scratch[start..] {
                         if offset == target {
                             break;
                         }
-                        offset += element.token_len() as usize;
+                        offset += element.text_len() as usize;
                         end += 1;
                     }
                     end
@@ -260,7 +265,7 @@ impl TreeBuilder {
         TreeMarker {
             parent_idx: self.parents.len(),
             child_idx: self.children.len(),
-            token_offset: self.token_count,
+            text_offset: self.text_offset,
         }
     }
 
@@ -274,7 +279,7 @@ impl TreeBuilder {
             "Tree marker is no longer valid, referencing children that no longer exist"
         );
         assert!(
-            marker.token_offset <= self.token_count,
+            marker.text_offset <= self.text_offset,
             "Tree marker is no longer valid, referencing tokens that no longer exist"
         );
         if let Some(&(_, first_child)) = self.parents.last() {
@@ -285,7 +290,7 @@ impl TreeBuilder {
         }
         self.parents.truncate(marker.parent_idx);
         self.children.truncate(marker.child_idx);
-        self.token_count = marker.token_offset;
+        self.text_offset = marker.text_offset;
     }
 
     pub fn finish(mut self) -> SyntaxElement {

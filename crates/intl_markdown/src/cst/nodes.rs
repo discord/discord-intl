@@ -36,6 +36,7 @@ impl std::ops::Index<usize> for Document {
 }
 impl std::fmt::Debug for Document {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Document")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -149,6 +150,7 @@ impl std::ops::Index<usize> for ThematicBreak {
 }
 impl std::fmt::Debug for ThematicBreak {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ThematicBreak")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -262,6 +264,7 @@ impl std::ops::Index<usize> for InlineContent {
 }
 impl std::fmt::Debug for InlineContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("InlineContent")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -365,6 +368,7 @@ impl std::ops::Index<usize> for SetextHeadingUnderline {
 }
 impl std::fmt::Debug for SetextHeadingUnderline {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SetextHeadingUnderline")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -468,6 +472,7 @@ impl std::ops::Index<usize> for CodeBlockContent {
 }
 impl std::fmt::Debug for CodeBlockContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CodeBlockContent")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -560,15 +565,26 @@ impl FromSyntax for TextSpan {
     }
 }
 impl TextSpan {
-    pub fn text_token(&self) -> SyntaxToken {
-        support::required_token(&self.syntax, 0usize)
+    pub fn len(&self) -> usize {
+        self.syntax.len()
+    }
+    pub fn children(&self) -> SyntaxTokenChildren {
+        SyntaxTokenChildren::new(self.syntax.children())
+    }
+    pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
+        self.syntax.get(index).map(|element| element.token())
+    }
+}
+impl std::ops::Index<usize> for TextSpan {
+    type Output = SyntaxToken;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.syntax[index].token()
     }
 }
 impl std::fmt::Debug for TextSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TextSpan")
-            .field("[0] text_token", &self.text_token())
-            .finish()
+        f.write_str("TextSpan")?;
+        f.debug_list().entries(self.children()).finish()
     }
 }
 #[derive(Clone, Eq, PartialEq)]
@@ -1076,15 +1092,26 @@ impl FromSyntax for StaticLinkDestination {
     }
 }
 impl StaticLinkDestination {
-    pub fn destination_token(&self) -> SyntaxToken {
-        support::required_token(&self.syntax, 0usize)
+    pub fn len(&self) -> usize {
+        self.syntax.len()
+    }
+    pub fn children(&self) -> SyntaxTokenChildren {
+        SyntaxTokenChildren::new(self.syntax.children())
+    }
+    pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
+        self.syntax.get(index).map(|element| element.token())
+    }
+}
+impl std::ops::Index<usize> for StaticLinkDestination {
+    type Output = SyntaxToken;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.syntax[index].token()
     }
 }
 impl std::fmt::Debug for StaticLinkDestination {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StaticLinkDestination")
-            .field("[0] destination_token", &self.destination_token())
-            .finish()
+        f.write_str("StaticLinkDestination")?;
+        f.debug_list().entries(self.children()).finish()
     }
 }
 #[derive(Clone, Eq, PartialEq)]
@@ -1175,6 +1202,7 @@ impl std::ops::Index<usize> for LinkTitleContent {
 }
 impl std::fmt::Debug for LinkTitleContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("LinkTitleContent")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -1212,6 +1240,7 @@ impl std::ops::Index<usize> for CodeSpanContent {
 }
 impl std::fmt::Debug for CodeSpanContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CodeSpanContent")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -1643,6 +1672,7 @@ impl std::ops::Index<usize> for IcuPluralArms {
 }
 impl std::fmt::Debug for IcuPluralArms {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("IcuPluralArms")?;
         f.debug_list().entries(self.children()).finish()
     }
 }

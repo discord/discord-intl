@@ -115,11 +115,11 @@ impl Delimiter for EmphasisDelimiter {
         // |       |-- item close = cursor + start_offset + count
         // |-- content close = cursor + start_offset
         // An additional 1 has to be removed
-        let content_close = self.cursor.clone().add_token_offset(self.start_offset);
+        let content_close = self.cursor.clone().add_text_offset(self.start_offset);
         let item_close = self
             .cursor
             .clone()
-            .add_token_offset(self.start_offset + count);
+            .add_text_offset(self.start_offset + count);
         self.start_offset += count;
         (item_close, content_close)
     }
@@ -261,9 +261,9 @@ impl Delimiter for StrikethroughDelimiter {
 
     fn consume_opening(&mut self, count: usize) -> (TreeMarker, TreeMarker) {
         self.active = false;
-        let content_open = self.cursor.clone().add_token_offset(self.count + 1);
+        let content_open = self.cursor.clone().add_text_offset(self.count + 1);
         self.count -= count;
-        let item_open = self.cursor.clone().add_token_offset(self.count);
+        let item_open = self.cursor.clone().add_text_offset(self.count);
         (item_open, content_open)
     }
 
@@ -271,7 +271,7 @@ impl Delimiter for StrikethroughDelimiter {
         self.active = false;
         let content_close = self.cursor.clone();
         self.count -= count;
-        let item_close = self.cursor.clone().add_token_offset(count + 1);
+        let item_close = self.cursor.clone().add_text_offset(count + 1);
         (item_close, content_close)
     }
 }
@@ -352,6 +352,9 @@ impl Delimiter for AnyDelimiter {
         }
     }
 
+    /// Do not call this method directly! The parser expects to do some extra work when
+    /// deactivating delimiters, so always go through `p.deactivate_delimiter()` to ensure that the
+    /// leftover text matches the structure of the tree.
     fn deactivate(&mut self) {
         match self {
             AnyDelimiter::Emphasis(emph) => emph.deactivate(),

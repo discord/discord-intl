@@ -19,11 +19,16 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
     p.push_delimiter_stack();
     let inline_start = p.mark();
 
+    // Tracking adjacent text tokens lets us merge them into a single span when they don't get
+    // handled as parts of other inline nodes.
+    // let mut last_was_text = false;
+
     // First inline phase: tokenizing.
     loop {
-        // Leading trivia is allowed for a complete segment of inline content, but if some trivia would
-        // be considered leading while _within_ the inilne content, it is instead treated as actual
-        // token text. So, to start, we skip the leading whitespace as trivia, but all other methods
+        // Leading trivia is allowed for a complete segment of inline content, but if some trivia
+        // would be considered leading while _within_ the inilne content, it is instead treated as
+        // actual token text. So, to start, we skip the leading whitespace as trivia, but all other
+        // methods.
         p.skip_whitespace_as_trivia();
 
         match p.current() {
@@ -71,11 +76,11 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
             SyntaxKind::RCURLY if is_inside_icu => break,
             // Plain text
             // Anything else is effectively plain text, but kept separate in the event stream for
-            // clarity. These are left as _tokens_ in the tree, so they are allowed to have
-            // trailing trivia tacked on, and so we skip the whitespace re-lexing done after this
-            // match that breaks trailing whitespace out of tokens contained by other nodes.
+            // clarity. While these end up falling into their own Nodes in the tree, they are
+            // allowed to have trailing trivia added to them because the text span is what's
+            // responsible for rendering that trivia.
             SyntaxKind::TEXT | _ => {
-                Some(p.bump());
+                p.bump();
                 continue;
             }
         };
@@ -89,7 +94,6 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
 
     // Second inline phase: process nestable delimiters.
     process_emphasis(p, 0..p.delimiter_stack_length());
-
     inline_start.complete(p, SyntaxKind::INLINE_CONTENT);
     p.pop_delimiter_stack();
 }

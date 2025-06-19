@@ -229,6 +229,18 @@ pub enum SyntaxKind {
 }
 
 impl SyntaxKind {
+    /// Returns true if this kind of syntax element is dynamically sized, and thus requires a
+    /// homogenous set of children. [`SyntaxNode`] uses this to know when it requires extra
+    /// processing to ensure a valid tree structure. Any tokens left as children of this node will
+    /// be wrapped into additional [`SyntaxKind::TEXT_SPAN`] nodes and conjoined where possible.
+    ///
+    /// Right now, this is only necessary for inline content, where processing emphasis and links
+    /// within the content can end up leaving a heterogeneous set of tokens and nodes behind when
+    /// some delimiters go unmatched.
+    pub const fn expects_inline_node_children(&self) -> bool {
+        matches!(self, SyntaxKind::INLINE_CONTENT)
+    }
+
     pub const fn is_html_special_entity(&self) -> bool {
         matches!(
             self,

@@ -324,8 +324,10 @@ impl_format!(
     }
 );
 
-impl_format!(HtmlFormat, TextSpan | f | self.text_token().fmt(f));
-
+impl_format!(
+    HtmlFormat,
+    TextSpan | f | token_list(self.children(), Default::default()).fmt(f)
+);
 impl_format!(HtmlFormat, EntityReference | f | self.token().fmt(f));
 
 impl_format!(
@@ -426,7 +428,14 @@ impl_format!(
     AnyLinkDestination | f | {
         match self {
             AnyLinkDestination::StaticLinkDestination(node) => {
-                write!(f, "{}", escape_href(&node.destination_token().text()))
+                let buffer = buffered_write(Some(node.text_len() as usize), |mut f| {
+                    token_list(
+                        node.children(),
+                        ContiguousTokenChunksIteratorOptions::default(),
+                    )
+                    .fmt(&mut f)
+                })?;
+                write!(f, "{}", escape_href(&buffer))
             }
             AnyLinkDestination::DynamicLinkDestination(icu) => icu.url().fmt(f),
             AnyLinkDestination::ClickHandlerLinkDestination(handler) => handler.name_token().fmt(f),

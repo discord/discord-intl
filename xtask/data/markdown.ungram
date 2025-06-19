@@ -10,7 +10,7 @@ AnyBlockNode =
 Paragraph =
     content: InlineContent
 
-ThematicBreak = ('thematic_break_token')*
+ThematicBreak = 'thematic_break_token'*
 
 AnyHeading =
       AtxHeading
@@ -57,7 +57,7 @@ AnyInlineNode =
     | Strikethrough
     | Icu
 
-TextSpan = 'text'
+TextSpan = 'text'*
 
 EntityReference =
     token: ('html_entity' | 'dec_char_ref' | 'hex_char_ref')
@@ -98,8 +98,7 @@ AnyLinkDestination =
     | DynamicLinkDestination
     | ClickHandlerLinkDestination
 
-StaticLinkDestination =
-    destination: 'text'
+StaticLinkDestination = 'text'*
 
 DynamicLinkDestination =
     url: Icu
@@ -124,7 +123,7 @@ CodeSpan =
     content: CodeSpanContent
     close_backticks: 'punctuation_run'
 
-CodeSpanContent = ('text')*
+CodeSpanContent = 'text'*
 
 Hook =
     '$'

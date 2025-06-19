@@ -186,13 +186,53 @@ impl SyntaxToken {
     pub fn full_text(&self) -> &str {
         &self.text
     }
+}
 
+impl SyntaxToken {
     // NOTE: Internal-only methods for efficiently constructing the tree with trivia that may only
     // be added after a token has been pushed elsewhere into the tree structure.
     // See [TreeBuilder::add_trivia] for context on the usage.
 
     pub(super) fn raw_data(&self) -> Rc<SyntaxTokenData> {
         self.0.clone()
+    }
+
+    /// Creates a clone of this token by fully copying the underlying syntax data. The result is a
+    /// fully detached token that can be safely manipulated without any effect on other token
+    /// instances that may be referencing the same data.
+    pub(super) fn deep_clone(&self) -> SyntaxToken {
+        let data = (*self.0).clone();
+        SyntaxToken(Rc::from(data))
+    }
+
+    /// Append the other token to the back of this token. Trailing and leading trivia become part
+    /// of the token's actual text. This method should _only_ be used when intentionally merging
+    /// tokens while building the initial tree. All downstream usages should prefer creating new
+    /// tokens instead.
+    ///
+    /// ## Safety
+    ///
+    /// This method should _only_ be used on a newly created token, to ensure that no other tokens
+    /// reference the same data and end up incorrectly affected by the change.
+    pub(super) unsafe fn extend_back(&mut self, other: SyntaxToken) {
+        let new_trailing_start = self.len() + other.trailing_start;
+        let new_text_pointer = self.text.extend_back(other.full_text());
+        let ptr = self.raw_ptr();
+        ptr.text = new_text_pointer;
+        ptr.trailing_start = new_trailing_start;
+    }
+
+    /// Intentionally override the `kind` of this token to be something else. Generally, kinds
+    /// should only be determined by the lexer and parser. During tree building, though, there may
+    /// be cases where the tree decides it's more efficient to represent a token differently, or to
+    /// be able to merge insignificant text pieces.
+    pub(super) fn set_kind(&mut self, kind: SyntaxKind) {
+        self.raw_ptr().kind = kind;
+    }
+
+    fn raw_ptr(&mut self) -> &mut SyntaxTokenData {
+        let ptr = Rc::as_ptr(&self.0) as *mut SyntaxTokenData;
+        unsafe { &mut *ptr }
     }
 }
 

@@ -84,10 +84,10 @@ impl SyntaxElement {
         }
     }
 
-    pub fn token_len(&self) -> TextSize {
+    pub fn text_len(&self) -> TextSize {
         match self {
-            NodeOrToken::Node(node) => node.token_len(),
-            NodeOrToken::Token(_) => 1,
+            NodeOrToken::Node(node) => node.text_len(),
+            NodeOrToken::Token(token) => token.len(),
             NodeOrToken::Empty => 0,
         }
     }

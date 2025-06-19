@@ -416,6 +416,8 @@ impl ICUMarkdownParser {
         self.builder.push_token(token)
     }
 
+    /// Assuming the last two tokens are both meant to be treated as plain text,
+
     /// Push an empty syntax element to indicate that an optional node or token is missing.
     ///
     /// All nodes must be represented in the tree, even if they are not present in the source. Using
@@ -537,6 +539,21 @@ impl From<LexContext> for ParseContext {
     }
 }
 
+#[cfg(feature = "debug-tracing")]
+use crate::block_parser::BlockBound;
+#[cfg(feature = "debug-tracing")]
+use crate::lexer::DebugLexerTokenList;
+#[cfg(feature = "debug-tracing")]
+impl ICUMarkdownParser {
+    pub fn debug_token_list(&self) -> &DebugLexerTokenList {
+        &self.lexer.debug_token_list
+    }
+
+    pub fn lexer_block_bounds(&self) -> &Vec<BlockBound> {
+        self.lexer.block_bounds()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::ICUMarkdownParser;
@@ -546,13 +563,14 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "```\n\n  \n```";
+        let content = "foo_bar_";
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
-        println!("Blocks: {:?}\n", parser.lexer.block_bounds());
+        #[cfg(feature = "debug-tracing")]
+        println!("Blocks: {:?}\n", parser.lexer_block_bounds());
 
         parser.parse();
         #[cfg(feature = "debug-tracing")]
-        println!("Tokens:\n-------\n{:#?}\n", parser.lexer.debug_token_list);
+        println!("Tokens:\n-------\n{:#?}\n", parser.debug_token_list());
 
         let result = parser.finish();
         println!("Tree:\n-------\n{:#?}\n", result.tree);

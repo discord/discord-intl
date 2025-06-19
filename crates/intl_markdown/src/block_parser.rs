@@ -5,7 +5,7 @@ use super::syntax::SyntaxKind;
 /// An indicator of the start or end of a block, including the byte position in
 /// the source text where the bound occurs, and the syntax kind it represents.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum BlockBound {
+pub enum BlockBound {
     Start(usize, SyntaxKind),
     End(usize, SyntaxKind),
     // For blocks that have leading and trailing syntax, the _content_ bounds

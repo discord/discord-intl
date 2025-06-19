@@ -5,6 +5,7 @@ use std::fmt::Formatter;
 use std::str::FromStr;
 use ungrammar::{Grammar, NodeData, Rule, TokenData};
 use xtask::util;
+use xtask::util::Codegen;
 
 fn main() {
     try_main().unwrap_or_else(|e| {
@@ -14,16 +15,13 @@ fn main() {
 }
 
 fn try_main() -> anyhow::Result<()> {
-    let repo_root = util::repo_root();
+    let mut codegen = Codegen::new(util::repo_root());
 
     let grammar = Grammar::from_str(include_str!("../../data/markdown.ungram"))?;
     let generated = generate_tree_from_grammar(&grammar);
 
-    let ast_nodes_path = repo_root.join("crates/intl_markdown/src/cst/nodes.rs");
-    println!("{:?}", ast_nodes_path);
-    std::fs::write(&ast_nodes_path, generated)?;
-    util::format_file(&ast_nodes_path)?;
-    Ok(())
+    codegen.write_file("crates/intl_markdown/src/cst/nodes.rs", generated)?;
+    codegen.finish()
 }
 
 fn generate_tree_from_grammar(grammar: &Grammar) -> String {
@@ -171,6 +169,7 @@ fn impl_list_node(node: &NodeData, grammar: &Grammar) -> impl ToTokens {
 
         impl std::fmt::Debug for #name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(#name_str)?;
                 f.debug_list().entries(self.children()).finish()
             }
         }
