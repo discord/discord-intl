@@ -1,17 +1,22 @@
+use crate::html_entities::get_html_entity;
+use crate::syntax::{TextPointer, TextSize};
+use crate::{SyntaxKind, SyntaxToken};
+use intl_markdown_macros::generate_ascii_encoding_table;
 use memchr::Memchr;
+use std::rc::Rc;
 
-pub fn unescaped_chunks(text: &str) -> UnescapedChunksIterator {
+pub fn unescaped_pointer_chunks(text: &TextPointer) -> UnescapedChunksIterator {
     UnescapedChunksIterator::new(text)
 }
 
 pub struct UnescapedChunksIterator<'a> {
-    text: &'a str,
+    text: &'a TextPointer,
     cursor: usize,
     slash_iter: Memchr<'a>,
 }
 
 impl UnescapedChunksIterator<'_> {
-    pub fn new(text: &str) -> UnescapedChunksIterator {
+    pub fn new(text: &TextPointer) -> UnescapedChunksIterator {
         UnescapedChunksIterator {
             text,
             cursor: 0,
@@ -21,7 +26,7 @@ impl UnescapedChunksIterator<'_> {
 }
 
 impl<'a> Iterator for UnescapedChunksIterator<'a> {
-    type Item = &'a str;
+    type Item = TextPointer;
 
     fn next(&mut self) -> Option<Self::Item> {
         // No text left, so the iterator is finished.
@@ -38,7 +43,7 @@ impl<'a> Iterator for UnescapedChunksIterator<'a> {
             // If there's no next slash, or if it's the last character in the text, then just
             // consume the rest of the text together since it can't be a valid escape.
             if next_slash.is_none_or(|next| next == self.text.len() - 1) {
-                let remaining_text = &self.text[chunk_start..];
+                let remaining_text = self.text.substr(chunk_start..);
                 self.cursor = self.text.len();
                 return Some(remaining_text);
             };
@@ -51,14 +56,14 @@ impl<'a> Iterator for UnescapedChunksIterator<'a> {
                 // ASCII punctuation is allowed to be escaped, so if we reach that, return the
                 // chunk up to that point (not including the slash).
                 c if c.is_ascii_punctuation() => {
-                    let text = &self.text[chunk_start..self.cursor];
+                    let text = self.text.substr(chunk_start..self.cursor);
                     self.cursor += 1;
                     return Some(text);
                 }
                 // Carriage returns are removed entirely, so we still return the chunk up to this
                 // point, but push the cursor past the `r` as well.
                 b'\r' => {
-                    let text = &self.text[chunk_start..self.cursor];
+                    let text = self.text.substr(chunk_start..self.cursor);
                     self.cursor += 2;
                     return Some(text);
                 }
@@ -75,41 +80,9 @@ impl<'a> Iterator for UnescapedChunksIterator<'a> {
     }
 }
 
-pub struct WriteNewlinesAsSpaces<'a> {
-    output: &'a mut dyn std::fmt::Write,
-}
-impl std::fmt::Write for WriteNewlinesAsSpaces<'_> {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        let mut lines = s.lines();
-        if let Some(line) = lines.next() {
-            self.output.write_str(line)?;
-        };
-        for line in lines {
-            self.output.write_str(" ")?;
-            self.output.write_str(line)?;
-        }
-        if s.ends_with('\n') {
-            self.output.write_str(" ")?;
-        }
-        Ok(())
-    }
-
-    fn write_char(&mut self, c: char) -> std::fmt::Result {
-        if c == '\n' {
-            self.write_str(" ")
-        } else {
-            self.write_str(&c.to_string())
-        }
-    }
-}
-
-pub fn convert_newlines_to_spaces(target: &mut dyn std::fmt::Write) -> WriteNewlinesAsSpaces {
-    WriteNewlinesAsSpaces { output: target }
-}
-
 /// Quickly replace instances of `needle` in `haystack` with `replacement` in place, using the fact
-/// that  the needle and replacement have the same byte length to avoid a new allocation.
-pub fn fast_replace(haystack: &mut str, needle: u8, replacement: u8) -> &str {
+/// that the needle and replacement have the same byte length to avoid a new allocation.
+pub fn fast_replace_pointer(pointer: TextPointer, needle: u8, replacement: u8) -> TextPointer {
     debug_assert!(
         needle.is_ascii(),
         "Needle is not an ASCII character. Cannot guarantee UTF-8 validity"
@@ -118,12 +91,133 @@ pub fn fast_replace(haystack: &mut str, needle: u8, replacement: u8) -> &str {
         replacement.is_ascii(),
         "Replacement is not an ASCII character. Cannot guarantee UTF-8 validity"
     );
+    // If there are no matches, we don't need to change the pointer at all and can just return the
+    // same one.
+    let matches: Vec<usize> = memchr::memchr_iter(needle, pointer.as_bytes()).collect();
+    if matches.len() == 0 {
+        return pointer;
+    }
+    let mut clone: Box<str> = Box::from(pointer.as_str());
     // SAFETY: We're only working with a single byte replacement of ASCII characters, so there's no
     // worry about creating invalid UTF-8 sequences.
-    let bytes = unsafe { haystack.as_bytes_mut() };
-    let matches: Vec<usize> = memchr::memchr_iter(needle, bytes).collect();
+    let bytes = unsafe { clone.as_bytes_mut() };
     for index in matches {
         bytes[index] = replacement;
     }
-    haystack
+    TextPointer::new(Rc::from(clone), 0, pointer.len() as TextSize)
+}
+
+pub fn get_referenced_char(text: &str, radix: u32) -> Box<str> {
+    // SAFETY: We're already replacing invalid chars with `REPLACEMENT_CHARACTER`.
+    let replacement = u32::from_str_radix(text, radix)
+        .ok()
+        .and_then(|c| (c > 0).then_some(c))
+        .and_then(char::from_u32)
+        .unwrap_or(char::REPLACEMENT_CHARACTER);
+    String::from(replacement).into_boxed_str()
+}
+
+pub fn replace_entity_reference(token: &SyntaxToken) -> TextPointer {
+    match token.kind() {
+        SyntaxKind::HTML_ENTITY => get_html_entity(token.text().as_bytes())
+            .map(TextPointer::from_str)
+            .unwrap_or(token.text_pointer().clone()),
+        SyntaxKind::HEX_CHAR_REF => {
+            get_referenced_char(&token.text()[3..token.text().len() - 1], 16).into()
+        }
+        SyntaxKind::DEC_CHAR_REF => {
+            get_referenced_char(&token.text()[2..token.text().len() - 1], 10).into()
+        }
+        kind => unreachable!(
+            "Caller should not allow token of kind {:?} to reach `replace_entity_reference`",
+            kind
+        ),
+    }
+}
+
+generate_ascii_encoding_table! {
+    PERCENT_ENCODING,
+    // Characters that can safely appear in URLs without needing a percent encoding. Adapted from:
+    // https://github.com/pulldown-cmark/pulldown-cmark/blob/8713a415b04cdb0b7980a9a17c0ed0df0b36395e/pulldown-cmark-escape/src/lib.rs#L28C1-L38C3
+    ! b"!#$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_abcdefghijklmnopqrstuvwxyz~" => "%{:X}"
+}
+generate_ascii_encoding_table! {
+    HTML_CHAR_ENCODING,
+    b'<' => "&lt;",
+    b'>' => "&gt;",
+    b'"' => "&quot;",
+    // This doesn't seem to happen in the spec? But does in some other
+    // implementations.
+    // '\'' => "&#39;",
+    b'&' => "&amp;"
+}
+
+type AsciiReplacementTable = [Option<&'static str>; 256];
+
+/// An iterator that returns chunks of text where each instance of a matching entity is encoded
+/// according to a lookup table containing the replacement text to use.
+pub struct AsciiEncodingIter<'a> {
+    text: &'a str,
+    table: AsciiReplacementTable,
+    cursor: usize,
+}
+
+impl<'a> AsciiEncodingIter<'a> {
+    pub fn new(text: &'a str, table: AsciiReplacementTable) -> Self {
+        Self {
+            text,
+            table,
+            cursor: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for AsciiEncodingIter<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // No text left, so the iterator is finished.
+        if self.cursor >= self.text.len() {
+            return None;
+        }
+
+        // If we're currently at a character that needs encoding, return that encoding as a
+        // standalone chunk.
+        let current_bytes = &self.text.as_bytes()[self.cursor..];
+        let byte = current_bytes[0] as usize;
+        if self.table[byte].is_some() {
+            self.cursor += 1;
+            return self.table[byte];
+        }
+
+        let chunk_end = current_bytes
+            .iter()
+            .position(|&byte| self.table[byte as usize].is_some())
+            .unwrap_or(current_bytes.len());
+        let text = &self.text[self.cursor..self.cursor + chunk_end];
+        self.cursor += chunk_end;
+        Some(text)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        // There can only be a maximum of one escape per two characters, so the maximum count is
+        // every other character being an escape.
+        (1, Some(self.text.len() / 2 + 1))
+    }
+}
+
+/// Replaces non-ascii and unsafe characters in a url string with their percent encoding. This is
+/// specifically to match the CommonMark spec's _tests_, but is not actually defined by the spec
+/// itself, and as such there is some slightly special handling, like encoding `&` to `&amp;` rather
+/// than the percent encoding `%26` that it would normally have.
+pub(crate) fn encode_href(text: &str) -> AsciiEncodingIter {
+    AsciiEncodingIter::new(text, PERCENT_ENCODING_REPLACEMENT_TABLE)
+}
+
+/// Replaces non-ascii and unsafe characters in a url string with their percent encoding. This is
+/// specifically to match the CommonMark spec's _tests_, but is not actually defined by the spec
+/// itself, and as such there is some slightly special handling, like encoding `&` to `&amp;` rather
+/// than the percent encoding `%26` that it would normally have.
+pub(crate) fn encode_body_text(text: &str) -> AsciiEncodingIter {
+    AsciiEncodingIter::new(text, HTML_CHAR_ENCODING_REPLACEMENT_TABLE)
 }

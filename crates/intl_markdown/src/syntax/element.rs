@@ -1,7 +1,7 @@
-use crate::syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextPointer, TextSize};
+use crate::syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextSize};
 use std::fmt::{Debug, Formatter};
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Eq, Clone, PartialEq, Hash)]
 pub enum NodeOrToken<N, T> {
     Node(N),
     Token(T),
@@ -23,6 +23,19 @@ impl<N: Debug, T: Debug> Debug for NodeOrToken<N, T> {
 }
 
 impl<N, T> NodeOrToken<N, T> {
+    pub fn as_token(&self) -> Option<&T> {
+        match &self {
+            NodeOrToken::Token(token) => Some(token),
+            _ => None,
+        }
+    }
+
+    pub fn as_node(&self) -> Option<&N> {
+        match &self {
+            NodeOrToken::Node(node) => Some(node),
+            _ => None,
+        }
+    }
     pub fn token(&self) -> &T {
         match &self {
             NodeOrToken::Token(token) => token,
@@ -36,20 +49,6 @@ impl<N, T> NodeOrToken<N, T> {
             NodeOrToken::Node(node) => node,
             NodeOrToken::Token(_) => panic!("Called `NodeOrToken::node` on a Token value"),
             NodeOrToken::Empty => panic!("Called `NodeOrToken::node` on an empty value"),
-        }
-    }
-
-    pub fn as_token(&self) -> Option<&T> {
-        match &self {
-            NodeOrToken::Token(token) => Some(token),
-            _ => None,
-        }
-    }
-
-    pub fn as_node(&self) -> Option<&N> {
-        match &self {
-            NodeOrToken::Node(node) => Some(node),
-            _ => None,
         }
     }
 
@@ -75,7 +74,13 @@ impl<N, T> NodeOrToken<N, T> {
 }
 
 pub type SyntaxElement = NodeOrToken<SyntaxNode, SyntaxToken>;
+pub type SyntaxElementRef<'a> = NodeOrToken<&'a SyntaxNode, &'a SyntaxToken>;
+
 impl SyntaxElement {
+    pub fn as_ref(&self) -> SyntaxElementRef {
+        self.into()
+    }
+
     pub fn kind(&self) -> SyntaxKind {
         match self {
             NodeOrToken::Node(node) => node.kind(),
@@ -88,6 +93,14 @@ impl SyntaxElement {
         match self {
             NodeOrToken::Node(node) => node.text_len(),
             NodeOrToken::Token(token) => token.len(),
+            NodeOrToken::Empty => 0,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            NodeOrToken::Node(node) => node.len(),
+            NodeOrToken::Token(_) => 1,
             NodeOrToken::Empty => 0,
         }
     }
@@ -114,6 +127,52 @@ impl From<&SyntaxNode> for SyntaxElement {
 impl From<&SyntaxToken> for SyntaxElement {
     fn from(token: &SyntaxToken) -> Self {
         NodeOrToken::Token(token.clone())
+    }
+}
+
+impl SyntaxElementRef<'_> {
+    pub fn kind(&self) -> SyntaxKind {
+        match self {
+            NodeOrToken::Node(node) => node.kind(),
+            NodeOrToken::Token(token) => token.kind(),
+            NodeOrToken::Empty => SyntaxKind::TOMBSTONE,
+        }
+    }
+
+    pub fn text_len(&self) -> TextSize {
+        match self {
+            NodeOrToken::Node(node) => node.text_len(),
+            NodeOrToken::Token(token) => token.text_len(),
+            NodeOrToken::Empty => 0,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            NodeOrToken::Node(node) => node.len(),
+            NodeOrToken::Token(_) => 1,
+            NodeOrToken::Empty => 0,
+        }
+    }
+}
+
+impl<'a> From<&'a SyntaxNode> for SyntaxElementRef<'a> {
+    fn from(node: &'a SyntaxNode) -> Self {
+        SyntaxElementRef::Node(node)
+    }
+}
+impl<'a> From<&'a SyntaxToken> for SyntaxElementRef<'a> {
+    fn from(node: &'a SyntaxToken) -> Self {
+        SyntaxElementRef::Token(node)
+    }
+}
+impl<'a> From<&'a SyntaxElement> for SyntaxElementRef<'a> {
+    fn from(node: &'a SyntaxElement) -> Self {
+        match node {
+            SyntaxElement::Token(token) => SyntaxElementRef::Token(token),
+            SyntaxElement::Node(node) => SyntaxElementRef::Node(node),
+            SyntaxElement::Empty => SyntaxElementRef::Empty,
+        }
     }
 }
 
@@ -163,26 +222,6 @@ impl<'a> SyntaxTokenChildren<'a> {
             cursor: 0,
         }
     }
-
-    /// Return a new iterator of string slices where each slice spans as long as possible across
-    /// multiple tokens, so long as they appear continuously in the source text. So, if the children
-    /// are made up of tokens directly adjacent to each other in the source, then this iterator will
-    /// only have a single chunk with the entire text collected together. If any token in the middle
-    /// of the text is detached, then the tokens before it will be grouped together, the token will
-    /// be in its own chunk (or connected with following adjacent tokens), and then chunking
-    /// continues afterward.
-    ///
-    /// Each chunk is returns as a TextPointer to simplify working with the text and not worrying
-    /// about lifetimes.
-    ///
-    /// If `trim_trailing` is set, the trailing trivia of the entire chunk will be excluded from the
-    /// resulting text.
-    pub fn contiguous_text_chunks(
-        &self,
-        options: ContiguousTokenChunksIteratorOptions,
-    ) -> ContiguousTokenChunksIterator<'a> {
-        ContiguousTokenChunksIterator::new(self.elements).with_options(options)
-    }
 }
 
 impl<'a> Iterator for SyntaxTokenChildren<'a> {
@@ -200,179 +239,5 @@ impl<'a> Iterator for SyntaxTokenChildren<'a> {
 impl ExactSizeIterator for SyntaxTokenChildren<'_> {
     fn len(&self) -> usize {
         self.elements.len()
-    }
-}
-
-pub enum TrimKind {
-    TrimNone,
-    TrimLeading,
-    TrimTrailing,
-    TrimAll,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct ContiguousTokenChunksIteratorOptions {
-    pub trim_leading: bool,
-    pub trim_all_leading: bool,
-    pub trim_trailing: bool,
-    pub unescape: bool,
-    pub html_entities: bool,
-}
-
-impl ContiguousTokenChunksIteratorOptions {
-    pub fn include_all() -> Self {
-        Self {
-            trim_leading: false,
-            trim_all_leading: false,
-            trim_trailing: false,
-            unescape: true,
-            html_entities: true,
-        }
-    }
-
-    pub fn trim_leading() -> Self {
-        Self {
-            trim_leading: true,
-            trim_all_leading: false,
-            trim_trailing: false,
-            unescape: true,
-            html_entities: true,
-        }
-    }
-
-    pub fn trim_all_leading() -> Self {
-        Self {
-            trim_leading: true,
-            trim_all_leading: true,
-            trim_trailing: false,
-            unescape: true,
-            html_entities: true,
-        }
-    }
-
-    pub fn trim_trailing() -> Self {
-        Self {
-            trim_leading: false,
-            trim_all_leading: false,
-            trim_trailing: true,
-            unescape: true,
-            html_entities: true,
-        }
-    }
-
-    pub fn trim_all() -> Self {
-        Self {
-            trim_leading: true,
-            trim_all_leading: true,
-            trim_trailing: true,
-            unescape: true,
-            html_entities: true,
-        }
-    }
-
-    pub fn with_unescape(mut self, unescape: bool) -> Self {
-        self.unescape = unescape;
-        self
-    }
-
-    pub fn unescape(&self) -> bool {
-        self.unescape
-    }
-
-    pub fn with_html_entities(mut self, html_entities: bool) -> Self {
-        self.html_entities = html_entities;
-        self
-    }
-
-    pub fn html_entities(&self) -> bool {
-        self.html_entities
-    }
-
-    pub fn trim_kind(&self, index: usize) -> TrimKind {
-        let trim_leading = if index == 0 {
-            self.trim_leading
-        } else {
-            self.trim_all_leading
-        };
-        if trim_leading && self.trim_trailing {
-            TrimKind::TrimAll
-        } else if trim_leading {
-            TrimKind::TrimLeading
-        } else if self.trim_trailing {
-            TrimKind::TrimTrailing
-        } else {
-            TrimKind::TrimNone
-        }
-    }
-}
-
-impl Default for ContiguousTokenChunksIteratorOptions {
-    fn default() -> Self {
-        Self::trim_leading()
-    }
-}
-
-#[derive(Debug)]
-pub struct ContiguousTokenChunksIterator<'a> {
-    elements: &'a [SyntaxElement],
-    cursor: usize,
-    options: ContiguousTokenChunksIteratorOptions,
-}
-
-impl<'a> ContiguousTokenChunksIterator<'a> {
-    pub fn new(elements: &'a [SyntaxElement]) -> Self {
-        Self {
-            elements,
-            cursor: 0,
-            options: Default::default(),
-        }
-    }
-
-    pub fn with_options(mut self, options: ContiguousTokenChunksIteratorOptions) -> Self {
-        self.options = options;
-        self
-    }
-}
-
-impl Iterator for ContiguousTokenChunksIterator<'_> {
-    type Item = TextPointer;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.cursor >= self.elements.len() {
-            return None;
-        }
-
-        let first_token = self.elements[self.cursor].token();
-        let mut pointer = first_token.text_pointer().clone();
-        if (self.options.trim_leading && self.cursor == 0) || self.options.trim_all_leading {
-            pointer = first_token.text_pointer_with_no_leading_trivia()
-        }
-
-        self.cursor += 1;
-        while self.cursor < self.elements.len() {
-            let next = if self.options.trim_all_leading {
-                &self.elements[self.cursor]
-                    .token()
-                    .text_pointer_with_no_leading_trivia()
-            } else {
-                self.elements[self.cursor].token().text_pointer()
-            };
-            if !pointer.is_adjacent_before(next) {
-                break;
-            }
-            pointer = pointer.extend_back(next);
-            self.cursor += 1;
-        }
-
-        if self.options.trim_trailing && self.cursor == self.elements.len() {
-            pointer =
-                pointer.trim_back(self.elements[self.cursor - 1].token().trailing_trivia_len());
-        }
-
-        Some(pointer)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (0, Some(self.elements.len()))
     }
 }

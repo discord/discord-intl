@@ -220,7 +220,7 @@ impl FormatIcuString for Strikethrough {
 }
 
 impl FormatIcuString for Icu {
-    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         f.write_str("{")?;
         match self {
             Icu::IcuVariable(variable) => write!(f, [variable])?,
@@ -235,13 +235,13 @@ impl FormatIcuString for Icu {
 }
 
 impl FormatIcuString for IcuVariable {
-    fn fmt(&self, f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, f: &mut dyn Write) -> FormatResult<()> {
         f.write_str(&self.name())
     }
 }
 
 impl FormatIcuString for IcuPlural {
-    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         let kind_str = match self.kind() {
             IcuPluralKind::Plural => "plural",
             IcuPluralKind::SelectOrdinal => "selectordinal",
@@ -252,25 +252,25 @@ impl FormatIcuString for IcuPlural {
 }
 
 impl FormatIcuString for IcuSelect {
-    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         write!(f, [self.name(), ", select,", self.arms()])
     }
 }
 
 impl FormatIcuString for IcuPluralArm {
-    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         write!(f, [" ", self.selector(), " {", self.content(), "}"])
     }
 }
 
 impl FormatIcuString for IcuDate {
-    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         write!(f, [self.name(), ", date", self.style()])
     }
 }
 
 impl FormatIcuString for IcuTime {
-    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         write!(f, [self.name(), ", time", self.style()])
     }
 }
@@ -282,7 +282,7 @@ impl FormatIcuString for IcuDateTimeStyle {
 }
 
 impl FormatIcuString for IcuNumber {
-    fn fmt(&self, mut f: &mut dyn Write) -> crate::ast::format::FormatResult<()> {
+    fn fmt(&self, mut f: &mut dyn Write) -> FormatResult<()> {
         write!(f, [self.name(), ", number", self.style()])
     }
 }

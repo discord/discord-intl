@@ -17,6 +17,7 @@ mod harness {
         let mut output = String::new();
         commonmark_html::format_document(&mut output, &ast)
             .expect("Failed to format the parsed input");
+        println!("Input:\n------\n{}\n", input);
         println!("HTML Format:\n------------\n{}\n{:?}", output, output);
         output
     }

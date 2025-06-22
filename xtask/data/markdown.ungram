@@ -36,9 +36,11 @@ IndentedCodeBlock =
 
 FencedCodeBlock =
     opening_run: 'punctuation_run'
-    info_string: 'verbatim_line'?
+    info_string: CodeBlockInfoString?
     content: CodeBlockContent
     closing_run: 'punctuation_run'?
+
+CodeBlockInfoString = 'text'*
 
 CodeBlockContent = ('verbatim_line' | 'line_ending')*
 
@@ -46,7 +48,6 @@ InlineContent = AnyInlineNode*
 
 AnyInlineNode =
       TextSpan
-    | EntityReference
     | Emphasis
     | Strong
     | Link
@@ -58,9 +59,6 @@ AnyInlineNode =
     | Icu
 
 TextSpan = 'text'*
-
-EntityReference =
-    token: ('html_entity' | 'dec_char_ref' | 'hex_char_ref')
 
 Emphasis =
     open: ('*' | '_')

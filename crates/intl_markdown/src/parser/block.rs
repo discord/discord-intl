@@ -126,9 +126,9 @@ fn parse_fenced_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
     p.optional(
         !p.at(SyntaxKind::INLINE_START) && !p.at(SyntaxKind::BLOCK_END),
         |p| {
-            p.relex_with_context(LexContext::CodeBlock);
-            p.expect(SyntaxKind::VERBATIM_LINE)?;
-            Some(())
+            let mark = p.mark();
+            parse_remainder_as_token_list(p);
+            mark.complete(p, SyntaxKind::CODE_BLOCK_INFO_STRING)
         },
     );
 

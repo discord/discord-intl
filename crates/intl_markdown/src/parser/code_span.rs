@@ -36,8 +36,12 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
             // If another delimiter is found, try to match it and complete the
             // codespan, otherwise just continue consuming it.
             SyntaxKind::BACKTICK | SyntaxKind::ESCAPED_BACKTICK => {
-                // TODO: Handle escaped backticks properly here.
                 p.relex_with_context(LexContext::AsciiPunctuationRun);
+                // If this is an escaped backtick, reinterpret the single backslash as plain text,
+                // leaving the backticks alone in sequence afterward.
+                if p.lexer.current_text().starts_with('\\') {
+                    p.bump_with_context(LexContext::AsciiPunctuationRun);
+                }
                 let close_count = p.current_token_len();
                 // If a match is found, complete the marker and stop parsing,
                 // indicating that the marker was completed.
@@ -52,9 +56,10 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
         }
     };
 
-    // Reaching this point means the code span wasn't closed, so the parser must
-    // be rewound for the caller to continue parsing normally.
-    if !did_complete {
+    if did_complete {
+    } else {
+        // Reaching this point means the code span wasn't closed, so the parser must
+        // be rewound for the caller to continue parsing normally.
         p.rewind(checkpoint);
         return None;
     }

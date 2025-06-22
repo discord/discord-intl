@@ -4,15 +4,14 @@
 extern crate core;
 
 pub use cst::*;
-pub use icu::compile::compile_to_format_js;
-pub use icu::format::format_icu_string;
-pub use icu::tags::DEFAULT_TAG_NAMES;
+// pub use icu::compile::compile_to_format_js;
+// pub use icu::format::format_icu_string;
+// pub use icu::tags::DEFAULT_TAG_NAMES;
 pub use parser::ICUMarkdownParser;
 
 pub use crate::syntax::{SourceText, SyntaxKind, SyntaxNode, SyntaxToken};
 use syntax::FromSyntax;
 
-mod ast;
 mod block_parser;
 mod byte_lookup;
 mod cjk;
@@ -20,10 +19,12 @@ pub mod commonmark_html;
 mod cst;
 mod delimiter;
 mod html_entities;
-mod icu;
+// mod icu;
 mod lexer;
 mod parser;
 mod syntax;
+
+extern crate intl_allocator;
 
 /// Parse an intl message into a final AST representing the semantics of the message.
 pub fn parse_intl_message(content: &str, include_blocks: bool) -> Document {

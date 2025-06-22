@@ -2,6 +2,7 @@ use crate::byte_lookup::{
     self, char_length_from_byte, get_byte_type, is_unicode_identifier_continue,
     is_unicode_identifier_start, ByteType,
 };
+use crate::html_entities::is_valid_html_entity;
 use crate::syntax::{SourceText, TextPointer, TextSize, TextSpan};
 
 use super::{
@@ -108,7 +109,7 @@ impl std::fmt::Debug for DebugLexerTokenList {
         for token in &self.tokens {
             write!(
                 f,
-                "  {:4}..{:4} {:?} {:?}\n",
+                "  {:4}..{:4} {:?} \"{}\"\n",
                 token.pointer.start(),
                 token.pointer.end(),
                 token.kind,
@@ -332,9 +333,14 @@ impl Lexer {
         if started_on_newline && self.current() == b'\n' {
             self.advance();
             SyntaxKind::BLANK_LINE
-        } else if self.position - self.last_position >= 2 && self.current() == b'\n' {
+        } else if self.current() == b'\n' {
+            let is_hard_line = self.position - self.last_position >= 2;
             self.advance();
-            SyntaxKind::HARD_LINE_ENDING
+            if is_hard_line {
+                SyntaxKind::HARD_LINE_ENDING
+            } else {
+                SyntaxKind::LINE_ENDING
+            }
         } else {
             default_kind
         }
@@ -728,15 +734,13 @@ impl Lexer {
         }
     }
 
-    /// Consumes the remainder of an html entity reference, from immediately
+    /// Consumes the remainder of an HTML entity reference, from immediately
     /// after the `&` through the ending semicolon. If the reference is invalid,
     /// this method will rewind the lexer to `checkpoint` and return AMPER for
     /// the kind. Note that this does _not_ check if the reference is an actual
     /// known HTML entity, only if it matches the appropriate syntax.
     fn consume_html_entity_reference(&mut self, checkpoint: LexerCheckpoint) -> SyntaxKind {
-        let mut has_content = false;
         while self.current().is_ascii_alphanumeric() {
-            has_content = true;
             self.advance();
             if self.is_eof() {
                 self.rewind(checkpoint);
@@ -744,13 +748,15 @@ impl Lexer {
             }
         }
 
-        if self.current() == b';' && has_content {
+        if self.current() == b';' {
             self.advance();
-            SyntaxKind::HTML_ENTITY
-        } else {
-            self.rewind(checkpoint);
-            SyntaxKind::AMPER
+            if is_valid_html_entity(self.current_slice()) {
+                return SyntaxKind::HTML_ENTITY;
+            }
         }
+
+        self.rewind(checkpoint);
+        SyntaxKind::AMPER
     }
 
     /// Consumes the input stream as literal text until a significant character
@@ -969,7 +975,7 @@ impl Lexer {
     }
 
     fn current_slice(&self) -> &[u8] {
-        &self.text.as_bytes()[self.position..]
+        &self.text.as_bytes()[self.last_position..self.position]
     }
 
     /// Returns the complete char at the current position.

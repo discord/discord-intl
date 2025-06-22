@@ -37,10 +37,10 @@ fn generate_visitor_from_grammar(nodes: &Vec<AnyGrammarNode>) -> String {
         let visit_ident = format_ident!("visit_{}", node.method_name());
         let fold_ident = format_ident!("fold_{}", node.method_name());
         visit_methods.push(quote! {
-            fn #visit_ident(&self, node: &#node_ident);
+            fn #visit_ident(&mut self, node: &#node_ident) { node.visit_children_with(self); }
         });
         fold_methods.push(quote! {
-            fn #fold_ident(&self, node: #node_ident) -> #node_ident;
+            fn #fold_ident(&mut self, node: #node_ident) -> #node_ident;
         });
 
         let visit_children_impl = match node {
@@ -270,6 +270,7 @@ fn impl_enum_node(node: &GrammarEnumNode) -> TokenStream {
     let name = node.name.clone();
     let ident = node.ident();
     let variant_idents = node.variant_idents();
+    let type_idents = node.type_idents();
     let variant_defs = node.variant_definitions();
     let syntax_mappings = node.syntax_mappings();
 
@@ -295,6 +296,12 @@ fn impl_enum_node(node: &GrammarEnumNode) -> TokenStream {
                 }
             }
         }
+
+        #(impl From<#type_idents> for #ident {
+            fn from(value: #type_idents) -> Self {
+                Self::#variant_idents(value)
+            }
+        })*
 
         impl std::fmt::Debug for #ident {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -1,6 +1,10 @@
 use crate::syntax::TextSize;
-use std::ops::{Deref, Range};
+use std::collections::Bound;
+use std::ops::{Deref, Range, RangeBounds};
 use std::rc::Rc;
+
+// TODO: Implement static text pointers with `lazy_static!`?
+// TODO: Implement general text interning? Less useful for speed, more for memory
 
 /// A flyweight handle to a segment of text. The pointer contains a reference
 /// to some string slice, an offset within that slice to the start of the
@@ -71,11 +75,22 @@ impl TextPointer {
     /// returning a new TextPointer to avoid lifetime issues when dealing with syntax elements.
     /// Consumers are effectively able to treat this as a `&str` when they need it, since
     /// `TextPointer` dereferences to a string slice directly.
-    pub fn substr(&self, range: Range<usize>) -> TextPointer {
+    pub fn substr<R: RangeBounds<usize>>(&self, range: R) -> TextPointer {
+        let start = match range.start_bound() {
+            Bound::Included(&t) => t,
+            Bound::Excluded(&t) => t.saturating_sub(1),
+            Bound::Unbounded => 0,
+        };
+        let end = match range.end_bound() {
+            Bound::Included(&t) => t + 1,
+            Bound::Excluded(&t) => t,
+            Bound::Unbounded => self.len(),
+        }
+        .min(self.len());
         TextPointer::new(
             self.source.clone(),
-            self.offset + range.start as TextSize,
-            range.len() as TextSize,
+            self.offset + start as TextSize,
+            (end - start) as TextSize,
         )
     }
 
@@ -104,11 +119,11 @@ impl TextPointer {
         self
     }
 
-    /// Extend this text pointer to include the given `text`. If the text slice points to an
-    /// adjacent subrange of this pointer's source, then this pointer is simply expanded to include
-    /// that text in its range. If the given text is _not_ adjacent to this pointer's range in the
-    /// source text, then the original pointer text is copied into a new string with the given text
-    /// appended to it.
+    /// Creates a new TextPointer containing the content of both this pointer and `text`. If the
+    /// text slice points to an adjacent subrange of this pointer's source, then this pointer is
+    /// simply expanded to include that text in its range. If the given text is _not_ adjacent to
+    /// this pointer's range in the source text, then the original pointer text is copied into a
+    /// new string with the given text appended to it.
     ///
     /// NOTE: If the given text is empty, this method will still create and return a new
     /// TextPointer, but the content will not be changed. To avoid making new pointers, check
@@ -208,6 +223,45 @@ impl TextPointer {
 impl From<&str> for TextPointer {
     fn from(text: &str) -> Self {
         TextPointer::from_str(text)
+    }
+}
+
+impl From<Box<str>> for TextPointer {
+    fn from(text: Box<str>) -> Self {
+        let len = text.len() as TextSize;
+        TextPointer::new(Rc::from(text), 0, len)
+    }
+}
+
+impl FromIterator<TextPointer> for Option<TextPointer> {
+    fn from_iter<T: IntoIterator<Item = TextPointer>>(iter: T) -> Self {
+        iter.into_iter()
+            .reduce(|previous, next| previous.extend_back(&next))
+    }
+}
+
+impl FromIterator<TextPointer> for TextPointer {
+    fn from_iter<T: IntoIterator<Item = TextPointer>>(iter: T) -> Self {
+        iter.into_iter()
+            .reduce(|previous, next| previous.extend_back(&next))
+            .unwrap_or(TextPointer::default())
+    }
+}
+impl<'a> FromIterator<&'a TextPointer> for TextPointer {
+    fn from_iter<T: IntoIterator<Item = &'a TextPointer>>(iter: T) -> Self {
+        let mut iter = iter.into_iter();
+        let first = iter.next().cloned().unwrap_or(TextPointer::default());
+        iter.into_iter()
+            .fold(first, |previous, next| previous.extend_back(&next))
+    }
+}
+
+impl<'a, S: AsRef<str>> FromIterator<S> for TextPointer {
+    fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
+        iter.into_iter()
+            .fold(TextPointer::default(), |pointer, text| {
+                pointer.extend_back(text.as_ref())
+            })
     }
 }
 

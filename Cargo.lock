@@ -826,6 +826,7 @@ name = "intl_markdown"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "intl_allocator",
  "intl_markdown_macros",
  "keyless_json",
  "lazy_static",

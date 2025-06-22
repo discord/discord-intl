@@ -128,6 +128,7 @@ impl ICUMarkdownParser {
     ///
     /// This method will first parse the content into blocks, and then each
     /// block's content will be parsed as inline syntax.
+    #[inline(never)]
     pub fn parse(&mut self) {
         // Eating one starts the parser by reading the first token.
         self.eat();

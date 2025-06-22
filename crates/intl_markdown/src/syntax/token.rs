@@ -9,6 +9,31 @@ pub type SourceText = Rc<str>;
 pub type TextSize = u32;
 pub type TextSpan = Range<usize>;
 
+pub enum TrimKind {
+    TrimNone,
+    TrimLeading,
+    TrimTrailing,
+    TrimAll,
+    LeadingOnly,
+    TrailingOnly,
+}
+
+impl TrimKind {
+    pub fn allow_leading(&self) -> bool {
+        !matches!(
+            self,
+            TrimKind::TrimAll | TrimKind::TrimLeading | TrimKind::LeadingOnly
+        )
+    }
+
+    pub fn allow_trailing(&self) -> bool {
+        !matches!(
+            self,
+            TrimKind::TrimAll | TrimKind::TrimTrailing | TrimKind::TrailingOnly
+        )
+    }
+}
+
 /// A singular token entity, including both the kind of the token and it's
 /// span in the underlying text. The actual text that the token represents is
 /// stored as a reference-counted pointer to the original text, allowing tokens
@@ -64,6 +89,18 @@ impl SyntaxToken {
             kind,
             text: TextPointer::from_str(text),
             text_start: TextSize::default(),
+            trailing_start: text.len() as TextSize,
+        }))
+    }
+
+    pub fn static_text(text: &str) -> Self {
+        // TODO: Optimize this to actually use static text pointers. This is intentionally
+        // different from `from_str` in that it's meant to support string literals that are
+        // commonly used and avoid allocating a new pointer for each one.
+        Self(Rc::new(SyntaxTokenData {
+            kind: SyntaxKind::TEXT,
+            text: TextPointer::from_str(text),
+            text_start: 0,
             trailing_start: text.len() as TextSize,
         }))
     }
@@ -153,13 +190,34 @@ impl SyntaxToken {
         &self.text
     }
 
-    /// Returns a new TextPointer to the text of this token _excluding_ its leading trivia.
-    // TODO: Rename/change this to be more normal
-    pub fn text_pointer_with_no_leading_trivia(&self) -> TextPointer {
-        self.text.clone().trim_front(self.leading_trivia_len())
+    pub fn trimmed_text(&self, trim_kind: TrimKind) -> &str {
+        &self.text[self.trimmed_span(trim_kind)]
     }
 
-    /// Returns the text of this token excluding all attached trivia.
+    pub fn trimmed_text_pointer(&self, trim_kind: TrimKind) -> TextPointer {
+        self.text.substr(self.trimmed_span(trim_kind))
+    }
+
+    pub fn trimmed_span(&self, trim_kind: TrimKind) -> TextSpan {
+        match trim_kind {
+            TrimKind::TrimNone => self.span(),
+            TrimKind::TrimLeading => {
+                self.text_start() as usize..self.trailing_trivia_end() as usize
+            }
+            TrimKind::TrimTrailing => {
+                self.leading_trivia_start() as usize..self.trailing_trivia_start() as usize
+            }
+            TrimKind::TrimAll => self.text_span(),
+            TrimKind::LeadingOnly => self.leading_trivia_span(),
+            TrimKind::TrailingOnly => self.trailing_trivia_span(),
+        }
+    }
+
+    pub fn full_text(&self) -> &str {
+        &self.text
+    }
+
+    /// Returns the text of this token _excluding_ all attached trivia.
     pub fn text(&self) -> &str {
         &self.text[self.text_span()]
     }
@@ -173,19 +231,6 @@ impl SyntaxToken {
     pub fn trailing_trivia_text(&self) -> &str {
         &self.text[self.trailing_trivia_span()]
     }
-
-    /// Returns the complete text of this token, including the token itself and any attached trivia.
-    pub fn text_with_trailing_trivia(&self) -> &str {
-        &self.text[self.text_start() as usize..self.trailing_trivia_end() as usize]
-    }
-
-    pub fn text_with_leading_trivia(&self) -> &str {
-        &self.text[self.leading_trivia_start() as usize..self.text_end() as usize]
-    }
-
-    pub fn full_text(&self) -> &str {
-        &self.text
-    }
 }
 
 impl SyntaxToken {
@@ -195,44 +240,6 @@ impl SyntaxToken {
 
     pub(super) fn raw_data(&self) -> Rc<SyntaxTokenData> {
         self.0.clone()
-    }
-
-    /// Creates a clone of this token by fully copying the underlying syntax data. The result is a
-    /// fully detached token that can be safely manipulated without any effect on other token
-    /// instances that may be referencing the same data.
-    pub(super) fn deep_clone(&self) -> SyntaxToken {
-        let data = (*self.0).clone();
-        SyntaxToken(Rc::from(data))
-    }
-
-    /// Append the other token to the back of this token. Trailing and leading trivia become part
-    /// of the token's actual text. This method should _only_ be used when intentionally merging
-    /// tokens while building the initial tree. All downstream usages should prefer creating new
-    /// tokens instead.
-    ///
-    /// ## Safety
-    ///
-    /// This method should _only_ be used on a newly created token, to ensure that no other tokens
-    /// reference the same data and end up incorrectly affected by the change.
-    pub(super) unsafe fn extend_back(&mut self, other: SyntaxToken) {
-        let new_trailing_start = self.len() + other.trailing_start;
-        let new_text_pointer = self.text.extend_back(other.full_text());
-        let ptr = self.raw_ptr();
-        ptr.text = new_text_pointer;
-        ptr.trailing_start = new_trailing_start;
-    }
-
-    /// Intentionally override the `kind` of this token to be something else. Generally, kinds
-    /// should only be determined by the lexer and parser. During tree building, though, there may
-    /// be cases where the tree decides it's more efficient to represent a token differently, or to
-    /// be able to merge insignificant text pieces.
-    pub(super) fn set_kind(&mut self, kind: SyntaxKind) {
-        self.raw_ptr().kind = kind;
-    }
-
-    fn raw_ptr(&mut self) -> &mut SyntaxTokenData {
-        let ptr = Rc::as_ptr(&self.0) as *mut SyntaxTokenData;
-        unsafe { &mut *ptr }
     }
 }
 
@@ -247,7 +254,7 @@ impl Deref for SyntaxToken {
 impl Debug for SyntaxToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "{:?}@{}{:?}",
+            "{:?}@{}\"{}\"",
             self.kind(),
             self.text.format_range(),
             self.text()

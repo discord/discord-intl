@@ -2241,3 +2241,11 @@ pub fn get_html_entity(text: &[u8]) -> Option<&'static str> {
         .ok()
         .map(|i| HTML_ENTITIES[i].1)
 }
+
+pub fn is_valid_html_entity(text: &[u8]) -> bool {
+    HTML_ENTITIES
+        .binary_search_by_key(&text, |&(key, _value)| key)
+        .ok()
+        .map(|i| HTML_ENTITIES[i].1)
+        .is_some()
+}

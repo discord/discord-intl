@@ -282,6 +282,7 @@ impl<'a> BlockParser<'a> {
         }
     }
 
+    #[inline(never)]
     pub(crate) fn parse_into_block_bounds(mut self) -> Vec<BlockBound> {
         while !self.is_eof() {
             match self.current_line() {

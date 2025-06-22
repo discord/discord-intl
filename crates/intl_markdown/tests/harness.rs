@@ -1,13 +1,4 @@
-use intl_markdown::{
-    commonmark_html, compile_to_format_js, format_icu_string, Document, ICUMarkdownParser,
-    SourceText,
-};
-
-pub fn parse(content: &str, include_blocks: bool) -> Document {
-    let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
-    parser.parse();
-    parser.finish().to_document()
-}
+use intl_markdown::{commonmark_html, Document, ICUMarkdownParser, SourceText};
 
 pub fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
     let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);

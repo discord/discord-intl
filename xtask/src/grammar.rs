@@ -154,6 +154,10 @@ impl GrammarEnumNode {
         self.variants.iter().map(|v| v.variant_ident()).collect()
     }
 
+    pub fn type_idents(&self) -> Vec<proc_macro2::Ident> {
+        self.variants.iter().map(|v| v.type_ident()).collect()
+    }
+
     pub fn variant_definitions(&self) -> Vec<proc_macro2::TokenStream> {
         self.variants.iter().map(|v| v.definition()).collect()
     }

@@ -3,5 +3,7 @@ mod nodes;
 mod util;
 mod visitor;
 
-pub use extra::{AnyLink, TokenOr};
+#[allow(unused)]
+pub use extra::*;
 pub use nodes::*;
+pub use visitor::{Fold, Visit, VisitWith};

@@ -17,6 +17,7 @@ test = ["debug-tracing"]
 debug-tracing = []
 
 [dependencies]
+intl_allocator = { workspace = true }
 intl_markdown_macros = { workspace = true }
 memchr = { workspace = true }
 pulldown-cmark = "0.11.0"

@@ -1,3 +1,4 @@
+use crate::syntax::iterators::SyntaxNodeTokenIter;
 use crate::syntax::{SyntaxElement, SyntaxKind, SyntaxToken, TextSize};
 use slice_dst::SliceWithHeader;
 use std::fmt::{Debug, Formatter};
@@ -100,6 +101,10 @@ impl SyntaxNode {
 
     pub fn get(&self, index: usize) -> Option<&SyntaxElement> {
         self.0.slice.get(index)
+    }
+
+    pub fn iter_tokens(&self) -> SyntaxNodeTokenIter {
+        SyntaxNodeTokenIter::new(&self)
     }
 }
 

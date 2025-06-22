@@ -1,4 +1,4 @@
-use crate::syntax::{SyntaxElement, SyntaxNode, TextSize};
+use crate::syntax::{SyntaxElement, SyntaxNode};
 
 pub trait FromSyntax {
     fn from_syntax(node: SyntaxNode) -> Self;
@@ -15,10 +15,6 @@ pub trait FromSyntaxElement {
 }
 
 pub trait Syntax {
-    /// Return the raw syntax node backing this element.
+    /// Return the raw syntax node backing this item.
     fn syntax(&self) -> &SyntaxNode;
-
-    fn text_len(&self) -> TextSize {
-        self.syntax().text_len()
-    }
 }

@@ -1,106 +1,207 @@
 use super::nodes::*;
 pub trait Visit {
-    fn visit_document(&self, node: &Document);
-    fn visit_any_block_node(&self, node: &AnyBlockNode);
-    fn visit_paragraph(&self, node: &Paragraph);
-    fn visit_thematic_break(&self, node: &ThematicBreak);
-    fn visit_any_heading(&self, node: &AnyHeading);
-    fn visit_any_code_block(&self, node: &AnyCodeBlock);
-    fn visit_inline_content(&self, node: &InlineContent);
-    fn visit_atx_heading(&self, node: &AtxHeading);
-    fn visit_setext_heading(&self, node: &SetextHeading);
-    fn visit_setext_heading_underline(&self, node: &SetextHeadingUnderline);
-    fn visit_indented_code_block(&self, node: &IndentedCodeBlock);
-    fn visit_fenced_code_block(&self, node: &FencedCodeBlock);
-    fn visit_code_block_content(&self, node: &CodeBlockContent);
-    fn visit_any_inline_node(&self, node: &AnyInlineNode);
-    fn visit_text_span(&self, node: &TextSpan);
-    fn visit_entity_reference(&self, node: &EntityReference);
-    fn visit_emphasis(&self, node: &Emphasis);
-    fn visit_strong(&self, node: &Strong);
-    fn visit_link(&self, node: &Link);
-    fn visit_image(&self, node: &Image);
-    fn visit_autolink(&self, node: &Autolink);
-    fn visit_code_span(&self, node: &CodeSpan);
-    fn visit_hook(&self, node: &Hook);
-    fn visit_strikethrough(&self, node: &Strikethrough);
-    fn visit_icu(&self, node: &Icu);
-    fn visit_link_resource(&self, node: &LinkResource);
-    fn visit_any_link_destination(&self, node: &AnyLinkDestination);
-    fn visit_link_title(&self, node: &LinkTitle);
-    fn visit_static_link_destination(&self, node: &StaticLinkDestination);
-    fn visit_dynamic_link_destination(&self, node: &DynamicLinkDestination);
-    fn visit_click_handler_link_destination(&self, node: &ClickHandlerLinkDestination);
-    fn visit_link_title_content(&self, node: &LinkTitleContent);
-    fn visit_code_span_content(&self, node: &CodeSpanContent);
-    fn visit_hook_name(&self, node: &HookName);
-    fn visit_any_icu_placeholder(&self, node: &AnyIcuPlaceholder);
-    fn visit_icu_variable(&self, node: &IcuVariable);
-    fn visit_icu_plural(&self, node: &IcuPlural);
-    fn visit_icu_select_ordinal(&self, node: &IcuSelectOrdinal);
-    fn visit_icu_select(&self, node: &IcuSelect);
-    fn visit_icu_date(&self, node: &IcuDate);
-    fn visit_icu_time(&self, node: &IcuTime);
-    fn visit_icu_number(&self, node: &IcuNumber);
-    fn visit_icu_plural_arms(&self, node: &IcuPluralArms);
-    fn visit_icu_plural_arm(&self, node: &IcuPluralArm);
-    fn visit_icu_plural_value(&self, node: &IcuPluralValue);
-    fn visit_icu_date_time_style(&self, node: &IcuDateTimeStyle);
-    fn visit_icu_number_style(&self, node: &IcuNumberStyle);
+    fn visit_document(&mut self, node: &Document) {
+        node.visit_children_with(self);
+    }
+    fn visit_any_block_node(&mut self, node: &AnyBlockNode) {
+        node.visit_children_with(self);
+    }
+    fn visit_paragraph(&mut self, node: &Paragraph) {
+        node.visit_children_with(self);
+    }
+    fn visit_thematic_break(&mut self, node: &ThematicBreak) {
+        node.visit_children_with(self);
+    }
+    fn visit_any_heading(&mut self, node: &AnyHeading) {
+        node.visit_children_with(self);
+    }
+    fn visit_any_code_block(&mut self, node: &AnyCodeBlock) {
+        node.visit_children_with(self);
+    }
+    fn visit_inline_content(&mut self, node: &InlineContent) {
+        node.visit_children_with(self);
+    }
+    fn visit_atx_heading(&mut self, node: &AtxHeading) {
+        node.visit_children_with(self);
+    }
+    fn visit_setext_heading(&mut self, node: &SetextHeading) {
+        node.visit_children_with(self);
+    }
+    fn visit_setext_heading_underline(&mut self, node: &SetextHeadingUnderline) {
+        node.visit_children_with(self);
+    }
+    fn visit_indented_code_block(&mut self, node: &IndentedCodeBlock) {
+        node.visit_children_with(self);
+    }
+    fn visit_fenced_code_block(&mut self, node: &FencedCodeBlock) {
+        node.visit_children_with(self);
+    }
+    fn visit_code_block_content(&mut self, node: &CodeBlockContent) {
+        node.visit_children_with(self);
+    }
+    fn visit_code_block_info_string(&mut self, node: &CodeBlockInfoString) {
+        node.visit_children_with(self);
+    }
+    fn visit_any_inline_node(&mut self, node: &AnyInlineNode) {
+        node.visit_children_with(self);
+    }
+    fn visit_text_span(&mut self, node: &TextSpan) {
+        node.visit_children_with(self);
+    }
+    fn visit_emphasis(&mut self, node: &Emphasis) {
+        node.visit_children_with(self);
+    }
+    fn visit_strong(&mut self, node: &Strong) {
+        node.visit_children_with(self);
+    }
+    fn visit_link(&mut self, node: &Link) {
+        node.visit_children_with(self);
+    }
+    fn visit_image(&mut self, node: &Image) {
+        node.visit_children_with(self);
+    }
+    fn visit_autolink(&mut self, node: &Autolink) {
+        node.visit_children_with(self);
+    }
+    fn visit_code_span(&mut self, node: &CodeSpan) {
+        node.visit_children_with(self);
+    }
+    fn visit_hook(&mut self, node: &Hook) {
+        node.visit_children_with(self);
+    }
+    fn visit_strikethrough(&mut self, node: &Strikethrough) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu(&mut self, node: &Icu) {
+        node.visit_children_with(self);
+    }
+    fn visit_link_resource(&mut self, node: &LinkResource) {
+        node.visit_children_with(self);
+    }
+    fn visit_any_link_destination(&mut self, node: &AnyLinkDestination) {
+        node.visit_children_with(self);
+    }
+    fn visit_link_title(&mut self, node: &LinkTitle) {
+        node.visit_children_with(self);
+    }
+    fn visit_static_link_destination(&mut self, node: &StaticLinkDestination) {
+        node.visit_children_with(self);
+    }
+    fn visit_dynamic_link_destination(&mut self, node: &DynamicLinkDestination) {
+        node.visit_children_with(self);
+    }
+    fn visit_click_handler_link_destination(&mut self, node: &ClickHandlerLinkDestination) {
+        node.visit_children_with(self);
+    }
+    fn visit_link_title_content(&mut self, node: &LinkTitleContent) {
+        node.visit_children_with(self);
+    }
+    fn visit_code_span_content(&mut self, node: &CodeSpanContent) {
+        node.visit_children_with(self);
+    }
+    fn visit_hook_name(&mut self, node: &HookName) {
+        node.visit_children_with(self);
+    }
+    fn visit_any_icu_placeholder(&mut self, node: &AnyIcuPlaceholder) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_variable(&mut self, node: &IcuVariable) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_plural(&mut self, node: &IcuPlural) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_select_ordinal(&mut self, node: &IcuSelectOrdinal) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_select(&mut self, node: &IcuSelect) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_date(&mut self, node: &IcuDate) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_time(&mut self, node: &IcuTime) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_number(&mut self, node: &IcuNumber) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_plural_arms(&mut self, node: &IcuPluralArms) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_plural_arm(&mut self, node: &IcuPluralArm) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_plural_value(&mut self, node: &IcuPluralValue) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_date_time_style(&mut self, node: &IcuDateTimeStyle) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_number_style(&mut self, node: &IcuNumberStyle) {
+        node.visit_children_with(self);
+    }
 }
 pub trait Fold {
-    fn fold_document(&self, node: Document) -> Document;
-    fn fold_any_block_node(&self, node: AnyBlockNode) -> AnyBlockNode;
-    fn fold_paragraph(&self, node: Paragraph) -> Paragraph;
-    fn fold_thematic_break(&self, node: ThematicBreak) -> ThematicBreak;
-    fn fold_any_heading(&self, node: AnyHeading) -> AnyHeading;
-    fn fold_any_code_block(&self, node: AnyCodeBlock) -> AnyCodeBlock;
-    fn fold_inline_content(&self, node: InlineContent) -> InlineContent;
-    fn fold_atx_heading(&self, node: AtxHeading) -> AtxHeading;
-    fn fold_setext_heading(&self, node: SetextHeading) -> SetextHeading;
-    fn fold_setext_heading_underline(&self, node: SetextHeadingUnderline)
-        -> SetextHeadingUnderline;
-    fn fold_indented_code_block(&self, node: IndentedCodeBlock) -> IndentedCodeBlock;
-    fn fold_fenced_code_block(&self, node: FencedCodeBlock) -> FencedCodeBlock;
-    fn fold_code_block_content(&self, node: CodeBlockContent) -> CodeBlockContent;
-    fn fold_any_inline_node(&self, node: AnyInlineNode) -> AnyInlineNode;
-    fn fold_text_span(&self, node: TextSpan) -> TextSpan;
-    fn fold_entity_reference(&self, node: EntityReference) -> EntityReference;
-    fn fold_emphasis(&self, node: Emphasis) -> Emphasis;
-    fn fold_strong(&self, node: Strong) -> Strong;
-    fn fold_link(&self, node: Link) -> Link;
-    fn fold_image(&self, node: Image) -> Image;
-    fn fold_autolink(&self, node: Autolink) -> Autolink;
-    fn fold_code_span(&self, node: CodeSpan) -> CodeSpan;
-    fn fold_hook(&self, node: Hook) -> Hook;
-    fn fold_strikethrough(&self, node: Strikethrough) -> Strikethrough;
-    fn fold_icu(&self, node: Icu) -> Icu;
-    fn fold_link_resource(&self, node: LinkResource) -> LinkResource;
-    fn fold_any_link_destination(&self, node: AnyLinkDestination) -> AnyLinkDestination;
-    fn fold_link_title(&self, node: LinkTitle) -> LinkTitle;
-    fn fold_static_link_destination(&self, node: StaticLinkDestination) -> StaticLinkDestination;
-    fn fold_dynamic_link_destination(&self, node: DynamicLinkDestination)
-        -> DynamicLinkDestination;
+    fn fold_document(&mut self, node: Document) -> Document;
+    fn fold_any_block_node(&mut self, node: AnyBlockNode) -> AnyBlockNode;
+    fn fold_paragraph(&mut self, node: Paragraph) -> Paragraph;
+    fn fold_thematic_break(&mut self, node: ThematicBreak) -> ThematicBreak;
+    fn fold_any_heading(&mut self, node: AnyHeading) -> AnyHeading;
+    fn fold_any_code_block(&mut self, node: AnyCodeBlock) -> AnyCodeBlock;
+    fn fold_inline_content(&mut self, node: InlineContent) -> InlineContent;
+    fn fold_atx_heading(&mut self, node: AtxHeading) -> AtxHeading;
+    fn fold_setext_heading(&mut self, node: SetextHeading) -> SetextHeading;
+    fn fold_setext_heading_underline(
+        &mut self,
+        node: SetextHeadingUnderline,
+    ) -> SetextHeadingUnderline;
+    fn fold_indented_code_block(&mut self, node: IndentedCodeBlock) -> IndentedCodeBlock;
+    fn fold_fenced_code_block(&mut self, node: FencedCodeBlock) -> FencedCodeBlock;
+    fn fold_code_block_content(&mut self, node: CodeBlockContent) -> CodeBlockContent;
+    fn fold_code_block_info_string(&mut self, node: CodeBlockInfoString) -> CodeBlockInfoString;
+    fn fold_any_inline_node(&mut self, node: AnyInlineNode) -> AnyInlineNode;
+    fn fold_text_span(&mut self, node: TextSpan) -> TextSpan;
+    fn fold_emphasis(&mut self, node: Emphasis) -> Emphasis;
+    fn fold_strong(&mut self, node: Strong) -> Strong;
+    fn fold_link(&mut self, node: Link) -> Link;
+    fn fold_image(&mut self, node: Image) -> Image;
+    fn fold_autolink(&mut self, node: Autolink) -> Autolink;
+    fn fold_code_span(&mut self, node: CodeSpan) -> CodeSpan;
+    fn fold_hook(&mut self, node: Hook) -> Hook;
+    fn fold_strikethrough(&mut self, node: Strikethrough) -> Strikethrough;
+    fn fold_icu(&mut self, node: Icu) -> Icu;
+    fn fold_link_resource(&mut self, node: LinkResource) -> LinkResource;
+    fn fold_any_link_destination(&mut self, node: AnyLinkDestination) -> AnyLinkDestination;
+    fn fold_link_title(&mut self, node: LinkTitle) -> LinkTitle;
+    fn fold_static_link_destination(
+        &mut self,
+        node: StaticLinkDestination,
+    ) -> StaticLinkDestination;
+    fn fold_dynamic_link_destination(
+        &mut self,
+        node: DynamicLinkDestination,
+    ) -> DynamicLinkDestination;
     fn fold_click_handler_link_destination(
-        &self,
+        &mut self,
         node: ClickHandlerLinkDestination,
     ) -> ClickHandlerLinkDestination;
-    fn fold_link_title_content(&self, node: LinkTitleContent) -> LinkTitleContent;
-    fn fold_code_span_content(&self, node: CodeSpanContent) -> CodeSpanContent;
-    fn fold_hook_name(&self, node: HookName) -> HookName;
-    fn fold_any_icu_placeholder(&self, node: AnyIcuPlaceholder) -> AnyIcuPlaceholder;
-    fn fold_icu_variable(&self, node: IcuVariable) -> IcuVariable;
-    fn fold_icu_plural(&self, node: IcuPlural) -> IcuPlural;
-    fn fold_icu_select_ordinal(&self, node: IcuSelectOrdinal) -> IcuSelectOrdinal;
-    fn fold_icu_select(&self, node: IcuSelect) -> IcuSelect;
-    fn fold_icu_date(&self, node: IcuDate) -> IcuDate;
-    fn fold_icu_time(&self, node: IcuTime) -> IcuTime;
-    fn fold_icu_number(&self, node: IcuNumber) -> IcuNumber;
-    fn fold_icu_plural_arms(&self, node: IcuPluralArms) -> IcuPluralArms;
-    fn fold_icu_plural_arm(&self, node: IcuPluralArm) -> IcuPluralArm;
-    fn fold_icu_plural_value(&self, node: IcuPluralValue) -> IcuPluralValue;
-    fn fold_icu_date_time_style(&self, node: IcuDateTimeStyle) -> IcuDateTimeStyle;
-    fn fold_icu_number_style(&self, node: IcuNumberStyle) -> IcuNumberStyle;
+    fn fold_link_title_content(&mut self, node: LinkTitleContent) -> LinkTitleContent;
+    fn fold_code_span_content(&mut self, node: CodeSpanContent) -> CodeSpanContent;
+    fn fold_hook_name(&mut self, node: HookName) -> HookName;
+    fn fold_any_icu_placeholder(&mut self, node: AnyIcuPlaceholder) -> AnyIcuPlaceholder;
+    fn fold_icu_variable(&mut self, node: IcuVariable) -> IcuVariable;
+    fn fold_icu_plural(&mut self, node: IcuPlural) -> IcuPlural;
+    fn fold_icu_select_ordinal(&mut self, node: IcuSelectOrdinal) -> IcuSelectOrdinal;
+    fn fold_icu_select(&mut self, node: IcuSelect) -> IcuSelect;
+    fn fold_icu_date(&mut self, node: IcuDate) -> IcuDate;
+    fn fold_icu_time(&mut self, node: IcuTime) -> IcuTime;
+    fn fold_icu_number(&mut self, node: IcuNumber) -> IcuNumber;
+    fn fold_icu_plural_arms(&mut self, node: IcuPluralArms) -> IcuPluralArms;
+    fn fold_icu_plural_arm(&mut self, node: IcuPluralArm) -> IcuPluralArm;
+    fn fold_icu_plural_value(&mut self, node: IcuPluralValue) -> IcuPluralValue;
+    fn fold_icu_date_time_style(&mut self, node: IcuDateTimeStyle) -> IcuDateTimeStyle;
+    fn fold_icu_number_style(&mut self, node: IcuNumberStyle) -> IcuNumberStyle;
 }
 pub trait VisitWith<V: ?Sized + Visit> {
     fn visit_with(&self, visitor: &mut V);
@@ -224,12 +325,21 @@ impl<V: ?Sized + Visit> VisitWith<V> for FencedCodeBlock {
         visitor.visit_fenced_code_block(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
+        self.info_string().visit_with(visitor);
         self.content().visit_with(visitor);
     }
 }
 impl<V: ?Sized + Visit> VisitWith<V> for CodeBlockContent {
     fn visit_with(&self, visitor: &mut V) {
         visitor.visit_code_block_content(self);
+    }
+    fn visit_children_with(&self, visitor: &mut V) {
+        let _ = visitor;
+    }
+}
+impl<V: ?Sized + Visit> VisitWith<V> for CodeBlockInfoString {
+    fn visit_with(&self, visitor: &mut V) {
+        visitor.visit_code_block_info_string(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
         let _ = visitor;
@@ -242,7 +352,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for AnyInlineNode {
     fn visit_children_with(&self, visitor: &mut V) {
         match self {
             Self::TextSpan(node) => node.visit_with(visitor),
-            Self::EntityReference(node) => node.visit_with(visitor),
             Self::Emphasis(node) => node.visit_with(visitor),
             Self::Strong(node) => node.visit_with(visitor),
             Self::Link(node) => node.visit_with(visitor),
@@ -258,14 +367,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for AnyInlineNode {
 impl<V: ?Sized + Visit> VisitWith<V> for TextSpan {
     fn visit_with(&self, visitor: &mut V) {
         visitor.visit_text_span(self);
-    }
-    fn visit_children_with(&self, visitor: &mut V) {
-        let _ = visitor;
-    }
-}
-impl<V: ?Sized + Visit> VisitWith<V> for EntityReference {
-    fn visit_with(&self, visitor: &mut V) {
-        visitor.visit_entity_reference(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
         let _ = visitor;

@@ -76,6 +76,31 @@ impl FromSyntax for AnyBlockNode {
         }
     }
 }
+impl From<Paragraph> for AnyBlockNode {
+    fn from(value: Paragraph) -> Self {
+        Self::Paragraph(value)
+    }
+}
+impl From<ThematicBreak> for AnyBlockNode {
+    fn from(value: ThematicBreak) -> Self {
+        Self::ThematicBreak(value)
+    }
+}
+impl From<AnyHeading> for AnyBlockNode {
+    fn from(value: AnyHeading) -> Self {
+        Self::Heading(value)
+    }
+}
+impl From<AnyCodeBlock> for AnyBlockNode {
+    fn from(value: AnyCodeBlock) -> Self {
+        Self::CodeBlock(value)
+    }
+}
+impl From<InlineContent> for AnyBlockNode {
+    fn from(value: InlineContent) -> Self {
+        Self::InlineContent(value)
+    }
+}
 impl std::fmt::Debug for AnyBlockNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut tuple = f.debug_tuple("AnyBlockNode");
@@ -179,6 +204,16 @@ impl FromSyntax for AnyHeading {
         }
     }
 }
+impl From<AtxHeading> for AnyHeading {
+    fn from(value: AtxHeading) -> Self {
+        Self::AtxHeading(value)
+    }
+}
+impl From<SetextHeading> for AnyHeading {
+    fn from(value: SetextHeading) -> Self {
+        Self::SetextHeading(value)
+    }
+}
 impl std::fmt::Debug for AnyHeading {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut tuple = f.debug_tuple("AnyHeading");
@@ -216,6 +251,16 @@ impl FromSyntax for AnyCodeBlock {
                 kind, "AnyCodeBlock"
             ),
         }
+    }
+}
+impl From<IndentedCodeBlock> for AnyCodeBlock {
+    fn from(value: IndentedCodeBlock) -> Self {
+        Self::IndentedCodeBlock(value)
+    }
+}
+impl From<FencedCodeBlock> for AnyCodeBlock {
+    fn from(value: FencedCodeBlock) -> Self {
+        Self::FencedCodeBlock(value)
     }
 }
 impl std::fmt::Debug for AnyCodeBlock {
@@ -418,8 +463,8 @@ impl FencedCodeBlock {
     pub fn opening_run_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn info_string_token(&self) -> Option<SyntaxToken> {
-        support::optional_token(&self.syntax, 1usize)
+    pub fn info_string(&self) -> Option<CodeBlockInfoString> {
+        support::optional_node(&self.syntax, 1usize)
     }
     pub fn content(&self) -> CodeBlockContent {
         support::required_node(&self.syntax, 2usize)
@@ -432,7 +477,7 @@ impl std::fmt::Debug for FencedCodeBlock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FencedCodeBlock")
             .field("[0] opening_run_token", &self.opening_run_token())
-            .field("[1] info_string_token", &self.info_string_token())
+            .field("[1] info_string", &self.info_string())
             .field("[2] content", &self.content())
             .field("[3] closing_run_token", &self.closing_run_token())
             .finish()
@@ -477,9 +522,46 @@ impl std::fmt::Debug for CodeBlockContent {
     }
 }
 #[derive(Clone, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct CodeBlockInfoString {
+    syntax: SyntaxNode,
+}
+impl Syntax for CodeBlockInfoString {
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl FromSyntax for CodeBlockInfoString {
+    fn from_syntax(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+}
+impl CodeBlockInfoString {
+    pub fn len(&self) -> usize {
+        self.syntax.len()
+    }
+    pub fn children(&self) -> SyntaxTokenChildren {
+        SyntaxTokenChildren::new(self.syntax.children())
+    }
+    pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
+        self.syntax.get(index).map(|element| element.token())
+    }
+}
+impl std::ops::Index<usize> for CodeBlockInfoString {
+    type Output = SyntaxToken;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.syntax[index].token()
+    }
+}
+impl std::fmt::Debug for CodeBlockInfoString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CodeBlockInfoString")?;
+        f.debug_list().entries(self.children()).finish()
+    }
+}
+#[derive(Clone, Eq, PartialEq)]
 pub enum AnyInlineNode {
     TextSpan(TextSpan),
-    EntityReference(EntityReference),
     Emphasis(Emphasis),
     Strong(Strong),
     Link(Link),
@@ -494,7 +576,6 @@ impl Syntax for AnyInlineNode {
     fn syntax(&self) -> &SyntaxNode {
         match self {
             Self::TextSpan(node) => node.syntax(),
-            Self::EntityReference(node) => node.syntax(),
             Self::Emphasis(node) => node.syntax(),
             Self::Strong(node) => node.syntax(),
             Self::Link(node) => node.syntax(),
@@ -511,9 +592,6 @@ impl FromSyntax for AnyInlineNode {
     fn from_syntax(syntax: SyntaxNode) -> Self {
         match syntax.kind() {
             SyntaxKind::TEXT_SPAN => Self::TextSpan(TextSpan::from_syntax(syntax)),
-            SyntaxKind::ENTITY_REFERENCE => {
-                Self::EntityReference(EntityReference::from_syntax(syntax))
-            }
             SyntaxKind::EMPHASIS => Self::Emphasis(Emphasis::from_syntax(syntax)),
             SyntaxKind::STRONG => Self::Strong(Strong::from_syntax(syntax)),
             SyntaxKind::LINK => Self::Link(Link::from_syntax(syntax)),
@@ -530,12 +608,61 @@ impl FromSyntax for AnyInlineNode {
         }
     }
 }
+impl From<TextSpan> for AnyInlineNode {
+    fn from(value: TextSpan) -> Self {
+        Self::TextSpan(value)
+    }
+}
+impl From<Emphasis> for AnyInlineNode {
+    fn from(value: Emphasis) -> Self {
+        Self::Emphasis(value)
+    }
+}
+impl From<Strong> for AnyInlineNode {
+    fn from(value: Strong) -> Self {
+        Self::Strong(value)
+    }
+}
+impl From<Link> for AnyInlineNode {
+    fn from(value: Link) -> Self {
+        Self::Link(value)
+    }
+}
+impl From<Image> for AnyInlineNode {
+    fn from(value: Image) -> Self {
+        Self::Image(value)
+    }
+}
+impl From<Autolink> for AnyInlineNode {
+    fn from(value: Autolink) -> Self {
+        Self::Autolink(value)
+    }
+}
+impl From<CodeSpan> for AnyInlineNode {
+    fn from(value: CodeSpan) -> Self {
+        Self::CodeSpan(value)
+    }
+}
+impl From<Hook> for AnyInlineNode {
+    fn from(value: Hook) -> Self {
+        Self::Hook(value)
+    }
+}
+impl From<Strikethrough> for AnyInlineNode {
+    fn from(value: Strikethrough) -> Self {
+        Self::Strikethrough(value)
+    }
+}
+impl From<Icu> for AnyInlineNode {
+    fn from(value: Icu) -> Self {
+        Self::Icu(value)
+    }
+}
 impl std::fmt::Debug for AnyInlineNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut tuple = f.debug_tuple("AnyInlineNode");
         match self {
             Self::TextSpan(node) => tuple.field(node),
-            Self::EntityReference(node) => tuple.field(node),
             Self::Emphasis(node) => tuple.field(node),
             Self::Strong(node) => tuple.field(node),
             Self::Link(node) => tuple.field(node),
@@ -585,33 +712,6 @@ impl std::fmt::Debug for TextSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("TextSpan")?;
         f.debug_list().entries(self.children()).finish()
-    }
-}
-#[derive(Clone, Eq, PartialEq)]
-#[repr(transparent)]
-pub struct EntityReference {
-    syntax: SyntaxNode,
-}
-impl Syntax for EntityReference {
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-}
-impl FromSyntax for EntityReference {
-    fn from_syntax(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-}
-impl EntityReference {
-    pub fn token(&self) -> SyntaxToken {
-        support::required_token(&self.syntax, 0usize)
-    }
-}
-impl std::fmt::Debug for EntityReference {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EntityReference")
-            .field("[0] token", &self.token())
-            .finish()
     }
 }
 #[derive(Clone, Eq, PartialEq)]
@@ -1030,6 +1130,21 @@ impl FromSyntax for AnyLinkDestination {
         }
     }
 }
+impl From<StaticLinkDestination> for AnyLinkDestination {
+    fn from(value: StaticLinkDestination) -> Self {
+        Self::StaticLinkDestination(value)
+    }
+}
+impl From<DynamicLinkDestination> for AnyLinkDestination {
+    fn from(value: DynamicLinkDestination) -> Self {
+        Self::DynamicLinkDestination(value)
+    }
+}
+impl From<ClickHandlerLinkDestination> for AnyLinkDestination {
+    fn from(value: ClickHandlerLinkDestination) -> Self {
+        Self::ClickHandlerLinkDestination(value)
+    }
+}
 impl std::fmt::Debug for AnyLinkDestination {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut tuple = f.debug_tuple("AnyLinkDestination");
@@ -1319,6 +1434,41 @@ impl FromSyntax for AnyIcuPlaceholder {
                 kind, "AnyIcuPlaceholder"
             ),
         }
+    }
+}
+impl From<IcuVariable> for AnyIcuPlaceholder {
+    fn from(value: IcuVariable) -> Self {
+        Self::IcuVariable(value)
+    }
+}
+impl From<IcuPlural> for AnyIcuPlaceholder {
+    fn from(value: IcuPlural) -> Self {
+        Self::IcuPlural(value)
+    }
+}
+impl From<IcuSelectOrdinal> for AnyIcuPlaceholder {
+    fn from(value: IcuSelectOrdinal) -> Self {
+        Self::IcuSelectOrdinal(value)
+    }
+}
+impl From<IcuSelect> for AnyIcuPlaceholder {
+    fn from(value: IcuSelect) -> Self {
+        Self::IcuSelect(value)
+    }
+}
+impl From<IcuDate> for AnyIcuPlaceholder {
+    fn from(value: IcuDate) -> Self {
+        Self::IcuDate(value)
+    }
+}
+impl From<IcuTime> for AnyIcuPlaceholder {
+    fn from(value: IcuTime) -> Self {
+        Self::IcuTime(value)
+    }
+}
+impl From<IcuNumber> for AnyIcuPlaceholder {
+    fn from(value: IcuNumber) -> Self {
+        Self::IcuNumber(value)
     }
 }
 impl std::fmt::Debug for AnyIcuPlaceholder {

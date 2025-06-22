@@ -85,17 +85,6 @@ pub enum SyntaxKind {
     INLINE_CONTENT,
     /// Any list of plain text tokens that require no special treatment.
     TEXT_SPAN,
-    /// 2.5 Entity and numeric character references - HTML Entities
-    ///
-    /// Entity references consist of & + any of the valid HTML5 entity names + `;`.
-    ///
-    /// Decimal numeric character references consist of `&#` + a string of 1–7 arabic digits + `;`.
-    /// A numeric character reference is parsed as the corresponding Unicode character.
-    ///
-    /// Hexadecimal numeric character references consist of `&#` + either X or x + a string of 1-6
-    /// hexadecimal digits + `;`. They too are parsed as the corresponding Unicode character (this
-    /// time specified with a hexadecimal numeral instead of decimal).
-    ENTITY_REFERENCE,
 
     /// 4.1 Thematic breaks
     ///
@@ -133,6 +122,7 @@ pub enum SyntaxKind {
     /// A fenced code block begins with a code fence, preceded by up to three
     /// spaces of indentation.
     FENCED_CODE_BLOCK,
+    CODE_BLOCK_INFO_STRING,
     /// 4.6 HTML blocks
     ///
     /// An HTML block is a group of lines that is treated as raw HTML (and will
@@ -241,13 +231,6 @@ impl SyntaxKind {
         matches!(self, SyntaxKind::INLINE_CONTENT)
     }
 
-    pub const fn is_html_special_entity(&self) -> bool {
-        matches!(
-            self,
-            SyntaxKind::DOUBLE_QUOTE | SyntaxKind::LANGLE | SyntaxKind::RANGLE | SyntaxKind::AMPER
-        )
-    }
-
     pub const fn is_token(&self) -> bool {
         (*self as u8) >= (Self::EOF as u8) && (*self as u8) < (Self::DOCUMENT as u8)
     }
@@ -310,6 +293,13 @@ impl SyntaxKind {
         matches!(
             self,
             SyntaxKind::HARD_LINE_ENDING | SyntaxKind::BACKSLASH_BREAK
+        )
+    }
+
+    pub const fn is_entity_reference(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::HTML_ENTITY | SyntaxKind::HEX_CHAR_REF | SyntaxKind::DEC_CHAR_REF
         )
     }
 }
