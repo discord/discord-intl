@@ -9,7 +9,7 @@ pub(super) fn parse_block(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option
     let result = match kind {
         SyntaxKind::ATX_HEADING => parse_atx_heading(p),
         SyntaxKind::SETEXT_HEADING => parse_setext_heading(p),
-        SyntaxKind::INDENTED_CODE_BLOCK => parse_code_block(p),
+        SyntaxKind::INDENTED_CODE_BLOCK => parse_indented_code_block(p),
         SyntaxKind::FENCED_CODE_BLOCK => parse_fenced_code_block(p),
         SyntaxKind::THEMATIC_BREAK => parse_thematic_break(p),
         _ => parse_paragraph(p),
@@ -18,7 +18,27 @@ pub(super) fn parse_block(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option
     result
 }
 
+/// Parse a single, optional leading whitespace token at the beginning of a block node.
+fn parse_block_leading_whitespace(p: &mut ICUMarkdownParser) -> Option<()> {
+    if p.current().is_leading_whitespace() {
+        p.bump();
+    } else {
+        p.push_missing();
+    }
+    Some(())
+}
+
+/// Parse any amount of blank space between block nodes.
+pub(super) fn parse_block_space(p: &mut ICUMarkdownParser) {
+    let mark = p.mark();
+    while !p.current().is_block_bound() {
+        p.bump();
+    }
+    mark.complete(p, SyntaxKind::BLOCK_SPACE);
+}
+
 fn parse_paragraph(p: &mut ICUMarkdownParser) -> Option<()> {
+    parse_block_leading_whitespace(p);
     parse_inline(p, false);
     Some(())
 }
@@ -39,11 +59,16 @@ fn parse_thematic_break(p: &mut ICUMarkdownParser) -> Option<()> {
 }
 
 fn parse_setext_heading(p: &mut ICUMarkdownParser) -> Option<()> {
+    parse_block_leading_whitespace(p);
     p.skip_whitespace_as_trivia();
     // The content of the heading is always contained in an INLINE_CONTENT.
     p.expect_block_bound(SyntaxKind::INLINE_START)?;
     parse_inline(p, false);
     p.expect_block_bound(SyntaxKind::INLINE_END)?;
+    p.optional(p.current().is_line_ending(), |p| {
+        p.bump();
+        Some(())
+    })?;
 
     let underline = p.mark();
     parse_remainder_as_token_list(p)?;
@@ -56,6 +81,7 @@ fn parse_setext_heading(p: &mut ICUMarkdownParser) -> Option<()> {
 /// Parsing here presumes that the block parser has asserted the content of the
 /// input will create a valid heading.
 fn parse_atx_heading(p: &mut ICUMarkdownParser) -> Option<()> {
+    parse_block_leading_whitespace(p);
     p.relex_with_context(LexContext::AsciiPunctuationRun);
     p.expect(SyntaxKind::PUNCTUATION_RUN)?;
 
@@ -82,7 +108,7 @@ fn parse_atx_heading(p: &mut ICUMarkdownParser) -> Option<()> {
 /// Continuously parse tokens from the input until a BLOCK_ENDING is
 /// encountered. No semantics will be applied to the tokens, and they will
 /// appear in the containing node as a flat list of plain tokens.
-fn parse_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
+fn parse_indented_code_block(p: &mut ICUMarkdownParser) -> Option<()> {
     let content_mark = p.mark();
     p.set_lexer_state(|state| state.indent_depth += 4);
     parse_code_block_content(p);

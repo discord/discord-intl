@@ -137,20 +137,27 @@ impl TreeBuilder {
     }
 
     pub fn push_token(&mut self, token: SyntaxToken) {
-        // SAFETY: We should be the only ones mutating this data, meaning we can safely
+        // SAFETY: We should be the only ones mutating this data, meaning we can safely take a
+        // mutable reference to it to amend leading trivia to later on.
         self.last_token_data = Rc::as_ptr(&token.raw_data()) as *mut SyntaxTokenData;
         self.text_offset += token.len() as usize;
-        self.children.push(token.into());
-
-        // Add any unconsumed leading trivia to the token after it's been added.
+        // Add any unconsumed leading trivia to the token before adding it to the tree.
         if !self.pending_leading_trivia.is_empty() {
-            // SAFETY: We only do this while building the tree, meaning we know there can and should
-            // only be a single other reference to this token (in whatever list or node contains it),
-            // and that it won't be mutated by anything else.
+            // Only add the pending trivia length to the current text offset once it's been
+            // applied to the tree. If it's pushed before being applied, the computed offsets
+            // of markers taken on tokens with leading trivia will point to the wrong index,
+            // using the start of the token itself _without_ the leading trivia instead.
+            // See test `tests::spec_regression::regression_1` for an example.
+            self.text_offset += self.pending_leading_trivia.len();
+            // SAFETY: We only do this while building the tree, meaning we know there can and
+            // should only be a single other reference to this token (in whatever list or node
+            // contains it), and that it won't be mutated by anything else.
             unsafe { &mut *self.last_token_data }
                 .prepend_leading_trivia(&self.pending_leading_trivia);
             self.pending_leading_trivia.clear();
         }
+
+        self.children.push(token.into());
     }
 
     pub fn prepend_leading_trivia(&mut self, trivia_text: &str) {
@@ -162,20 +169,28 @@ impl TreeBuilder {
         self.pending_leading_trivia = self.pending_leading_trivia.extend_back(trivia_text);
     }
 
+    pub fn append_trailing_trivia(&mut self, trivia_text: &str) {
+        if !trivia_text.is_empty() {
+            // SAFETY: We only do this while building the tree, meaning we know there can and should
+            // only be a single other reference to this token (in whatever list or node contains it),
+            // and that it won't be mutated by anything else.
+            match unsafe { self.last_token_data.as_mut() } {
+                Some(data) => {
+                    data.append_trailing_trivia(trivia_text);
+                    self.text_offset += trivia_text.len()
+                }
+                None => self.prepend_leading_trivia(trivia_text),
+            }
+        }
+    }
+
     pub fn add_trivia(&mut self, trailing_text: &str, next_leading_text: &str) {
         if !next_leading_text.is_empty() {
             self.prepend_leading_trivia(next_leading_text);
         }
         if !trailing_text.is_empty() {
-            // SAFETY: We only do this while building the tree, meaning we know there can and should
-            // only be a single other reference to this token (in whatever list or node contains it),
-            // and that it won't be mutated by anything else.
-            match unsafe { self.last_token_data.as_mut() } {
-                Some(data) => data.append_trailing_trivia(trailing_text),
-                None => self.prepend_leading_trivia(trailing_text),
-            }
+            self.append_trailing_trivia(trailing_text);
         }
-        self.text_offset += trailing_text.len() + next_leading_text.len();
     }
 
     pub fn push_missing(&mut self) {
@@ -233,8 +248,20 @@ impl TreeBuilder {
                             break;
                         }
                         offset += element.text_len() as usize;
+                        debug_assert!(
+                            offset <= target,
+                            "Deferred node of kind {:?} had mismatched ending boundary. Expected {target} total bytes, but this element spanned from {} to {}",
+                            node.kind,
+                            offset - element.text_len() as usize,
+                            offset,
+                        );
                         end += 1;
                     }
+                    debug_assert!(
+                        offset == target,
+                        "Failed to find exact matching end boundary for deferred node of kind {:?}. Expected {target} bytes, read {offset}",
+                        node.kind
+                    );
                     end
                 };
                 let new_node = SyntaxNode::new(node.kind, self.scratch.drain(start..end)).into();

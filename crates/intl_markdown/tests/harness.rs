@@ -37,6 +37,7 @@ pub fn run_icu_ast_test(input: &str, expected: &str, include_blocks: bool) {
     assert_eq!(expected, "");
 }
 
+#[allow(unused)]
 macro_rules! ast_test {
     ($name:ident, $input:literal, $output:literal) => {
         #[test]
@@ -45,6 +46,7 @@ macro_rules! ast_test {
         }
     };
 }
+#[allow(unused)]
 macro_rules! icu_string_test {
     ($name:ident, $input:literal, $output:literal) => {
         #[test]
@@ -53,6 +55,7 @@ macro_rules! icu_string_test {
         }
     };
 }
+#[allow(unused)]
 macro_rules! icu_block_string_test {
     ($name:ident, $input:literal, $output:literal) => {
         #[test]
@@ -62,6 +65,9 @@ macro_rules! icu_block_string_test {
     };
 }
 
+#[allow(unused)]
 pub(crate) use ast_test;
+#[allow(unused)]
 pub(crate) use icu_block_string_test;
+#[allow(unused)]
 pub(crate) use icu_string_test;

@@ -21,6 +21,9 @@ pub trait Visit {
     fn visit_inline_content(&mut self, node: &InlineContent) {
         node.visit_children_with(self);
     }
+    fn visit_block_space(&mut self, node: &BlockSpace) {
+        node.visit_children_with(self);
+    }
     fn visit_atx_heading(&mut self, node: &AtxHeading) {
         node.visit_children_with(self);
     }
@@ -150,6 +153,7 @@ pub trait Fold {
     fn fold_any_heading(&mut self, node: AnyHeading) -> AnyHeading;
     fn fold_any_code_block(&mut self, node: AnyCodeBlock) -> AnyCodeBlock;
     fn fold_inline_content(&mut self, node: InlineContent) -> InlineContent;
+    fn fold_block_space(&mut self, node: BlockSpace) -> BlockSpace;
     fn fold_atx_heading(&mut self, node: AtxHeading) -> AtxHeading;
     fn fold_setext_heading(&mut self, node: SetextHeading) -> SetextHeading;
     fn fold_setext_heading_underline(
@@ -236,6 +240,7 @@ impl<V: ?Sized + Visit> VisitWith<V> for AnyBlockNode {
             Self::Heading(node) => node.visit_with(visitor),
             Self::CodeBlock(node) => node.visit_with(visitor),
             Self::InlineContent(node) => node.visit_with(visitor),
+            Self::BlockSpace(node) => node.visit_with(visitor),
         }
     }
 }
@@ -285,6 +290,14 @@ impl<V: ?Sized + Visit> VisitWith<V> for InlineContent {
         for field in self.children() {
             field.visit_with(visitor);
         }
+    }
+}
+impl<V: ?Sized + Visit> VisitWith<V> for BlockSpace {
+    fn visit_with(&self, visitor: &mut V) {
+        visitor.visit_block_space(self);
+    }
+    fn visit_children_with(&self, visitor: &mut V) {
+        let _ = visitor;
     }
 }
 impl<V: ?Sized + Visit> VisitWith<V> for AtxHeading {

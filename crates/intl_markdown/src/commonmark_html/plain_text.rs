@@ -1,5 +1,6 @@
 use crate::syntax::{
-    MinimalTextIter, Syntax, SyntaxNodeTokenIter, TextPointer, TokenTextIter, TokenTextIterOptions,
+    MinimalTextIter, Syntax, SyntaxIterator, SyntaxNodeTokenIter, TextPointer, TokenTextIter,
+    TokenTextIterOptions,
 };
 use crate::{AnyInlineNode, InlineContent, SyntaxToken, Visit, VisitWith};
 
@@ -55,22 +56,19 @@ impl Visit for PlainTextFormatter {
     /// item. For example, a `Strong` element like `**hello**` would just be written as `hello` rather
     /// than `<strong>hello</strong>` as it might in an HTML format.
     fn visit_inline_content(&mut self, node: &InlineContent) {
-        let last_index = node.len().saturating_sub(1);
-        for (index, child) in node.children().enumerate() {
+        for (position, child) in node.children().with_positions() {
             match child {
                 AnyInlineNode::TextSpan(node) => {
-                    let last_span_index = node.len().saturating_sub(1);
                     // Text spans are the only non-delimited kinds of text possible in inline
                     // content, so they're the only ones that need to potentially apply trims. All
                     // other trivia is preserved since it is important within delimiters.
-                    for (span_index, text_child) in node.children().enumerate() {
-                        let is_first = index == 0 && span_index == 0;
-                        let is_last = index == last_index && span_index == last_span_index;
-                        self.pointers.push(
-                            text_child.trimmed_text_pointer(
-                                self.text_options.trim_kind(is_first, is_last),
+                    for (span_position, text_child) in node.children().with_positions() {
+                        self.pointers.push(text_child.trimmed_text_pointer(
+                            self.text_options.trim_kind(
+                                position.is_first() && span_position.is_first(),
+                                position.is_last() && span_position.is_last(),
                             ),
-                        )
+                        ))
                     }
                 }
                 AnyInlineNode::Autolink(node) => {

@@ -10,7 +10,6 @@ pub enum SyntaxKind {
     WHITESPACE,         // Any non-textual, non-newline space character.
     LINE_ENDING,        // \n, \r, or \r\n
     LEADING_WHITESPACE, // ASCII whitespace occurring at the start of a line matching an expected line depth.
-    BLANK_LINE,         // A complete line containing only whitespace and a line ending.
     ESCAPED,            // Any valid, backslash-escaped character.
     ESCAPED_BACKTICK,   // An escaped backtick, which can close a code span on its own.
     // Block Bounds
@@ -83,6 +82,9 @@ pub enum SyntaxKind {
     /// Any segment of inline content, either contained within a block node or
     /// at the top level on its own.
     INLINE_CONTENT,
+    /// Any blank space between block elements. This space is generally collapsible and follows
+    /// different rules than most inline content.
+    BLOCK_SPACE,
     /// Any list of plain text tokens that require no special treatment.
     TEXT_SPAN,
 
@@ -239,22 +241,26 @@ impl SyntaxKind {
         (*self as u8) >= (Self::DOCUMENT as u8)
     }
 
+    /// NOTE: Newlines are not considered trivia because Markdown processing almost exclusive
+    /// requires trimming whitespace around newline boundaries. This is much easier to do when the
+    /// newline is treated as its own token, as the trivia can just be attached to that token
+    /// and then the entire token gets replaced by a literal newline character as needed.
     pub const fn is_trivia(&self) -> bool {
         matches!(
             self,
-            SyntaxKind::BLANK_LINE
-                | SyntaxKind::LEADING_WHITESPACE
-                | SyntaxKind::WHITESPACE
-                | SyntaxKind::LINE_ENDING
+            SyntaxKind::LEADING_WHITESPACE | SyntaxKind::WHITESPACE
         )
     }
 
-    pub const fn is_same_line_whitespace(&self) -> bool {
-        matches!(self, SyntaxKind::WHITESPACE)
+    pub const fn is_leading_whitespace(&self) -> bool {
+        matches!(self, SyntaxKind::LEADING_WHITESPACE)
     }
 
-    pub const fn is_trailing_trivia_boundary(&self) -> bool {
-        matches!(self, SyntaxKind::LINE_ENDING)
+    pub const fn is_line_ending(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::LINE_ENDING | SyntaxKind::HARD_LINE_ENDING | SyntaxKind::BACKSLASH_BREAK
+        )
     }
 
     pub const fn is_block_bound(&self) -> bool {

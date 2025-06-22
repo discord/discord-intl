@@ -3,3 +3,4 @@
 
 mod commonmark;
 mod harness;
+mod spec_regression;

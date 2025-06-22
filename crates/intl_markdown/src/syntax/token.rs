@@ -55,13 +55,13 @@ impl SyntaxTokenData {
     // be added after a token has been pushed elsewhere into the tree structure.
     // See [TreeBuilder::append_token_trivia] for context on the usage.
 
-    pub(super) fn append_trailing_trivia(&mut self, trivia_text: &str) {
+    pub(crate) fn append_trailing_trivia(&mut self, trivia_text: &str) {
         if !trivia_text.is_empty() {
             self.text = self.text.extend_back(trivia_text);
         }
     }
 
-    pub(super) fn prepend_leading_trivia(&mut self, trivia_text: &str) {
+    pub(crate) fn prepend_leading_trivia(&mut self, trivia_text: &str) {
         if !trivia_text.is_empty() {
             self.text = self.text.extend_front(trivia_text);
             self.text_start += trivia_text.len() as TextSize;
@@ -90,6 +90,24 @@ impl SyntaxToken {
             text: TextPointer::from_str(text),
             text_start: TextSize::default(),
             trailing_start: text.len() as TextSize,
+        }))
+    }
+
+    /// Create a new [`SyntaxToken`] from all of its constituent parts. This is a low-level utility
+    /// function that requires the caller to know the exact section of text it wants to represent,
+    /// and should only be used in cases where regular construction through [`SyntaxToken::new`] is
+    /// not sufficient.
+    pub fn from_raw_parts(
+        kind: SyntaxKind,
+        text: TextPointer,
+        text_start: TextSize,
+        trailing_start: TextSize,
+    ) -> Self {
+        Self(Rc::new(SyntaxTokenData {
+            kind,
+            text,
+            text_start,
+            trailing_start,
         }))
     }
 
@@ -254,7 +272,7 @@ impl Deref for SyntaxToken {
 impl Debug for SyntaxToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "{:?}@{}\"{}\"",
+            "{:?}@{}{:?}",
             self.kind(),
             self.text.format_range(),
             self.text()
@@ -262,7 +280,7 @@ impl Debug for SyntaxToken {
 
         if self.has_trivia() {
             f.write_fmt(format_args!(
-                " [{:?}, {:?}]",
+                "  [{:?}, {:?}]",
                 self.leading_trivia_text(),
                 self.trailing_trivia_text()
             ))?;

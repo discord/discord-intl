@@ -12,7 +12,9 @@ pub(crate) use traits::{FromSyntax, FromSyntaxElement, Syntax};
 pub(crate) use tree::{TreeBuilder, TreeMarker};
 
 pub use element::{SyntaxElement, SyntaxElementRef, SyntaxNodeChildren, SyntaxTokenChildren};
-pub use iterators::{MinimalTextIter, SyntaxNodeTokenIter, TokenTextIter, TokenTextIterOptions};
+pub use iterators::{
+    MinimalTextIter, SyntaxIterator, SyntaxNodeTokenIter, TokenTextIter, TokenTextIterOptions,
+};
 pub use kind::SyntaxKind;
 #[allow(unused)]
 pub use node::{SyntaxNode, SyntaxNodeHeader};

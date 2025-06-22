@@ -77,7 +77,11 @@ impl GrammarField {
     }
 
     pub fn slot_name(&self) -> String {
-        format!("[{}] {}", self.slot, self.accessor_ident())
+        if self.optional {
+            format!("[{}] {}?", self.slot, self.accessor_ident())
+        } else {
+            format!("[{}] {}", self.slot, self.accessor_ident())
+        }
     }
 
     pub fn return_ty(&self) -> proc_macro2::TokenStream {

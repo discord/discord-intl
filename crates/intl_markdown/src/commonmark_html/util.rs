@@ -139,7 +139,10 @@ generate_ascii_encoding_table! {
     PERCENT_ENCODING,
     // Characters that can safely appear in URLs without needing a percent encoding. Adapted from:
     // https://github.com/pulldown-cmark/pulldown-cmark/blob/8713a415b04cdb0b7980a9a17c0ed0df0b36395e/pulldown-cmark-escape/src/lib.rs#L28C1-L38C3
-    ! b"!#$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_abcdefghijklmnopqrstuvwxyz~" => "%{:X}"
+    ! b"!#$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_abcdefghijklmnopqrstuvwxyz~" => "%{:X}",
+    // CommonMark spec tests encode `&` to `&amp;` rather than the percent encoding `%26` that it
+    // would normally have.
+    b'&' => "&amp;"
 }
 generate_ascii_encoding_table! {
     HTML_CHAR_ENCODING,
@@ -148,7 +151,7 @@ generate_ascii_encoding_table! {
     b'"' => "&quot;",
     // This doesn't seem to happen in the spec? But does in some other
     // implementations.
-    // '\'' => "&#39;",
+    // '\'' => "&#27;",
     b'&' => "&amp;"
 }
 

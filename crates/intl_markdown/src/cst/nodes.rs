@@ -47,6 +47,7 @@ pub enum AnyBlockNode {
     Heading(AnyHeading),
     CodeBlock(AnyCodeBlock),
     InlineContent(InlineContent),
+    BlockSpace(BlockSpace),
 }
 impl Syntax for AnyBlockNode {
     fn syntax(&self) -> &SyntaxNode {
@@ -56,6 +57,7 @@ impl Syntax for AnyBlockNode {
             Self::Heading(node) => node.syntax(),
             Self::CodeBlock(node) => node.syntax(),
             Self::InlineContent(node) => node.syntax(),
+            Self::BlockSpace(node) => node.syntax(),
         }
     }
 }
@@ -69,6 +71,7 @@ impl FromSyntax for AnyBlockNode {
             SyntaxKind::INDENTED_CODE_BLOCK => Self::CodeBlock(AnyCodeBlock::from_syntax(syntax)),
             SyntaxKind::FENCED_CODE_BLOCK => Self::CodeBlock(AnyCodeBlock::from_syntax(syntax)),
             SyntaxKind::INLINE_CONTENT => Self::InlineContent(InlineContent::from_syntax(syntax)),
+            SyntaxKind::BLOCK_SPACE => Self::BlockSpace(BlockSpace::from_syntax(syntax)),
             kind => unreachable!(
                 "Invalid syntax kind {:?} encountered when constructing enum node {}",
                 kind, "AnyBlockNode"
@@ -101,6 +104,11 @@ impl From<InlineContent> for AnyBlockNode {
         Self::InlineContent(value)
     }
 }
+impl From<BlockSpace> for AnyBlockNode {
+    fn from(value: BlockSpace) -> Self {
+        Self::BlockSpace(value)
+    }
+}
 impl std::fmt::Debug for AnyBlockNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut tuple = f.debug_tuple("AnyBlockNode");
@@ -110,6 +118,7 @@ impl std::fmt::Debug for AnyBlockNode {
             Self::Heading(node) => tuple.field(node),
             Self::CodeBlock(node) => tuple.field(node),
             Self::InlineContent(node) => tuple.field(node),
+            Self::BlockSpace(node) => tuple.field(node),
         };
         tuple.finish()
     }
@@ -130,14 +139,18 @@ impl FromSyntax for Paragraph {
     }
 }
 impl Paragraph {
+    pub fn leading_space_token(&self) -> Option<SyntaxToken> {
+        support::optional_token(&self.syntax, 0usize)
+    }
     pub fn content(&self) -> InlineContent {
-        support::required_node(&self.syntax, 0usize)
+        support::required_node(&self.syntax, 1usize)
     }
 }
 impl std::fmt::Debug for Paragraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Paragraph")
-            .field("[0] content", &self.content())
+            .field("[0] leading_space_token?", &self.leading_space_token())
+            .field("[1] content", &self.content())
             .finish()
     }
 }
@@ -315,6 +328,44 @@ impl std::fmt::Debug for InlineContent {
 }
 #[derive(Clone, Eq, PartialEq)]
 #[repr(transparent)]
+pub struct BlockSpace {
+    syntax: SyntaxNode,
+}
+impl Syntax for BlockSpace {
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl FromSyntax for BlockSpace {
+    fn from_syntax(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+}
+impl BlockSpace {
+    pub fn len(&self) -> usize {
+        self.syntax.len()
+    }
+    pub fn children(&self) -> SyntaxTokenChildren {
+        SyntaxTokenChildren::new(self.syntax.children())
+    }
+    pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
+        self.syntax.get(index).map(|element| element.token())
+    }
+}
+impl std::ops::Index<usize> for BlockSpace {
+    type Output = SyntaxToken;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.syntax[index].token()
+    }
+}
+impl std::fmt::Debug for BlockSpace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("BlockSpace")?;
+        f.debug_list().entries(self.children()).finish()
+    }
+}
+#[derive(Clone, Eq, PartialEq)]
+#[repr(transparent)]
 pub struct AtxHeading {
     syntax: SyntaxNode,
 }
@@ -329,22 +380,26 @@ impl FromSyntax for AtxHeading {
     }
 }
 impl AtxHeading {
+    pub fn leading_space_token(&self) -> Option<SyntaxToken> {
+        support::optional_token(&self.syntax, 0usize)
+    }
     pub fn opening_run_token(&self) -> SyntaxToken {
-        support::required_token(&self.syntax, 0usize)
+        support::required_token(&self.syntax, 1usize)
     }
     pub fn content(&self) -> InlineContent {
-        support::required_node(&self.syntax, 1usize)
+        support::required_node(&self.syntax, 2usize)
     }
     pub fn closing_run_token(&self) -> Option<SyntaxToken> {
-        support::optional_token(&self.syntax, 2usize)
+        support::optional_token(&self.syntax, 3usize)
     }
 }
 impl std::fmt::Debug for AtxHeading {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AtxHeading")
-            .field("[0] opening_run_token", &self.opening_run_token())
-            .field("[1] content", &self.content())
-            .field("[2] closing_run_token", &self.closing_run_token())
+            .field("[0] leading_space_token?", &self.leading_space_token())
+            .field("[1] opening_run_token", &self.opening_run_token())
+            .field("[2] content", &self.content())
+            .field("[3] closing_run_token?", &self.closing_run_token())
             .finish()
     }
 }
@@ -364,18 +419,26 @@ impl FromSyntax for SetextHeading {
     }
 }
 impl SetextHeading {
+    pub fn leading_space_token(&self) -> Option<SyntaxToken> {
+        support::optional_token(&self.syntax, 0usize)
+    }
     pub fn content(&self) -> InlineContent {
-        support::required_node(&self.syntax, 0usize)
+        support::required_node(&self.syntax, 1usize)
+    }
+    pub fn joining_lines_token(&self) -> Option<SyntaxToken> {
+        support::optional_token(&self.syntax, 2usize)
     }
     pub fn underline(&self) -> SetextHeadingUnderline {
-        support::required_node(&self.syntax, 1usize)
+        support::required_node(&self.syntax, 3usize)
     }
 }
 impl std::fmt::Debug for SetextHeading {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SetextHeading")
-            .field("[0] content", &self.content())
-            .field("[1] underline", &self.underline())
+            .field("[0] leading_space_token?", &self.leading_space_token())
+            .field("[1] content", &self.content())
+            .field("[2] joining_lines_token?", &self.joining_lines_token())
+            .field("[3] underline", &self.underline())
             .finish()
     }
 }
@@ -477,9 +540,9 @@ impl std::fmt::Debug for FencedCodeBlock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FencedCodeBlock")
             .field("[0] opening_run_token", &self.opening_run_token())
-            .field("[1] info_string", &self.info_string())
+            .field("[1] info_string?", &self.info_string())
             .field("[2] content", &self.content())
-            .field("[3] closing_run_token", &self.closing_run_token())
+            .field("[3] closing_run_token?", &self.closing_run_token())
             .finish()
     }
 }
@@ -1090,8 +1153,8 @@ impl std::fmt::Debug for LinkResource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LinkResource")
             .field("[0] l_paren_token", &self.l_paren_token())
-            .field("[1] destination", &self.destination())
-            .field("[2] title", &self.title())
+            .field("[1] destination?", &self.destination())
+            .field("[2] title?", &self.title())
             .field("[3] r_paren_token", &self.r_paren_token())
             .finish()
     }
@@ -1172,22 +1235,26 @@ impl FromSyntax for LinkTitle {
     }
 }
 impl LinkTitle {
+    pub fn leading_newline_token(&self) -> Option<SyntaxToken> {
+        support::optional_token(&self.syntax, 0usize)
+    }
     pub fn open_token(&self) -> SyntaxToken {
-        support::required_token(&self.syntax, 0usize)
+        support::required_token(&self.syntax, 1usize)
     }
     pub fn content(&self) -> LinkTitleContent {
-        support::required_node(&self.syntax, 1usize)
+        support::required_node(&self.syntax, 2usize)
     }
     pub fn close_token(&self) -> SyntaxToken {
-        support::required_token(&self.syntax, 2usize)
+        support::required_token(&self.syntax, 3usize)
     }
 }
 impl std::fmt::Debug for LinkTitle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LinkTitle")
-            .field("[0] open_token", &self.open_token())
-            .field("[1] content", &self.content())
-            .field("[2] close_token", &self.close_token())
+            .field("[0] leading_newline_token?", &self.leading_newline_token())
+            .field("[1] open_token", &self.open_token())
+            .field("[2] content", &self.content())
+            .field("[3] close_token", &self.close_token())
             .finish()
     }
 }
@@ -1677,7 +1744,7 @@ impl std::fmt::Debug for IcuDate {
             .field("[0] variable", &self.variable())
             .field("[1] variable_comma_token", &self.variable_comma_token())
             .field("[2] format_token", &self.format_token())
-            .field("[3] style", &self.style())
+            .field("[3] style?", &self.style())
             .finish()
     }
 }
@@ -1716,7 +1783,7 @@ impl std::fmt::Debug for IcuTime {
             .field("[0] variable", &self.variable())
             .field("[1] variable_comma_token", &self.variable_comma_token())
             .field("[2] format_token", &self.format_token())
-            .field("[3] style", &self.style())
+            .field("[3] style?", &self.style())
             .finish()
     }
 }
@@ -1755,7 +1822,7 @@ impl std::fmt::Debug for IcuNumber {
             .field("[0] variable", &self.variable())
             .field("[1] variable_comma_token", &self.variable_comma_token())
             .field("[2] format_token", &self.format_token())
-            .field("[3] style", &self.style())
+            .field("[3] style?", &self.style())
             .finish()
     }
 }

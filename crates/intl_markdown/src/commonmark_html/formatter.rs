@@ -4,7 +4,7 @@ use crate::commonmark_html::util::{
     fast_replace_pointer, replace_entity_reference, unescaped_pointer_chunks,
 };
 use crate::cst::*;
-use crate::syntax::{TextPointer, TokenTextIterOptions, TrimKind};
+use crate::syntax::{Syntax, SyntaxIterator, TextPointer, TokenTextIterOptions, TrimKind};
 use crate::SyntaxKind;
 
 pub type FormatResult<T = ()> = Result<T, std::fmt::Error>;
@@ -81,14 +81,18 @@ impl Formatter {
 
 impl Visit for Formatter {
     fn visit_document(&mut self, node: &Document) {
-        let mut children = node.children();
-        children.next().visit_with(self);
-
-        for node in children {
-            self.elements.push(FormatElement::SoftLineBreak);
-            node.visit_with(self);
+        for (position, node) in node.children().with_positions() {
+            match node.syntax().kind() {
+                SyntaxKind::BLOCK_SPACE => {
+                    if position.is_middle() {
+                        self.elements.push(FormatElement::SoftLineBreak)
+                    }
+                }
+                _ => node.visit_with(self),
+            }
         }
     }
+
     fn visit_paragraph(&mut self, node: &Paragraph) {
         self.start_tag(FormatTag::Paragraph);
         node.visit_children_with(self);
@@ -100,29 +104,32 @@ impl Visit for Formatter {
     }
 
     fn visit_any_heading(&mut self, node: &AnyHeading) {
+        self.with_context(|context| context.trailing_trivia_allowed = false);
         self.start_tag(FormatTag::Heading {
             level: node.level(),
         });
+        self.pop_context();
         node.visit_children_with(self);
         self.end_tag();
     }
 
     fn visit_any_code_block(&mut self, node: &AnyCodeBlock) {
         self.start_tag(FormatTag::CodeBlock {
-            info_string: node.info_string().map(|info| {
-                let text_iter = iter_node_text(&info, Default::default()).collect();
-                unescaped_pointer_chunks(&text_iter).collect()
-            }),
+            info_string: node
+                .info_string()
+                .and_then(|info| {
+                    let text_iter = iter_node_text(&info, Default::default()).collect();
+                    unescaped_pointer_chunks(&text_iter).collect()
+                })
+                .filter(|text| !text.trim().is_empty()),
         });
         node.visit_children_with(self);
         self.end_tag();
     }
 
     fn visit_inline_content(&mut self, node: &InlineContent) {
-        let last_index = node.len().saturating_sub(1);
-        self.with_context(|_| ());
-        for (index, node) in node.children().enumerate() {
-            self.context_mut().is_last_inline_node = index == last_index;
+        for (position, node) in node.children().with_positions() {
+            self.context_mut().is_last_inline_node = position.is_last();
             node.visit_children_with(self);
         }
     }
@@ -143,17 +150,11 @@ impl Visit for Formatter {
             .is_some_and(|token| token.leading_trivia_len() == 0);
 
         if can_concatenate {
-            let mut children = node.children();
-            // Guaranteed to be at least one element by the `can_concatenate` condition.
-            let mut pointer = children
-                .next()
-                .unwrap()
-                .trimmed_text_pointer(TrimKind::TrimLeading)
-                .clone();
-            for token in children {
-                pointer = pointer.extend_back(token.full_text());
-            }
-            self.push_raw_text(pointer.into());
+            self.push_raw_text(
+                iter_node_text(node, TokenTextIterOptions::default())
+                    .collect::<TextPointer>()
+                    .into(),
+            );
         } else {
             for token in node.children() {
                 self.elements
@@ -178,12 +179,13 @@ impl Visit for Formatter {
         }
         // TODO: Figure out how to use `MinimalTextIter` here.
         let mut pointer: Option<TextPointer> = None;
-        for (index, token) in node.children().enumerate() {
-            let trim_kind = text_options.trim_kind(index == 0, index == node.len() - 1);
+        for (position, token) in node.children().with_positions() {
+            let trim_kind = text_options.trim_kind(position.is_first(), position.is_last());
             match token.kind() {
                 SyntaxKind::HARD_LINE_ENDING | SyntaxKind::BACKSLASH_BREAK => {
                     self.elements.push(FormatElement::HardLineBreak);
                 }
+                SyntaxKind::LINE_ENDING => self.elements.push(FormatElement::SoftLineBreak),
                 SyntaxKind::HTML_ENTITY | SyntaxKind::HEX_CHAR_REF | SyntaxKind::DEC_CHAR_REF => {
                     // TODO: Trivia should not be allowed on references, since they will _always_
                     // be replaced and end up being a copy. The text can and should be merged into

@@ -1,4 +1,5 @@
 use crate::syntax::{SyntaxElement, SyntaxNode};
+use crate::SyntaxKind;
 
 pub trait FromSyntax {
     fn from_syntax(node: SyntaxNode) -> Self;
@@ -17,4 +18,8 @@ pub trait FromSyntaxElement {
 pub trait Syntax {
     /// Return the raw syntax node backing this item.
     fn syntax(&self) -> &SyntaxNode;
+
+    fn kind(&self) -> SyntaxKind {
+        self.syntax().kind()
+    }
 }

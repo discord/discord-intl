@@ -157,15 +157,13 @@ fn parse_hook_name(p: &mut ICUMarkdownParser) -> Option<()> {
 fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
     let marker = p.mark();
 
-    // Links allow whitespace and a single newline between elements of the
-    // resource. Normally, this would require some special handling to ensure
-    // that there is only a single newline and not multiple in a row, but since
-    // the block parser will insert block boundaries when blank lines exist, we
-    // can be confident that skipping whitespace here will only continue until
-    // a block boundary is found, after which either the closing parenthesis
-    // will be found, or parsing will fail since the block boundary was reached.
     p.expect(SyntaxKind::LPAREN)?;
+    // Links allow whitespace and a single newline between elements of the
+    // resource.
     p.skip_whitespace_as_trivia();
+    if p.expect(SyntaxKind::LINE_ENDING).is_some() {
+        p.skip_whitespace_as_trivia();
+    }
 
     if p.at(SyntaxKind::RPAREN) {
         p.push_missing(); // Missing destination element
@@ -182,7 +180,6 @@ fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
     // between them, so it is nested inside here.
     p.optional(is_allowed_link_title_whitespace(p.current()), |p| {
         p.skip_whitespace_as_trivia();
-        // Not using ? since it's okay for this to be empty.
         parse_link_title(p)?;
         // Whitespace and a single newline are also allowed between the title
         // and the ending.
@@ -257,6 +254,15 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
 
 fn parse_link_title(p: &mut ICUMarkdownParser) -> Option<()> {
     let marker = p.mark();
+
+    // Link titles are allowed to appear on a new line after the destination, so we need to accept
+    // an optional line ending token to represent that.
+    if p.current().is_line_ending() {
+        p.bump();
+        p.skip_whitespace_as_trivia();
+    } else {
+        p.push_missing();
+    }
 
     let end_quote_kind = match p.current() {
         SyntaxKind::DOUBLE_QUOTE => SyntaxKind::DOUBLE_QUOTE,

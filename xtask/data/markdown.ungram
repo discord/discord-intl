@@ -6,8 +6,12 @@ AnyBlockNode =
     | AnyHeading
     | AnyCodeBlock
     | InlineContent
+    | BlockSpace
+
+BlockSpace = ('leading_whitepsace' | 'whitespace' | 'line_ending')*
 
 Paragraph =
+    leading_space: 'leading_whitespace'?
     content: InlineContent
 
 ThematicBreak = 'text'*
@@ -17,12 +21,15 @@ AnyHeading =
     | SetextHeading
 
 AtxHeading =
+    leading_space: 'leading_whitespace'?
     opening_run: 'punctuation_run'
     content: InlineContent
     closing_run: 'punctuation_run'?
 
 SetextHeading =
+    leading_space: 'leading_whitespace'?
     content: InlineContent
+    joining_lines: 'line_ending'?
     underline: SetextHeadingUnderline
 
 SetextHeadingUnderline = ('-' | '=')*
@@ -105,6 +112,7 @@ ClickHandlerLinkDestination =
     name: 'text'
 
 LinkTitle =
+    leading_newline: 'line_ending'?
     open: ('"' | '\'' | '(')
     content: LinkTitleContent
     close: ('"' | '\'' | ')')

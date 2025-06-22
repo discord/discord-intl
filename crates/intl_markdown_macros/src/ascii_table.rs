@@ -220,13 +220,6 @@ pub fn generate_ascii_encoding_table_impl(input: TokenStream) -> TokenStream {
     let mut replacements: [Option<String>; 256] = [const { None }; 256];
 
     for (index, replacement) in mappings {
-        if !replacements[index].is_none() {
-            panic!(
-                "Byte replacement for `{}` already exists as '{}'",
-                char::from(index as u8),
-                replacements[index].as_ref().unwrap()
-            );
-        }
         replacements[index] = Some(replacement);
     }
 

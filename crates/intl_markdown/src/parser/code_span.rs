@@ -56,13 +56,12 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
         }
     };
 
-    if did_complete {
-    } else {
+    if !did_complete {
         // Reaching this point means the code span wasn't closed, so the parser must
         // be rewound for the caller to continue parsing normally.
         p.rewind(checkpoint);
-        return None;
+        None
+    } else {
+        Some(())
     }
-
-    Some(())
 }

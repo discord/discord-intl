@@ -3,6 +3,15 @@ use crate::syntax::{SyntaxElement, TextPointer, TrimKind};
 use crate::{SyntaxNode, SyntaxToken};
 use std::iter::Peekable;
 
+pub trait SyntaxIterator: Iterator + ExactSizeIterator {
+    fn with_positions(self) -> PositionalIterator<Self>
+    where
+        Self: Sized,
+    {
+        PositionalIterator::new(self)
+    }
+}
+
 /// Iterator for collecting the complete token text contained by a node. Handling of trivia
 /// is controlled by [`TokenTextIterOptions`], created by [`SyntaxNodeTokenIter::with_options`].
 pub struct SyntaxNodeTokenIter<'a> {
@@ -50,6 +59,10 @@ impl<'a> Iterator for SyntaxNodeTokenIter<'a> {
         Some(token)
     }
 }
+
+impl ExactSizeIterator for SyntaxNodeTokenIter<'_> {}
+impl SyntaxIterator for SyntaxNodeTokenIter<'_> {}
+
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct TokenTextIterOptions {
     /// When true, the first encountered token will have its leading trivia trimmed.
@@ -118,14 +131,11 @@ impl TokenTextIterOptions {
             self.trim_trailing
         };
 
-        if trim_leading && trim_trailing {
-            TrimKind::TrimAll
-        } else if trim_leading {
-            TrimKind::TrimLeading
-        } else if trim_trailing {
-            TrimKind::TrimTrailing
-        } else {
-            TrimKind::TrimNone
+        match (trim_leading, trim_trailing) {
+            (true, true) => TrimKind::TrimAll,
+            (true, false) => TrimKind::TrimLeading,
+            (false, true) => TrimKind::TrimTrailing,
+            (false, false) => TrimKind::TrimNone,
         }
     }
 }
@@ -218,5 +228,62 @@ impl<I: Iterator<Item = TextPointer>> Iterator for MinimalTextIter<I> {
         }
 
         Some(pointer)
+    }
+}
+
+pub enum FirstLastPosition {
+    Neither,
+    First,
+    Last,
+    Both,
+}
+
+impl FirstLastPosition {
+    pub fn from_cursor_and_size(cursor: usize, size: usize) -> Self {
+        match (cursor <= 0, cursor >= size - 1) {
+            (true, true) => FirstLastPosition::Both,
+            (true, false) => FirstLastPosition::First,
+            (false, true) => FirstLastPosition::Last,
+            (false, false) => FirstLastPosition::Neither,
+        }
+    }
+    pub fn is_first(&self) -> bool {
+        matches!(self, FirstLastPosition::First | FirstLastPosition::Both)
+    }
+
+    pub fn is_last(&self) -> bool {
+        matches!(self, FirstLastPosition::Last | FirstLastPosition::Both)
+    }
+
+    pub fn is_middle(&self) -> bool {
+        matches!(self, FirstLastPosition::Neither)
+    }
+}
+
+pub struct PositionalIterator<I: Iterator + ExactSizeIterator> {
+    inner: I,
+    cursor: usize,
+    len: usize,
+}
+
+impl<I: Iterator + ExactSizeIterator> PositionalIterator<I> {
+    pub fn new(inner: I) -> Self {
+        Self {
+            len: inner.len(),
+            cursor: 0,
+            inner,
+        }
+    }
+}
+
+impl<I: Iterator + ExactSizeIterator> Iterator for PositionalIterator<I> {
+    type Item = (FirstLastPosition, I::Item);
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.inner.next()?;
+        self.cursor += 1;
+        Some((
+            FirstLastPosition::from_cursor_and_size(self.cursor - 1, self.len),
+            next,
+        ))
     }
 }

@@ -25,7 +25,7 @@ impl BlockBound {
         }
     }
 
-    pub(crate) fn kind(&self) -> SyntaxKind {
+    pub(crate) fn block_kind(&self) -> SyntaxKind {
         match self {
             BlockBound::Start(_, kind) => *kind,
             BlockBound::End(_, kind) => *kind,
@@ -52,6 +52,10 @@ struct Line {
 impl Line {
     fn is_blank(&self) -> bool {
         self.line_length == self.leading_offset
+    }
+
+    fn start_offset(&self) -> usize {
+        self.offset
     }
 
     fn end_offset(&self) -> usize {
@@ -331,7 +335,8 @@ impl<'a> BlockParser<'a> {
     /// This method also checks for setext heading underlines and converts the paragraph into a
     /// heading if it is found.
     fn consume_paragraph_or_setext_heading(&mut self) {
-        let start_offset = self.current_line().offset;
+        let start_offset = self.current_line().start_offset();
+        let content_offset = self.current_line().content_offset();
         let mut block_kind = SyntaxKind::PARAGRAPH;
         self.eat_lines_while(|line| {
             // Ending in an ICU context forces the paragraph to continue until the ICU content
@@ -357,7 +362,7 @@ impl<'a> BlockParser<'a> {
         // For setext headings, exclude the underline from the inline content
         // of the heading using an INLINE_CONTENT block.
         if block_kind == SyntaxKind::SETEXT_HEADING {
-            self.push_inline_start(start_offset);
+            self.push_inline_start(content_offset);
             // Should be able to confidently unwrap here, since the only way to
             // get here is to have parsed a line and then another line to
             // create the heading.
@@ -450,7 +455,7 @@ impl<'a> BlockParser<'a> {
 
             line.leading_spaces >= 4 || line.is_blank()
         });
-        self.push_end_after_line(SyntaxKind::INDENTED_CODE_BLOCK, last_contentful_line);
+        self.push_end_at_line(SyntaxKind::INDENTED_CODE_BLOCK, last_contentful_line);
     }
 
     /// Fenced code blocks also ignore ICU context since they also treat all content within them as
@@ -478,7 +483,7 @@ impl<'a> BlockParser<'a> {
         }
 
         // Otherwise there must be content, even if it's empty.
-        self.push_inline_start(self.current_line().offset);
+        self.push_inline_start(self.current_line().start_offset());
         loop {
             // If the end of the file was reached, then there was no closing fence,
             // so the inline and block ends just appear at the end of the input.
@@ -494,7 +499,7 @@ impl<'a> BlockParser<'a> {
                 .current_line()
                 .is_fenced_code_block_ending(self.text, expected, opening_count)
             {
-                self.push_inline_end(self.current_line().offset);
+                self.push_inline_end(self.current_line().start_offset());
                 self.advance();
                 break;
             }
@@ -550,7 +555,7 @@ impl<'a> BlockParser<'a> {
     /// Push a start bound for the given kind, using the offset of the current
     /// line as the position.
     fn push_start(&mut self, kind: SyntaxKind) {
-        self.push_start_at(kind, self.current_line().offset);
+        self.push_start_at(kind, self.current_line().start_offset());
     }
 
     /// Push a start bound for the given kind, using the given offset. This
@@ -576,12 +581,8 @@ impl<'a> BlockParser<'a> {
     /// start of the following line, rather than at the end of the previous
     /// line. This is useful for blocks that include trailing line endings, like
     /// indented code blocks.
-    fn push_end_after_line(&mut self, kind: SyntaxKind, line: Line) {
-        let mut position = line.end_offset();
-        if !line.is_last_line {
-            position += 1;
-        }
-        self.bounds.push(BlockBound::End(position, kind));
+    fn push_end_at_line(&mut self, kind: SyntaxKind, line: Line) {
+        self.bounds.push(BlockBound::End(line.end_offset(), kind));
     }
 }
 
@@ -684,7 +685,7 @@ mod test {
         let known_lines = vec!["some text", "on multiple", "  lines", ""];
 
         for (index, line) in lines.iter().enumerate() {
-            let found_line = &text[line.offset..line.end_offset()];
+            let found_line = &text[line.start_offset()..line.end_offset()];
 
             assert_eq!(known_lines[index], found_line);
         }

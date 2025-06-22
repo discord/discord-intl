@@ -74,6 +74,7 @@ pub enum LexContext {
 #[cfg(feature = "debug-tracing")]
 pub struct DebugLexerToken {
     kind: SyntaxKind,
+    block_kind: Option<SyntaxKind>,
     pointer: TextPointer,
 }
 
@@ -107,14 +108,23 @@ impl DebugLexerTokenList {
 impl std::fmt::Debug for DebugLexerTokenList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for token in &self.tokens {
-            write!(
-                f,
-                "  {:4}..{:4} {:?} \"{}\"\n",
-                token.pointer.start(),
-                token.pointer.end(),
-                token.kind,
-                token.pointer.as_str()
-            )?;
+            match token.block_kind {
+                Some(block) => writeln!(
+                    f,
+                    "  {:4}- {:?} -- {:?}",
+                    token.pointer.start(),
+                    token.kind,
+                    block
+                )?,
+                None => writeln!(
+                    f,
+                    "  {:4}..{:4} {:?} {:?}",
+                    token.pointer.start(),
+                    token.pointer.end(),
+                    token.kind,
+                    token.pointer.as_str()
+                )?,
+            }
         }
         Ok(())
     }
@@ -158,13 +168,6 @@ impl Lexer {
     /// Rewind the lexer to the start of the currently-lexed token and
     /// reinterpret it with the given context.
     pub fn relex_with_context(&mut self, context: LexContext) -> SyntaxKind {
-        // Moving to one position before the current character lets us regain
-        // the ephemeral lexer state (like `last_was_newline`) by just using
-        // `self.advance()` again, rather than having to store that information
-        // on every advance just in case a relex happens.
-        //
-        // But if this is the first byte of the input, then we can just assume
-        // a truly-default state instead.
         self.position = self.last_position;
         self.next_token(context)
     }
@@ -175,10 +178,11 @@ impl Lexer {
     pub fn next_token(&mut self, context: LexContext) -> SyntaxKind {
         // Block endings are always present
         if self.is_at_block_bound() {
-            let block_kind = self.consume_block_bound();
+            let (bound_kind, block_kind) = self.consume_block_bound();
+            self.current_kind = bound_kind;
             #[cfg(feature = "debug-tracing")]
-            self.push_debug_token(block_kind);
-            return block_kind;
+            self.push_debug_block_token(bound_kind, block_kind);
+            return bound_kind;
         }
 
         if self.is_eof() {
@@ -265,16 +269,7 @@ impl Lexer {
     fn next_code_block_token(&mut self) -> SyntaxKind {
         match self.current() {
             b'\0' => self.consume_byte(SyntaxKind::EOF),
-            // Consecutive newlines immediately become blank lines
-            b'\n' => {
-                let kind = if self.last_was_newline() {
-                    SyntaxKind::BLANK_LINE
-                } else {
-                    SyntaxKind::LINE_ENDING
-                };
-                self.advance();
-                kind
-            }
+            b'\n' => self.consume_byte(SyntaxKind::LINE_ENDING),
             // Any other whitespaces character after a newline becomes leading
             // whitespace, if the configured `indent_depth` is more than 0. If
             // it is 0, then there cannot be any skipped leading whitespace.
@@ -330,10 +325,7 @@ impl Lexer {
             return default_kind;
         }
 
-        if started_on_newline && self.current() == b'\n' {
-            self.advance();
-            SyntaxKind::BLANK_LINE
-        } else if self.current() == b'\n' {
+        if self.current() == b'\n' {
             let is_hard_line = self.position - self.last_position >= 2;
             self.advance();
             if is_hard_line {
@@ -575,16 +567,14 @@ impl Lexer {
     /// consumes that block bound and returns a matching SyntaxKind for it,
     /// representing a zero-width internal token that the parser uses to branch
     /// its parsing appropriately.
-    fn consume_block_bound(&mut self) -> SyntaxKind {
-        self.current_kind = match self.block_bounds.get(self.state.block_bound_index) {
-            Some(BlockBound::Start(_, _)) => SyntaxKind::BLOCK_START,
-            Some(BlockBound::End(_, _)) => SyntaxKind::BLOCK_END,
-            Some(BlockBound::InlineStart(_, _)) => SyntaxKind::INLINE_START,
-            Some(BlockBound::InlineEnd(_, _)) => SyntaxKind::INLINE_END,
+    fn consume_block_bound(&mut self) -> (SyntaxKind, SyntaxKind) {
+        match self.block_bounds.get(self.state.block_bound_index) {
+            Some(BlockBound::Start(_, kind)) => (SyntaxKind::BLOCK_START, *kind),
+            Some(BlockBound::End(_, kind)) => (SyntaxKind::BLOCK_END, *kind),
+            Some(BlockBound::InlineStart(_, kind)) => (SyntaxKind::INLINE_START, *kind),
+            Some(BlockBound::InlineEnd(_, kind)) => (SyntaxKind::INLINE_END, *kind),
             _ => unreachable!(),
-        };
-
-        self.current_kind
+        }
     }
 
     /// Return the current block boundary that the lexer is in. This method
@@ -601,7 +591,7 @@ impl Lexer {
         self.block_bounds
             .get(self.state.block_bound_index)
             .unwrap()
-            .kind()
+            .block_kind()
     }
     //#endregion
 
@@ -1032,13 +1022,15 @@ impl Lexer {
         self.state = checkpoint.state;
     }
 
-    fn last_was_newline(&self) -> bool {
-        // https://spec.commonmark.org/0.31.2/#left-flanking-delimiter-run
-        // "For purposes of this definition, the beginning and the end of the line count as Unicode
-        // whitespace."
-        // This technically only applies for emphasis flanking, but it's also a helpful default to
-        // say that the beginning and end of the input (i.e., when there's no adjacent character)
-        // count as newlines in general.
+    /// https://spec.commonmark.org/0.31.2/#left-flanking-delimiter-run
+    /// "For purposes of this definition, the beginning and the end of the line count as Unicode
+    /// whitespace."
+    /// This technically only applies for emphasis flanking, but it's also a helpful default to
+    /// say that the beginning and end of the input (i.e., when there's no adjacent character)
+    /// count as newlines in general.
+    /// Additionally, we often want to know if we're immediately after a newline for the sake of
+    /// determining trailing versus leading trivia.
+    pub(super) fn last_was_newline(&self) -> bool {
         matches!(self.peek_back(1), b'\n' | 0)
     }
 
@@ -1131,6 +1123,19 @@ impl Lexer {
     fn push_debug_token(&mut self, kind: SyntaxKind) {
         self.debug_token_list.append_token(DebugLexerToken {
             kind,
+            block_kind: None,
+            pointer: TextPointer::new(
+                self.text.clone(),
+                self.last_position as TextSize,
+                (self.position - self.last_position) as TextSize,
+            ),
+        })
+    }
+
+    fn push_debug_block_token(&mut self, bound_kind: SyntaxKind, block_kind: SyntaxKind) {
+        self.debug_token_list.append_token(DebugLexerToken {
+            kind: bound_kind,
+            block_kind: Some(block_kind),
             pointer: TextPointer::new(
                 self.text.clone(),
                 self.last_position as TextSize,

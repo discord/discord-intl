@@ -7,8 +7,8 @@ use super::{
 };
 use crate::lexer::{LexContext, LexerState};
 use crate::syntax::{
-    FromSyntaxElement, SourceText, SyntaxElement, SyntaxKind, SyntaxToken, TextSize, TreeBuilder,
-    TreeMarker,
+    FromSyntaxElement, SourceText, SyntaxElement, SyntaxKind, SyntaxToken, TextPointer, TextSize,
+    TreeBuilder, TreeMarker,
 };
 use marker::Marker;
 
@@ -21,10 +21,10 @@ mod inline;
 mod link;
 mod marker;
 mod strikethrough;
-mod text;
 
+// Currently not used, but tracked for the sake of adding later if needed.
 #[derive(Clone, Copy, Debug, Default)]
-pub(super) struct ParserState {}
+pub(super) struct ParserState;
 
 #[derive(Debug)]
 pub(super) struct ParserCheckpoint {
@@ -149,6 +149,7 @@ impl ICUMarkdownParser {
 
             match self.current() {
                 SyntaxKind::EOF => break,
+                SyntaxKind::LINE_ENDING | SyntaxKind::HARD_LINE_ENDING => parse_block_space(self),
                 SyntaxKind::BLOCK_START => {
                     let kind = self.eat_block_bound();
                     self.start_node(kind);
@@ -341,6 +342,25 @@ impl ICUMarkdownParser {
         self.lexer.next_token(context);
     }
 
+    pub(super) fn bump_as_trivia_only_token(&mut self, context: LexContext) {
+        // Create a new zero-length token at the current position to be able to attach the trivia
+        // to it. The token starts at the position _after_ the trivia, meaning `extend_front` on
+        // the token's pointer will be able to merge into a single pointer without copying.
+        let trivia_span = self.lexer.current_byte_span();
+        let token = SyntaxToken::from_raw_parts(
+            SyntaxKind::TEXT,
+            TextPointer::new(
+                self.source.clone(),
+                trivia_span.start as TextSize,
+                trivia_span.len() as TextSize,
+            ),
+            trivia_span.len() as TextSize,
+            trivia_span.len() as TextSize,
+        );
+        self.skip_with_context(context);
+        self.push_token(token);
+    }
+
     /// Eats the current token from the stream, consuming the kind stored on
     /// the current block bound and returning that instead of the actual token
     /// that was eaten.
@@ -458,59 +478,41 @@ impl ICUMarkdownParser {
             .unwrap_or_else(|| self.push_missing())
     }
 
-    /// Skip consecutive whitespace and newline tokens as trivia. The parser
-    /// will automatically determine whether each trivia piece is added as
-    /// leading or trailing trivia.
+    /// Skip consecutive whitespace tokens as trivia. The parser will automatically determine
+    /// whether each trivia piece is added as leading or trailing trivia using a simple heuristic.
+    /// All same-line whitespace after the token is trailing trivia, and any whitespace immediately
+    /// beginning on a new line becomes leading trivia. This method will not consume any token
+    /// that contains a newline.
     pub(super) fn skip_whitespace_as_trivia(&mut self) {
         self.skip_whitespace_as_trivia_with_context(Default::default())
     }
 
-    /// Skip consecutive whitespace and newline tokens as leading trivia.
-    /// Use this method for nodes where trailing trivia should not be allowed
-    /// even when it would otherwise be determined that way by the parser's
-    /// normal rules.
+    /// Skip consecutive whitespace as leading trivia. Use this method for tokens where trailing
+    /// trivia should not be allowed even when it would otherwise be determined that way by the
+    /// parser's normal rules.
     pub(super) fn skip_whitespace_as_leading_trivia(&mut self, context: ParseContext) {
         self.skip_whitespace_as_trivia_with_context(context.with_allow_trailing_trivia(false))
     }
 
     pub(super) fn skip_whitespace_as_trivia_with_context(&mut self, context: ParseContext) {
-        let trivia_start = self.lexer.current_byte_span().start;
-        let mut trivia_end = trivia_start;
-        let mut trailing_trivia_end = trivia_end;
+        let is_after_newline = self.lexer.last_was_newline();
+        let start = self.lexer.current_byte_span().start;
+        // First, if trailing trivia is allowed, parse all of that out.
+        let mut end = start;
         while self.current().is_trivia() {
-            trivia_end = self.lexer.position();
-            if context.allow_trailing_trivia && self.current().is_trailing_trivia_boundary() {
-                trailing_trivia_end = trivia_end;
-            }
+            end = self.lexer.position();
             self.skip_with_context(context.lex_context);
         }
-        // If no trailing trivia boundary was found, then all trivia is trailing.
-        if context.allow_trailing_trivia && trailing_trivia_end == trivia_start {
-            trailing_trivia_end = trivia_end;
-        }
-        self.builder.add_trivia(
-            // trailing trivia for the last token
-            self.lexer.text(trivia_start..trailing_trivia_end),
-            // leading trivia for the next token
-            self.lexer.text(trailing_trivia_end..trivia_end),
-        )
-    }
-
-    /// Special method for parsing whitespace in contexts where leading and trailing trivia are not
-    /// meaningful (and typically cause more complication than they help). For example, inline
-    /// content is made up of heterogeneous mixes of tokens and nodes, but whitespace between nodes
-    /// and tokens must be respected. Since trivia is by default added as trailing trivia of a
-    /// _token_, ensuring that the trivia appears _outside_ of a node (like spaces after an
-    /// emphasis, like `**foo** bar`) becomes a complex traversal of the node tree. Similarly, if
-    /// it is treated as leading trivia of the _following_ token, it requires conditional logic for
-    /// when leading trivia should be rendered, since we typically skip leading trivia for all
-    /// block nodes (like the leading text of a paragraph, `   foo`, would become `foo`).
-    ///
-    /// By allowing the parser to instead treat these trivia as text tokens, it can maintain
-    /// significance and be preserved in all formatting contexts _without_ any special processing.
-    pub(super) fn relex_inline_whitespace_as_text(&mut self) {
-        if self.current().is_trivia() {
-            self.relex_with_context(LexContext::InlineWhitespace);
+        // Next, examine the following token to know if it's a line ending that should instead have
+        // this trivia attached as _leading_ trivia for that newline. Or, if we're immediately
+        // after a newline, then it's also leading trivia for whatever next token starts that line.
+        if is_after_newline || self.current().is_line_ending() || !context.allow_trailing_trivia {
+            self.builder
+                .prepend_leading_trivia(self.lexer.text(start..end))
+        // Otherwise, that trivia is all trailing trivia.
+        } else {
+            self.builder
+                .append_trailing_trivia(self.lexer.text(start..end))
         }
     }
 
@@ -546,7 +548,10 @@ impl ParseContext {
 
 impl From<LexContext> for ParseContext {
     fn from(lex_context: LexContext) -> Self {
-        Self::default().with_lex_context(lex_context)
+        let allow_trailing_trivia = !matches!(lex_context, LexContext::CodeBlock);
+        Self::default()
+            .with_lex_context(lex_context)
+            .with_allow_trailing_trivia(allow_trailing_trivia)
     }
 }
 
@@ -554,6 +559,8 @@ impl From<LexContext> for ParseContext {
 use crate::block_parser::BlockBound;
 #[cfg(feature = "debug-tracing")]
 use crate::lexer::DebugLexerTokenList;
+use crate::parser::block::parse_block_space;
+
 #[cfg(feature = "debug-tracing")]
 impl ICUMarkdownParser {
     pub fn debug_token_list(&self) -> &DebugLexerTokenList {
@@ -574,7 +581,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "foo_bar_";
+        let content = "   **Foo** f";
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         #[cfg(feature = "debug-tracing")]
         println!("Blocks: {:?}\n", parser.lexer_block_bounds());

@@ -8,7 +8,6 @@ use super::{
     emphasis::process_emphasis,
     icu::parse_icu,
     link::{parse_image_open, parse_link_like_close, parse_link_open},
-    text::parse_plain_text,
     ICUMarkdownParser,
 };
 
@@ -19,14 +18,19 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
     p.push_delimiter_stack();
     let inline_start = p.mark();
 
-    // Tracking adjacent text tokens lets us merge them into a single span when they don't get
-    // handled as parts of other inline nodes.
-    // let mut last_was_text = false;
+    // Consume any leading whitespace in a block content node as a separate text token so that it
+    // doesn't get incidentally applied to anything inside the inline content.
+    // See `tests::spec_regression::regression_1` for an example.
+    if p.current().is_leading_whitespace() {
+        let mark = p.mark();
+        p.bump_as_trivia_only_token(LexContext::InlineWhitespace);
+        mark.complete(p, SyntaxKind::TEXT_SPAN);
+    }
 
     // First inline phase: tokenizing.
     loop {
         // Leading trivia is allowed for a complete segment of inline content, but if some trivia
-        // would be considered leading while _within_ the inilne content, it is instead treated as
+        // would be considered leading while _within_ the inline content, it is instead treated as
         // actual token text. So, to start, we skip the leading whitespace as trivia, but all other
         // methods.
         p.skip_whitespace_as_trivia();
@@ -35,12 +39,8 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
             SyntaxKind::EOF | SyntaxKind::BLOCK_END | SyntaxKind::INLINE_END => break,
             // Emphasis
             SyntaxKind::STAR | SyntaxKind::UNDER => parse_delimiter_run(p, p.current()),
-            // Images or ICU unsafe variables
-            // Images start with `![`, and unsafe ICU variables start with `!!{`. Because the syntax
-            // overlaps, both have to be checked at the same time. The more likely use case here is
-            // an ICU unsafe block, so that is checked first.
+            // Links and Images
             SyntaxKind::EXCLAIM => parse_image_open(p),
-            // Links
             SyntaxKind::LSQUARE => parse_link_open(p),
             SyntaxKind::RSQUARE => parse_link_like_close(p),
             // Code spans
@@ -57,7 +57,8 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
                 let checkpoint = p.checkpoint();
                 parse_autolink(p).or_else(|| {
                     p.rewind(checkpoint);
-                    parse_plain_text(p)
+                    p.bump();
+                    Some(())
                 })
             }
 
@@ -89,13 +90,31 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
         // token, so that it does not get attached to a token inside a nested node. Keeping them
         // separate ensures downstream processing can easily preserve this space without having to
         // traverse adjacent nodes to find trivia text.
-        p.relex_inline_whitespace_as_text();
+        parse_trailing_inline_text(p);
     }
 
     // Second inline phase: process nestable delimiters.
     process_emphasis(p, 0..p.delimiter_stack_length());
     inline_start.complete(p, SyntaxKind::INLINE_CONTENT);
     p.pop_delimiter_stack();
+}
+
+/// Special method for parsing whitespace in contexts where leading and trailing trivia are not
+/// meaningful (and typically cause more complication than they help). For example, inline
+/// content is made up of heterogeneous mixes of tokens and nodes, but whitespace between nodes
+/// and tokens must be respected. Since trivia is by default added as trailing trivia of a
+/// _token_, ensuring that the trivia appears _outside_ of a node (like spaces after an
+/// emphasis, like `**foo** bar`) becomes a complex traversal of the node tree. Similarly, if
+/// it is treated as leading trivia of the _following_ token, it requires conditional logic for
+/// when leading trivia should be rendered, since we typically skip leading trivia for all
+/// block nodes (like the leading text of a paragraph, `   foo`, would become `foo`).
+///
+/// By allowing the parser to instead treat these trivia as text tokens, it can maintain
+/// significance and be preserved in all formatting contexts _without_ any special processing.
+fn parse_trailing_inline_text(p: &mut ICUMarkdownParser) {
+    if p.current().is_trivia() {
+        p.relex_with_context(LexContext::InlineWhitespace);
+    }
 }
 
 fn parse_autolink(p: &mut ICUMarkdownParser) -> Option<()> {
