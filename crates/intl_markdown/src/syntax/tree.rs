@@ -36,7 +36,6 @@ impl TreeMarker {
     /// and text offsets would require calculating from the content of the tree.
     pub fn add_child_offset(mut self, offset: usize) -> Self {
         self.child_idx += offset;
-        self.text_offset += offset;
         self
     }
 
@@ -49,7 +48,6 @@ impl TreeMarker {
     /// and text offsets would require calculating from the content of the tree.
     pub fn sub_child_offset(mut self, offset: usize) -> Self {
         self.child_idx -= offset;
-        self.text_offset -= offset;
         self
     }
 

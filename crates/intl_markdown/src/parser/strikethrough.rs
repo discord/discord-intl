@@ -1,4 +1,5 @@
 use crate::delimiter::{Delimiter, StrikethroughDelimiter};
+use crate::lexer::LexContext;
 use crate::parser::delimiter::get_surrounding_delimiter_state;
 use crate::parser::emphasis::{complete_emphasis_and_content_marker_pairs, EmphasisMatchResult};
 use crate::{syntax::SyntaxKind, ICUMarkdownParser};
@@ -17,6 +18,10 @@ pub(super) fn parse_strikethrough_delimiter_run(
     p: &mut ICUMarkdownParser,
     kind: SyntaxKind,
 ) -> Option<()> {
+    // Sanity check that we're actually ready to parse this run.
+    if !p.at(kind) {
+        return None;
+    }
     let cursor = p.mark();
 
     // Determining whether the run can open or close relies on the fact that
@@ -27,15 +32,10 @@ pub(super) fn parse_strikethrough_delimiter_run(
     // because delimiters are considered "removed from the text" when they
     // are consumed, so once one is consumed, the following ones shift into
     // their place.
-
-    let first_span = p.lexer.current_byte_span();
-    let mut last_span = first_span.clone();
-    let mut count = 0;
-    while p.current() == kind {
-        last_span = p.lexer.current_byte_span();
-        count += 1;
-        p.bump();
-    }
+    p.relex_with_context(LexContext::AsciiPunctuationRun);
+    let byte_span = p.lexer.current_byte_span();
+    let count = byte_span.len();
+    p.bump();
 
     // Strikethrough delimiters are capped at two characters. They can't nest,
     // and they can't be partially consumed, so if there were more than two
@@ -45,19 +45,19 @@ pub(super) fn parse_strikethrough_delimiter_run(
         return None;
     }
 
-    let delimiter_state = get_surrounding_delimiter_state(p, first_span, last_span);
+    let delimiter_state = get_surrounding_delimiter_state(p, &byte_span, &byte_span);
     // Double tildes for strikethroughs are flanking and can open so long as they are not
     // surrounded by whitespace. Single tildes match the normal flanking rules.
     let can_open_emphasis = if count == 1 {
         delimiter_state.is_left_flanking()
     } else {
-        delimiter_state.has_following_whitespace
+        !delimiter_state.has_following_whitespace
     };
 
     let can_close_emphasis = if count == 1 {
         delimiter_state.is_right_flanking()
     } else {
-        delimiter_state.has_preceding_whitespace
+        !delimiter_state.has_preceding_whitespace
     };
 
     p.push_delimiter(

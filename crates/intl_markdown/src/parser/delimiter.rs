@@ -12,8 +12,8 @@ use crate::{cjk, delimiter::EmphasisDelimiter};
 /// return [`None`] for the characters in those positions instead.
 pub(crate) fn get_surrounding_chars(
     p: &ICUMarkdownParser,
-    first: TextSpan,
-    last: TextSpan,
+    first: &TextSpan,
+    last: &TextSpan,
 ) -> [Option<char>; 3] {
     let mut result: [Option<char>; 3] = [None; 3];
     if let Some(mut preceding) = p.source.get(..first.start).map(|i| i.chars()) {
@@ -106,8 +106,8 @@ impl DelimiterSurroundingsState {
 
 pub(crate) fn get_surrounding_delimiter_state(
     p: &ICUMarkdownParser,
-    first_span: TextSpan,
-    last_span: TextSpan,
+    first_span: &TextSpan,
+    last_span: &TextSpan,
 ) -> DelimiterSurroundingsState {
     let [mut prev2, prev_raw, next] = get_surrounding_chars(p, first_span, last_span);
     let mut prev = prev_raw;
@@ -184,7 +184,7 @@ pub(super) fn parse_delimiter_run(p: &mut ICUMarkdownParser, kind: SyntaxKind) -
 
     // Using the expanded spec from:
     // https://github.com/tats-u/markdown-cjk-friendly/blob/main/specification.md
-    let delimiter_state = get_surrounding_delimiter_state(p, first_span, last_span);
+    let delimiter_state = get_surrounding_delimiter_state(p, &first_span, &last_span);
 
     // Underscores are not able to create intra-word emphasis, meaning strings
     // like `foo_bar_` do not create emphasis, but `foo*bar*` does.

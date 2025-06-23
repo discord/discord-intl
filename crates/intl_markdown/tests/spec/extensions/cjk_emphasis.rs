@@ -132,43 +132,42 @@ fn strikethrough_inner_punctuation() {
 fn korean_nested_link() {
     let input = "**이 [링크](https://example.kr/)**만을 강조하고 싶다.";
     let expected =
-        r#"[[8,"$b",["이 ",[8,"$link",["링크"],["https://example.kr/"]]]],"만을 강조하고 싶다."]"#;
+        r#"<strong>이 <a href="https://example.kr/">링크</a></strong>만을 강조하고 싶다."#;
 
     assert_eq!(expected, harness::parse_inline(input));
 }
 #[test]
 fn korean_nested_punctuation() {
     let input = "**스크립트(script)**라고";
-    let expected = r#"[[8,"$b",["스크립트(script)"]],"라고"]"#;
+    let expected = "<strong>스크립트(script)</strong>라고";
 
     assert_eq!(expected, harness::parse_inline(input));
 }
 #[test]
 fn korean_nested_code_span() {
     let input = "패키지를 발행하려면 **`npm publish`**를 실행하십시오.";
-    let expected =
-        r#"["패키지를 발행하려면 ",[8,"$b",[[8,"$code",["npm publish"]]]],"를 실행하십시오."]"#;
+    let expected = "패키지를 발행하려면 <strong><code>npm publish</code></strong>를 실행하십시오.";
 
     assert_eq!(expected, harness::parse_inline(input));
 }
 #[test]
 fn korean_leading_emphasis() {
     let input = "**안녕(hello)**하세요.";
-    let expected = r#"[[8,"$b",["안녕(hello)"]],"하세요."]"#;
+    let expected = "<strong>안녕(hello)</strong>하세요.";
 
     assert_eq!(expected, harness::parse_inline(input));
 }
 #[test]
 fn korean_trailing_emphasis() {
     let input = "ᅡ**(a)**";
-    let expected = r#"["ᅡ",[8,"$b",["(a)"]]]"#;
+    let expected = "ᅡ<strong>(a)</strong>";
 
     assert_eq!(expected, harness::parse_inline(input));
 }
 #[test]
 fn korean_trailing_word() {
     let input = "**(k)**ᄏ";
-    let expected = r#"[[8,"$b",["(k)"]],"ᄏ"]"#;
+    let expected = "<strong>(k)</strong>ᄏ";
 
     assert_eq!(expected, harness::parse_inline(input));
 }
@@ -240,14 +239,14 @@ fn cjk_test_1a() {
 #[test]
 fn cjk_test_2() {
     let input = "**[製品ほげ](./product-foo)**と**[製品ふが](./product-bar)**をお試しください";
-    let expected = r#"[[8,"$b",[[8,"$link",["製品ほげ"],["./product-foo"]]]],"と",[8,"$b",[[8,"$link",["製品ふが"],["./product-bar"]]]],"をお試しください"]"#;
+    let expected = r#"<strong><a href="./product-foo">製品ほげ</a></strong>と<strong><a href="./product-bar">製品ふが</a></strong>をお試しください"#;
 
     assert_eq!(expected, harness::parse_inline(input));
 }
 #[test]
 fn cjk_test_3() {
     let input = "単語と**[単語と](word-and)**単語";
-    let expected = r#"["単語と",[8,"$b",[[8,"$link",["単語と"],["word-and"]]]],"単語"]"#;
+    let expected = r#"単語と<strong><a href="word-and">単語と</a></strong>単語"#;
 
     assert_eq!(expected, harness::parse_inline(input));
 }
@@ -269,7 +268,7 @@ fn cjk_test_5() {
 fn cjk_test_6() {
     let input = "**[リンク](https://example.com)**も注意。（画像も同様）";
     let expected =
-        r#"[[8,"$b",[[8,"$link",["リンク"],["https://example.com"]]]],"も注意。（画像も同様）"]"#;
+        r#"<strong><a href="https://example.com">リンク</a></strong>も注意。（画像も同様）"#;
 
     assert_eq!(expected, harness::parse_inline(input));
 }
@@ -402,7 +401,7 @@ fn cjk_test_23() {
 #[test]
 fn cjk_test_24() {
     let input = "**[リンク](https://example.com)**も注意。";
-    let expected = r#"[[8,"$b",[[8,"$link",["リンク"],["https://example.com"]]]],"も注意。"]"#;
+    let expected = r#"<strong><a href="https://example.com">リンク</a></strong>も注意。"#;
 
     assert_eq!(expected, harness::parse_inline(input));
 }
@@ -717,8 +716,7 @@ fn cjk_test_68() {
 #[test]
 fn cjk_test_69() {
     let input = "国際規格**[ECMA-262](https://tc39.es/ecma262/)**";
-    let expected =
-        r#"["国際規格",[8,"$b",[[8,"$link",["ECMA-262"],["https://tc39.es/ecma262/"]]]]]"#;
+    let expected = r#"国際規格<strong><a href="https://tc39.es/ecma262/">ECMA-262</a></strong>"#;
 
     assert_eq!(expected, harness::parse_inline(input));
 }

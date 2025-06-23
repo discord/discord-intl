@@ -10,7 +10,7 @@ fn atx_heading() {
 #[test]
 fn setext_heading() {
     let input = "Setext *Heading*\n---";
-    let expected = "<h2>Setext <i>Heading</i></h2>";
+    let expected = "<h2>Setext <em>Heading</em></h2>";
 
     assert_eq!(expected, harness::parse(input));
 }

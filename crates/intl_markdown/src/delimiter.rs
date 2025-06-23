@@ -101,11 +101,13 @@ impl Delimiter for EmphasisDelimiter {
         let item_open = self
             .cursor
             .clone()
-            .add_child_offset(self.count - self.end_offset - count);
+            .add_child_offset(self.count - self.end_offset - count)
+            .add_text_offset(self.count - self.end_offset - count);
         let content_open = self
             .cursor
             .clone()
-            .add_child_offset(self.count - self.end_offset);
+            .add_child_offset(self.count - self.end_offset)
+            .add_text_offset(self.count - self.end_offset);
         self.end_offset += count;
         (item_open, content_open)
     }
@@ -261,9 +263,13 @@ impl Delimiter for StrikethroughDelimiter {
 
     fn consume_opening(&mut self, count: usize) -> (TreeMarker, TreeMarker) {
         self.active = false;
-        let content_open = self.cursor.clone().add_text_offset(self.count + 1);
+        let content_open = self
+            .cursor
+            .clone()
+            .add_child_offset(1)
+            .add_text_offset(count);
         self.count -= count;
-        let item_open = self.cursor.clone().add_text_offset(self.count);
+        let item_open = self.cursor.clone();
         (item_open, content_open)
     }
 
@@ -271,7 +277,7 @@ impl Delimiter for StrikethroughDelimiter {
         self.active = false;
         let content_close = self.cursor.clone();
         self.count -= count;
-        let item_close = self.cursor.clone().add_text_offset(count + 1);
+        let item_close = self.cursor.clone().add_text_offset(count);
         (item_close, content_close)
     }
 }

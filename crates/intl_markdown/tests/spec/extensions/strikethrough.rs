@@ -87,7 +87,7 @@ fn no_boundary_crossing() {
 #[test]
 fn no_reverse_boundary_crossing() {
     let input = "*no ~boundary* crossing~";
-    let expected = "<i>no ~boundary</i> crossing~";
+    let expected = "<em>no ~boundary</em> crossing~";
 
     assert_eq!(expected, harness::parse_inline(input));
 }
