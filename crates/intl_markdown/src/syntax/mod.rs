@@ -11,7 +11,7 @@ mod tree;
 pub(crate) use traits::{FromSyntax, FromSyntaxElement, Syntax};
 pub(crate) use tree::{TreeBuilder, TreeMarker};
 
-pub use element::{SyntaxElement, SyntaxElementRef, SyntaxNodeChildren, SyntaxTokenChildren};
+pub use element::{SyntaxElement, SyntaxNodeChildren, SyntaxTokenChildren};
 pub use iterators::{
     MinimalTextIter, SyntaxIterator, SyntaxNodeTokenIter, TokenTextIter, TokenTextIterOptions,
 };

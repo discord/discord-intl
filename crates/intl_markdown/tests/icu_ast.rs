@@ -73,35 +73,46 @@ mod icu_formatjs_types {
 }
 
 mod icu_markdown_types {
-    use crate::harness::ast_test;
+    #[test]
+    fn emphasis() {
+        let input = "*hello*";
+        let expected = r#"[[8,"$i",["hello"]]]"#;
 
-    ast_test!(emphasis, "*hello*", r#"[[8,"$i",["hello"]]]"#);
-    ast_test!(strong, "**hello**", r#"[[8,"$b",["hello"]]]"#);
-    ast_test!(code_span, "`hello`", r#"[[8,"$code",["hello"]]]"#);
-    ast_test!(
-        static_link,
-        "[hello](./target)",
-        r#"[[8,"$link",["hello"],["./target"]]]"#
-    );
-    ast_test!(
-        handler_link,
-        "[hello](onClick)",
-        r#"[[8,"$link",["hello"],[[1,"onClick"]]]]"#
-    );
-    ast_test!(
-        dynamic_link,
-        "[hello]({target})",
-        r#"[[8,"$link",["hello"],[[1,"target"]]]]"#
-    );
-}
+        assert_eq!(expected, input);
+    }
+    #[test]
+    fn strong() {
+        let input = "**hello**";
+        let expected = r#"[[8,"$b",["hello"]]]"#;
 
-mod icu_md_extensions {
-    use crate::harness::ast_test;
+        assert_eq!(expected, input);
+    }
+    #[test]
+    fn code_span() {
+        let input = "`hello`";
+        let expected = r#"[[8,"$code",["hello"]]]"#;
 
-    ast_test!(
-        basic_hook,
-        "$[text](someHook)",
-        r#"[[8,"someHook",["text"]]]"#
-    );
-    ast_test!(empty_hook, "$[](someHook)", r#"[[8,"someHook",[]]]"#);
+        assert_eq!(expected, input);
+    }
+    #[test]
+    fn static_link() {
+        let input = "[hello](./target)";
+        let expected = r#"[[8,"$link",["hello"],["./target"]]]"#;
+
+        assert_eq!(expected, input);
+    }
+    #[test]
+    fn handler_link() {
+        let input = "[hello](onClick)";
+        let expected = r#"[[8,"$link",["hello"],[[1,"onClick"]]]]"#;
+
+        assert_eq!(expected, input);
+    }
+    #[test]
+    fn dynamic_link() {
+        let input = "[hello]({target})";
+        let expected = r#"[[8,"$link",["hello"],[[1,"target"]]]]"#;
+
+        assert_eq!(expected, input);
+    }
 }

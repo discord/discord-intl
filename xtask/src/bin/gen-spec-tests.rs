@@ -166,7 +166,7 @@ fn get_module_prelude() -> impl ToTokens {
         //#region Harness
         #[cfg(test)]
         mod harness {
-            use intl_markdown::{ICUMarkdownParser, SourceText, commonmark_html};
+            use intl_markdown::{ICUMarkdownParser, SourceText, formatter};
 
             pub fn parse(input: &str) -> String {
                 let mut parser = ICUMarkdownParser::new(SourceText::from(input), true);
@@ -183,9 +183,7 @@ fn get_module_prelude() -> impl ToTokens {
                 let ast = result.to_document();
                 println!("AST:\n----\n{:#?}\n", ast);
 
-                let mut output = String::new();
-                commonmark_html::format_document(&mut output, &ast)
-                    .expect("Failed to format the parsed input");
+                let output = formatter::to_html(&ast);
                 println!("Input:\n------\n{}\n", input);
                 println!("HTML Format:\n------------\n{}\n{:?}", output, output);
 
@@ -208,7 +206,7 @@ fn try_main() -> anyhow::Result<()> {
         .keys()
         .map(|section| format_ident!("{}", section))
         .collect::<Vec<_>>();
-    std::fs::write("mod.rs", quote! {#(mod #sections;)*}.to_string())?;
+    codegen.write_file("mod.rs", quote! {#(mod #sections;)*}.to_string())?;
 
     let module_prelude = get_module_prelude();
     for (section, cases) in cases_by_section {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod harness {
-    use intl_markdown::{commonmark_html, ICUMarkdownParser, SourceText};
+    use intl_markdown::{formatter, ICUMarkdownParser, SourceText};
     pub fn parse(input: &str) -> String {
         let mut parser = ICUMarkdownParser::new(SourceText::from(input), true);
         #[cfg(feature = "debug-tracing")]
@@ -12,9 +12,7 @@ mod harness {
         println!("Tree:\n-------\n{:#?}\n", result.tree);
         let ast = result.to_document();
         println!("AST:\n----\n{:#?}\n", ast);
-        let mut output = String::new();
-        commonmark_html::format_document(&mut output, &ast)
-            .expect("Failed to format the parsed input");
+        let output = formatter::to_html(&ast);
         println!("Input:\n------\n{}\n", input);
         println!("HTML Format:\n------------\n{}\n{:?}", output, output);
         output

@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{format_ident, quote, quote_spanned};
-use syn::parse::{Parse, ParseStream};
+use syn::parse::{Parse, ParseStream, Parser};
 use syn::punctuated::Punctuated;
 use syn::{parse_macro_input, LitByte, LitByteStr, LitStr, Token};
 
@@ -124,6 +124,16 @@ pub fn generate_byte_lookup_table_impl(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+// Common byte ranges that need escaping and are hard to write out
+// @control: Any ASCII control character.
+#[rustfmt::skip]
+static ASCII_CONTROL_RANGE: [u8; 32] = [
+    b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07',
+    b'\x08', b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f',
+    b'\x10', b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17',
+    b'\x18', b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f',
+];
+
 enum CharMapping {
     SingleByte { byte: u8, replacement: LitStr },
     ByteString { bytes: Vec<u8>, pattern: LitStr },
@@ -132,6 +142,10 @@ enum CharMapping {
 impl Parse for CharMapping {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
+        let is_inverted = lookahead.peek(Token![!]);
+        if is_inverted {
+            input.parse::<Token![!]>()?;
+        };
         if lookahead.peek(LitByte) {
             let byte = input.parse::<LitByte>()?;
             input.parse::<Token![=>]>()?;
@@ -141,10 +155,6 @@ impl Parse for CharMapping {
                 replacement,
             })
         } else if lookahead.peek(LitByteStr) || lookahead.peek(Token![!]) {
-            let is_inverted = lookahead.peek(Token![!]);
-            if is_inverted {
-                input.parse::<Token![!]>()?;
-            };
             let bytes = input.parse::<LitByteStr>()?;
             input.parse::<Token![=>]>()?;
             let replacement = input.parse::<LitStr>()?;
@@ -161,8 +171,25 @@ impl Parse for CharMapping {
                 bytes: resolved_bytes,
                 pattern: replacement,
             })
+        } else if lookahead.peek(Token![@]) {
+            input.parse::<Token![@]>()?;
+            let range_name = input.parse::<Ident>()?;
+            let range = match range_name.to_string().as_str() {
+                "control" => ASCII_CONTROL_RANGE,
+                name => {
+                    return Err(input.error(format!("{name} is not a valid named encoding range")))
+                }
+            };
+            input.parse::<Token![=>]>()?;
+            let replacement = input.parse::<LitStr>()?;
+            Ok(CharMapping::ByteString {
+                bytes: Vec::from(range),
+                pattern: replacement,
+            })
         } else {
-            Err(input.error("Expected a byte literal or a byte string mapping for replacement"))
+            Err(input.error(
+                "Expected a byte literal, byte string, or @named range mapping for replacement",
+            ))
         }
     }
 }
@@ -180,6 +207,9 @@ impl CharMapping {
                     match pattern.as_str() {
                         "%{:X}" => {
                             mappings.push((byte as usize, format!("%{:02X}", byte)));
+                        }
+                        "\\u00{:x}" => {
+                            mappings.push((byte as usize, format!("\\u00{:x}", byte)));
                         }
                         p => panic!("Unknown value pattern syntax {p}. Support is very limited. Edit the macro to support new patterns"),
                     }

@@ -575,8 +575,8 @@ impl ICUMarkdownParser {
 #[cfg(test)]
 mod test {
     use super::ICUMarkdownParser;
-    use crate::commonmark_html;
     use crate::cst::Document;
+    use crate::formatter;
     use crate::syntax::{FromSyntax, SourceText};
 
     #[test]
@@ -596,8 +596,7 @@ mod test {
         let ast = Document::from_syntax(result.tree.node().clone());
         println!("AST:\n----\n{:#?}\n", ast);
 
-        let mut output = String::new();
-        commonmark_html::format_document(&mut output, &ast).ok();
+        let output = formatter::to_html(&ast);
         println!("HTML Format:\n------------\n{}\n{:?}", output, output);
         //
         // let json = keyless_json::to_string(&ast);

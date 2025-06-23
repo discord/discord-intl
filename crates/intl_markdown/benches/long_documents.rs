@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use intl_markdown::{commonmark_html, Document, ICUMarkdownParser, SourceText};
+use intl_markdown::{formatter, Document, ICUMarkdownParser, SourceText};
 
 fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
     let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
@@ -19,8 +19,7 @@ fn long_documents(c: &mut Criterion) {
         b.iter(|| {
             let content = include_str!("./spec.md");
             let ast = parse_to_ast(content, true);
-            let mut result = String::new();
-            commonmark_html::format_document(&mut result, &ast)
+            let _output = formatter::to_html(&ast);
         })
     });
 
@@ -41,16 +40,14 @@ fn short_inlines(c: &mut Criterion) {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
             let ast = parse_to_ast(content, true);
-            let mut result = String::new();
-            commonmark_html::format_document(&mut result, &ast)
+            let _output = formatter::to_html(&ast);
         })
     });
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
             let ast = parse_to_ast(content, false);
-            let mut result = String::new();
-            commonmark_html::format_document(&mut result, &ast)
+            let _output = formatter::to_html(&ast);
         })
     });
     group.bench_function("pulldown_cmark", |b| {
@@ -76,8 +73,7 @@ fn real_messages(c: &mut Criterion) {
         b.iter(|| {
             for message in messages.values() {
                 let ast = parse_to_ast(message, true);
-                let mut result = String::new();
-                commonmark_html::format_document(&mut result, &ast).ok();
+                let _output = formatter::to_html(&ast);
             }
         })
     });
@@ -85,8 +81,7 @@ fn real_messages(c: &mut Criterion) {
         b.iter(|| {
             for message in messages.values() {
                 let ast = parse_to_ast(message, true);
-                let mut result = String::new();
-                commonmark_html::format_document(&mut result, &ast).ok();
+                let _output = formatter::to_html(&ast);
             }
         })
     });

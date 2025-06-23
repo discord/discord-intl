@@ -19,6 +19,7 @@ pub trait Syntax {
     /// Return the raw syntax node backing this item.
     fn syntax(&self) -> &SyntaxNode;
 
+    #[allow(unused)]
     fn kind(&self) -> SyntaxKind {
         self.syntax().kind()
     }

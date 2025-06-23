@@ -1,4 +1,4 @@
-use intl_markdown::{commonmark_html, Document, ICUMarkdownParser, SourceText};
+use intl_markdown::{formatter, Document, ICUMarkdownParser, SourceText};
 
 pub fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
     let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
@@ -11,10 +11,9 @@ pub fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
 pub fn run_spec_test(input: &str, expected: &str) {
     // AST-based formatting
     let ast = parse_to_ast(input, true);
-    let mut buffer = String::new();
-    let output = commonmark_html::format_document(&mut buffer, &ast).unwrap();
+    let output = formatter::to_html(&ast);
 
-    assert_eq!(expected, buffer);
+    assert_eq!(expected, output);
 }
 
 /// Test that the input is parsed and formatted as an ICU string as given.

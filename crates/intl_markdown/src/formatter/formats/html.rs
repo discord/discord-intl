@@ -1,5 +1,5 @@
-use crate::commonmark_html::format_element::{FormatElement, FormatTag, LinkKind};
-use crate::commonmark_html::util::{encode_body_text, encode_href};
+use crate::formatter::format_element::{FormatElement, FormatTag, LinkKind};
+use crate::formatter::util::{encode_body_text, encode_href};
 
 pub fn format_elements(mut buffer: &mut String, elements: &Vec<FormatElement>) {
     let mut close_tag_stack = vec![];

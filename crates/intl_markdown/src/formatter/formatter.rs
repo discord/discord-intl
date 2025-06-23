@@ -1,13 +1,11 @@
-use crate::commonmark_html::format_element::{FormatElement, FormatTag, LinkKind};
-use crate::commonmark_html::plain_text::{iter_node_text, iter_tokens, PlainTextFormatter};
-use crate::commonmark_html::util::{
+use crate::cst::*;
+use crate::formatter::format_element::{FormatElement, FormatTag, LinkKind};
+use crate::formatter::plain_text::{iter_node_text, iter_tokens, PlainTextFormatter};
+use crate::formatter::util::{
     fast_replace_pointer, replace_entity_reference, unescaped_pointer_chunks,
 };
-use crate::cst::*;
 use crate::syntax::{Syntax, SyntaxIterator, TextPointer, TokenTextIterOptions, TrimKind};
 use crate::SyntaxKind;
-
-pub type FormatResult<T = ()> = Result<T, std::fmt::Error>;
 
 #[derive(Default, Clone)]
 pub struct FormatterContext {

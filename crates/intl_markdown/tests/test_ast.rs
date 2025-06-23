@@ -1,4 +1,4 @@
-use intl_markdown::{compile_to_format_js, parse_intl_message};
+use intl_markdown::parse_intl_message;
 
 #[test]
 #[ignore]

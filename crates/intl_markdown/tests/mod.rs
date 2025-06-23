@@ -3,4 +3,5 @@
 
 mod commonmark;
 mod harness;
+mod icu;
 mod spec_regression;
