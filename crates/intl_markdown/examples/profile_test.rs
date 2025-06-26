@@ -9,8 +9,7 @@ fn main() {
     let max = 2000;
 
     for _ in 0..max {
-        let ast = parse_intl_message(include_str!("../benches/spec.md"), true);
-        let compiled = compiler::compile_document(&ast);
+        let (_, compiled) = parse_intl_message(include_str!("../benches/spec.md"), true);
         let _output = format::to_html(&compiled);
     }
 }
