@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use crate::ast::util::{escape_body_text, escape_href};
 use crate::ast::{
-    BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate,
+    AnyDocument, BlockNode, CodeBlock, CodeSpan, Emphasis, Heading, Hook, Icu, IcuDate,
     IcuDateTimeStyle, IcuNumber, IcuNumberStyle, IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect,
     IcuTime, IcuVariable, InlineContent, Link, LinkDestination, LinkKind, Paragraph, Strikethrough,
     Strong,
@@ -80,7 +80,7 @@ impl<T: FormatIcuString> FormatIcuString for [T] {
     }
 }
 
-pub fn format_icu_string(document: &Document) -> FormatResult<String> {
+pub fn format_icu_string(document: &AnyDocument) -> FormatResult<String> {
     let mut f = String::new();
 
     for (index, block) in document.blocks().iter().enumerate() {

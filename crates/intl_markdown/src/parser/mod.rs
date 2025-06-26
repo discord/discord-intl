@@ -3,7 +3,7 @@ use super::{
     block_parser::BlockParser,
     delimiter::{AnyDelimiter, Delimiter},
     lexer::{Lexer, LexerCheckpoint},
-    Document,
+    AnyDocument,
 };
 use crate::lexer::{LexContext, LexerState};
 use crate::syntax::{
@@ -40,8 +40,8 @@ pub struct ParseResult {
 }
 
 impl ParseResult {
-    pub fn to_document(self) -> Document {
-        Document::from_syntax_element(self.tree)
+    pub fn to_document(self) -> AnyDocument {
+        AnyDocument::from_syntax_element(self.tree)
     }
 }
 
@@ -132,15 +132,15 @@ impl ICUMarkdownParser {
     pub fn parse(&mut self) {
         // Eating one starts the parser by reading the first token.
         self.eat();
-        self.start_node(SyntaxKind::DOCUMENT);
         if !self.include_blocks {
             parse_inline(self, false);
         } else {
+            self.start_node(SyntaxKind::BLOCK_DOCUMENT);
             self.parse_with_blocks();
+            self.finish_node();
         }
 
         self.expect_end_of_file();
-        self.finish_node();
     }
 
     fn parse_with_blocks(&mut self) {
@@ -193,6 +193,10 @@ impl ICUMarkdownParser {
     /// lossless syntax tree. The return value is the root Node of that tree,
     /// a Document.
     pub fn finish(self) -> ParseResult {
+        debug_assert!(
+            self.builder.last_element().is_some(),
+            "Tree builder has no elements to finish with. Did you forget to call `.parse()`"
+        );
         ParseResult {
             source: self.source,
             tree: self.builder.finish(),
@@ -516,6 +520,22 @@ impl ICUMarkdownParser {
         }
     }
 
+    /// Unlike Markdown, ICU syntax does not care about any whitespace whatsoever. But to build an
+    /// accurate CST we still need to parse it into trivia. In this context, newlines _are_ allowed
+    /// as trivia and can be skipped (versus Markdown, which does special processing on newline
+    /// characters and requires treating them as real tokens). This method treats _all_ whitespace
+    /// as trailing trivia, no matter the position, since it will all be removed either way.
+    pub(super) fn skip_icu_whitespace_as_trivia(&mut self) {
+        let start = self.lexer.current_byte_span().start;
+        let mut end = start;
+        while self.current().is_icu_trivia() {
+            end = self.lexer.position();
+            self.skip_with_context(LexContext::Icu);
+        }
+        self.builder
+            .append_trailing_trivia(self.lexer.text(start..end));
+    }
+
     pub(super) fn set_lexer_state<F: FnMut(&mut LexerState)>(&mut self, mut func: F) {
         func(&mut self.lexer.state_mut())
     }
@@ -575,9 +595,9 @@ impl ICUMarkdownParser {
 #[cfg(test)]
 mod test {
     use super::ICUMarkdownParser;
-    use crate::cst::Document;
-    use crate::formatter;
+    use crate::cst::AnyDocument;
     use crate::syntax::{FromSyntax, SourceText};
+    use crate::{compiler, format};
 
     #[test]
     fn test_debug() {
@@ -593,10 +613,12 @@ mod test {
         let result = parser.finish();
         println!("Tree:\n-------\n{:#?}\n", result.tree);
 
-        let ast = Document::from_syntax(result.tree.node().clone());
+        let ast = AnyDocument::from_syntax(result.tree.node().clone());
         println!("AST:\n----\n{:#?}\n", ast);
 
-        let output = formatter::to_html(&ast);
+        let compiled = compiler::compile_document(&ast);
+        println!("Compiled:\n---------\n{:#?}\n", compiled);
+        let output = format::to_html(&compiled);
         println!("HTML Format:\n------------\n{}\n{:?}", output, output);
         //
         // let json = keyless_json::to_string(&ast);

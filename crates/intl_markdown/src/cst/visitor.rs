@@ -1,6 +1,12 @@
 use super::nodes::*;
 pub trait Visit {
-    fn visit_document(&mut self, node: &Document) {
+    fn visit_any_document(&mut self, node: &AnyDocument) {
+        node.visit_children_with(self);
+    }
+    fn visit_block_document(&mut self, node: &BlockDocument) {
+        node.visit_children_with(self);
+    }
+    fn visit_inline_content(&mut self, node: &InlineContent) {
         node.visit_children_with(self);
     }
     fn visit_any_block_node(&mut self, node: &AnyBlockNode) {
@@ -16,9 +22,6 @@ pub trait Visit {
         node.visit_children_with(self);
     }
     fn visit_any_code_block(&mut self, node: &AnyCodeBlock) {
-        node.visit_children_with(self);
-    }
-    fn visit_inline_content(&mut self, node: &InlineContent) {
         node.visit_children_with(self);
     }
     fn visit_block_space(&mut self, node: &BlockSpace) {
@@ -76,6 +79,9 @@ pub trait Visit {
         node.visit_children_with(self);
     }
     fn visit_icu(&mut self, node: &Icu) {
+        node.visit_children_with(self);
+    }
+    fn visit_icu_pound(&mut self, node: &IcuPound) {
         node.visit_children_with(self);
     }
     fn visit_link_resource(&mut self, node: &LinkResource) {
@@ -146,13 +152,14 @@ pub trait Visit {
     }
 }
 pub trait Fold {
-    fn fold_document(&mut self, node: Document) -> Document;
+    fn fold_any_document(&mut self, node: AnyDocument) -> AnyDocument;
+    fn fold_block_document(&mut self, node: BlockDocument) -> BlockDocument;
+    fn fold_inline_content(&mut self, node: InlineContent) -> InlineContent;
     fn fold_any_block_node(&mut self, node: AnyBlockNode) -> AnyBlockNode;
     fn fold_paragraph(&mut self, node: Paragraph) -> Paragraph;
     fn fold_thematic_break(&mut self, node: ThematicBreak) -> ThematicBreak;
     fn fold_any_heading(&mut self, node: AnyHeading) -> AnyHeading;
     fn fold_any_code_block(&mut self, node: AnyCodeBlock) -> AnyCodeBlock;
-    fn fold_inline_content(&mut self, node: InlineContent) -> InlineContent;
     fn fold_block_space(&mut self, node: BlockSpace) -> BlockSpace;
     fn fold_atx_heading(&mut self, node: AtxHeading) -> AtxHeading;
     fn fold_setext_heading(&mut self, node: SetextHeading) -> SetextHeading;
@@ -175,6 +182,7 @@ pub trait Fold {
     fn fold_hook(&mut self, node: Hook) -> Hook;
     fn fold_strikethrough(&mut self, node: Strikethrough) -> Strikethrough;
     fn fold_icu(&mut self, node: Icu) -> Icu;
+    fn fold_icu_pound(&mut self, node: IcuPound) -> IcuPound;
     fn fold_link_resource(&mut self, node: LinkResource) -> LinkResource;
     fn fold_any_link_destination(&mut self, node: AnyLinkDestination) -> AnyLinkDestination;
     fn fold_link_title(&mut self, node: LinkTitle) -> LinkTitle;
@@ -219,9 +227,30 @@ impl<V: ?Sized + Visit, T: VisitWith<V>> VisitWith<V> for Option<T> {
         self.as_ref().map(|v| v.visit_children_with(visitor));
     }
 }
-impl<V: ?Sized + Visit> VisitWith<V> for Document {
+impl<V: ?Sized + Visit> VisitWith<V> for AnyDocument {
     fn visit_with(&self, visitor: &mut V) {
-        visitor.visit_document(self);
+        visitor.visit_any_document(self);
+    }
+    fn visit_children_with(&self, visitor: &mut V) {
+        match self {
+            Self::BlockDocument(node) => node.visit_with(visitor),
+            Self::InlineContent(node) => node.visit_with(visitor),
+        }
+    }
+}
+impl<V: ?Sized + Visit> VisitWith<V> for BlockDocument {
+    fn visit_with(&self, visitor: &mut V) {
+        visitor.visit_block_document(self);
+    }
+    fn visit_children_with(&self, visitor: &mut V) {
+        for field in self.children() {
+            field.visit_with(visitor);
+        }
+    }
+}
+impl<V: ?Sized + Visit> VisitWith<V> for InlineContent {
+    fn visit_with(&self, visitor: &mut V) {
+        visitor.visit_inline_content(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
         for field in self.children() {
@@ -239,7 +268,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for AnyBlockNode {
             Self::ThematicBreak(node) => node.visit_with(visitor),
             Self::Heading(node) => node.visit_with(visitor),
             Self::CodeBlock(node) => node.visit_with(visitor),
-            Self::InlineContent(node) => node.visit_with(visitor),
             Self::BlockSpace(node) => node.visit_with(visitor),
         }
     }
@@ -279,16 +307,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for AnyCodeBlock {
         match self {
             Self::IndentedCodeBlock(node) => node.visit_with(visitor),
             Self::FencedCodeBlock(node) => node.visit_with(visitor),
-        }
-    }
-}
-impl<V: ?Sized + Visit> VisitWith<V> for InlineContent {
-    fn visit_with(&self, visitor: &mut V) {
-        visitor.visit_inline_content(self);
-    }
-    fn visit_children_with(&self, visitor: &mut V) {
-        for field in self.children() {
-            field.visit_with(visitor);
         }
     }
 }
@@ -374,6 +392,7 @@ impl<V: ?Sized + Visit> VisitWith<V> for AnyInlineNode {
             Self::Hook(node) => node.visit_with(visitor),
             Self::Strikethrough(node) => node.visit_with(visitor),
             Self::Icu(node) => node.visit_with(visitor),
+            Self::IcuPound(node) => node.visit_with(visitor),
         }
     }
 }
@@ -458,6 +477,14 @@ impl<V: ?Sized + Visit> VisitWith<V> for Icu {
     }
     fn visit_children_with(&self, visitor: &mut V) {
         self.value().visit_with(visitor);
+    }
+}
+impl<V: ?Sized + Visit> VisitWith<V> for IcuPound {
+    fn visit_with(&self, visitor: &mut V) {
+        visitor.visit_icu_pound(self);
+    }
+    fn visit_children_with(&self, visitor: &mut V) {
+        let _ = visitor;
     }
 }
 impl<V: ?Sized + Visit> VisitWith<V> for LinkResource {

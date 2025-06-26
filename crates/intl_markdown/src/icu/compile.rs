@@ -8,7 +8,7 @@ use serde::ser::SerializeMap;
 use serde::{self, Serialize, Serializer};
 
 use crate::ast::{
-    BlockNode, CodeBlock, CodeSpan, Document, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
+    AnyDocument, BlockNode, CodeBlock, CodeSpan, Emphasis, Heading, Hook, Icu, IcuDate, IcuNumber,
     IcuPlural, IcuPluralArm, IcuPluralKind, IcuSelect, IcuTime, IcuVariable, InlineContent, Link,
     LinkDestination, Paragraph, Strikethrough, Strong,
 };
@@ -31,7 +31,7 @@ pub enum FormatJsElementType {
 
 /// Compile a parsed ICU-Markdown document into a FormatJS Node tree, that can then be directly
 /// serialized to any format and back with any other FormatJS-compatible tools.
-pub fn compile_to_format_js(document: &Document) -> FormatJsNode {
+pub fn compile_to_format_js(document: &AnyDocument) -> FormatJsNode {
     FormatJsNode::from(document)
 }
 
@@ -191,8 +191,8 @@ impl<'a> From<&'a String> for FormatJsNode<'a> {
     }
 }
 
-impl<'a> From<&'a Document> for FormatJsNode<'a> {
-    fn from(value: &'a Document) -> Self {
+impl<'a> From<&'a AnyDocument> for FormatJsNode<'a> {
+    fn from(value: &'a AnyDocument) -> Self {
         match value.blocks().get(0) {
             // For Documents with a single InlineContent segment, the value shouldn't get wrapped
             // with another list node. Otherwise, the output is like `[["content"]]`.

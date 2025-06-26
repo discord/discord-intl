@@ -730,7 +730,7 @@ mod test {
         "    const foo;", & [(0, 14, SyntaxKind::INDENTED_CODE_BLOCK)]; "single indented code block"
     )]
     #[test_case(
-        "    const foo;\n", & [(0, 15, SyntaxKind::INDENTED_CODE_BLOCK)]; "includes trailing line"
+        "    const foo;\n\n\n", & [(0, 14, SyntaxKind::INDENTED_CODE_BLOCK)]; "excludes trailing lines"
     )]
     fn indented_code_blocks(text: &str, bounds: &[(usize, usize, SyntaxKind)]) {
         block_bounds_test(text, bounds);

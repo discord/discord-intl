@@ -1,4 +1,4 @@
-use crate::syntax::iterators::SyntaxIterator;
+use crate::syntax::iterators::PositionalIterator;
 use crate::syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextSize};
 use std::fmt::{Debug, Formatter};
 
@@ -209,7 +209,7 @@ impl ExactSizeIterator for SyntaxNodeChildren<'_> {
         self.elements.len()
     }
 }
-impl SyntaxIterator for SyntaxNodeChildren<'_> {}
+impl PositionalIterator for SyntaxNodeChildren<'_> {}
 
 #[derive(Debug, Clone)]
 pub struct SyntaxTokenChildren<'a> {
@@ -243,4 +243,4 @@ impl ExactSizeIterator for SyntaxTokenChildren<'_> {
         self.elements.len()
     }
 }
-impl SyntaxIterator for SyntaxTokenChildren<'_> {}
+impl PositionalIterator for SyntaxTokenChildren<'_> {}

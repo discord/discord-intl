@@ -1,10 +1,13 @@
 #[cfg(test)]
 mod harness {
     use intl_markdown::{compiler, format, ICUMarkdownParser, SourceText};
-    pub fn parse_inline(input: &str) -> String {
-        let mut parser = ICUMarkdownParser::new(SourceText::from(input), false);
+
+    fn parse(input: &str, include_blocks: bool) -> String {
+        let mut parser = ICUMarkdownParser::new(SourceText::from(input), include_blocks);
         #[cfg(feature = "debug-tracing")]
-        println!("Blocks: {:?}\n", parser.lexer_block_bounds());
+        if include_blocks {
+            println!("Blocks: {:?}\n", parser.lexer_block_bounds());
+        }
         parser.parse();
         #[cfg(feature = "debug-tracing")]
         println!("Tokens:\n-------\n{:#?}\n", parser.debug_token_list());
@@ -14,13 +17,25 @@ mod harness {
         println!("AST:\n----\n{:#?}\n", ast);
         let compiled = compiler::compile_document(&ast);
         println!("Compiled:\n---------\n{:#?}\n", compiled);
-        println!("Input:\n------\n{}\n", input);
         let output = format::to_html(&compiled);
+        println!("Input:\n------\n{}\n", input);
         println!("HTML Format:\n------------\n{}\n{:?}", output, output);
         output
     }
+
+    pub fn parse_inline(input: &str) -> String {
+        parse(input, false)
+    }
+
+    pub fn parse_blocks(input: &str) -> String {
+        parse(input, true)
+    }
 }
 
-mod cjk_emphasis;
-mod hooks;
-mod strikethrough;
+mod blocks;
+mod escapes;
+mod inline;
+mod markdown_blocks;
+mod markdown_headings;
+mod nodes;
+mod variable_formats;

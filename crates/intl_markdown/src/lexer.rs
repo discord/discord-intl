@@ -178,10 +178,10 @@ impl Lexer {
     pub fn next_token(&mut self, context: LexContext) -> SyntaxKind {
         // Block endings are always present
         if self.is_at_block_bound() {
-            let (bound_kind, block_kind) = self.consume_block_bound();
+            let (bound_kind, _block_kind) = self.consume_block_bound();
             self.current_kind = bound_kind;
             #[cfg(feature = "debug-tracing")]
-            self.push_debug_block_token(bound_kind, block_kind);
+            self.push_debug_block_token(bound_kind, _block_kind);
             return bound_kind;
         }
 

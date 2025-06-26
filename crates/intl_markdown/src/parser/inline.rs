@@ -1,7 +1,3 @@
-use crate::parser::link::parse_hook_open;
-use crate::parser::strikethrough::parse_strikethrough_delimiter_run;
-use crate::{lexer::LexContext, syntax::SyntaxKind};
-
 use super::{
     code_span::parse_code_span,
     delimiter::parse_delimiter_run,
@@ -10,6 +6,10 @@ use super::{
     link::{parse_image_open, parse_link_like_close, parse_link_open},
     ICUMarkdownParser,
 };
+use crate::parser::icu::parse_icu_pound;
+use crate::parser::link::parse_hook_open;
+use crate::parser::strikethrough::parse_strikethrough_delimiter_run;
+use crate::{lexer::LexContext, syntax::SyntaxKind};
 
 /// Parse any series of inline content. This function should _only_ be called from a block context
 /// or an ICU context, because it pushes a new delimiter context to use and processes it at the end
@@ -75,6 +75,7 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
             // ICU
             SyntaxKind::LCURLY | SyntaxKind::UNSAFE_LCURLY => parse_icu(p),
             SyntaxKind::RCURLY if is_inside_icu => break,
+            SyntaxKind::HASH if is_inside_icu => parse_icu_pound(p),
             // Plain text
             // Anything else is effectively plain text, but kept separate in the event stream for
             // clarity. While these end up falling into their own Nodes in the tree, they are

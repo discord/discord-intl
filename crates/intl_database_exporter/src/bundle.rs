@@ -3,7 +3,7 @@ use thiserror::Error;
 use intl_database_core::{KeySymbol, Message, MessageValue, MessagesDatabase};
 use intl_database_service::IntlDatabaseService;
 use intl_markdown::{
-    compile_to_format_js, raw_string_to_document, BlockNode, Document, InlineContent,
+    compile_to_format_js, raw_string_to_document, AnyDocument, BlockNode, InlineContent,
 };
 
 #[derive(Debug, Error)]
@@ -107,7 +107,7 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
         message.meta().secret && !self.options.bundle_secrets
     }
 
-    fn maybe_serialize_static_document(&mut self, document: &Document) -> anyhow::Result<bool> {
+    fn maybe_serialize_static_document(&mut self, document: &AnyDocument) -> anyhow::Result<bool> {
         if document.blocks().len() > 1 {
             return Ok(false);
         }
@@ -133,7 +133,7 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
         Ok(true)
     }
 
-    fn serialize_document(&mut self, document: &Document) -> anyhow::Result<()> {
+    fn serialize_document(&mut self, document: &AnyDocument) -> anyhow::Result<()> {
         // Serialize static documents as single strings, both for space savings and faster runtime
         // evaluation.
         if let Ok(true) = self.maybe_serialize_static_document(document) {

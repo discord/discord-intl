@@ -22,7 +22,6 @@ fn try_main() -> anyhow::Result<()> {
 
     let grammar = Grammar::from_str(include_str!("../../data/markdown.ungram"))?;
     let syntax = syntax_from_grammar(&grammar);
-
     codegen.write_file("nodes.rs", generate_tree_from_grammar(&syntax))?;
     codegen.write_file("visitor.rs", generate_visitor_from_grammar(&syntax))?;
     codegen.finish()

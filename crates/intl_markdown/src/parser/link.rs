@@ -237,14 +237,12 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
     // and qualify as a click handler rather than a static link.
     if token_count == 1 {
         // SAFETY: The condition asserts that a token was pushed, so this must
-        // be present _and_ be a token event.
+        // be present _and_ be a token.
         let token = p.last_element().unwrap().token();
-        // SAFETY: Token ranges are always valid, so this is safe.
-        let text = unsafe { p.source().get_unchecked(token.text_span()) };
         // If the text _doesn't_ contain characters that _aren't_ alphanumeric,
         // then it's a valid identifier in this context and counts as a click
         // handler.
-        if !text.contains(|c: char| !c.is_ascii_alphanumeric()) {
+        if !token.text().contains(|c: char| !c.is_ascii_alphanumeric()) {
             return marker.complete(p, SyntaxKind::CLICK_HANDLER_LINK_DESTINATION);
         }
     }

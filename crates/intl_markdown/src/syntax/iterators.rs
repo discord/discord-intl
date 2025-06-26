@@ -3,14 +3,16 @@ use crate::syntax::{SyntaxElement, TextPointer, TrimKind};
 use crate::{SyntaxNode, SyntaxToken};
 use std::iter::Peekable;
 
-pub trait SyntaxIterator: Iterator + ExactSizeIterator {
-    fn with_positions(self) -> PositionalIterator<Self>
+pub trait PositionalIterator: Iterator + ExactSizeIterator {
+    fn with_positions(self) -> PositionalIter<Self>
     where
         Self: Sized,
     {
-        PositionalIterator::new(self)
+        PositionalIter::new(self)
     }
 }
+
+impl<'a, T> PositionalIterator for std::slice::Iter<'a, T> {}
 
 /// Iterator for collecting the complete token text contained by a node. Handling of trivia
 /// is controlled by [`TokenTextIterOptions`], created by [`SyntaxNodeTokenIter::with_options`].
@@ -61,7 +63,7 @@ impl<'a> Iterator for SyntaxNodeTokenIter<'a> {
 }
 
 impl ExactSizeIterator for SyntaxNodeTokenIter<'_> {}
-impl SyntaxIterator for SyntaxNodeTokenIter<'_> {}
+impl PositionalIterator for SyntaxNodeTokenIter<'_> {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct TokenTextIterOptions {
@@ -255,18 +257,19 @@ impl FirstLastPosition {
         matches!(self, FirstLastPosition::Last | FirstLastPosition::Both)
     }
 
+    #[allow(unused)]
     pub fn is_middle(&self) -> bool {
         matches!(self, FirstLastPosition::Neither)
     }
 }
 
-pub struct PositionalIterator<I: Iterator + ExactSizeIterator> {
+pub struct PositionalIter<I: Iterator + ExactSizeIterator> {
     inner: I,
     cursor: usize,
     len: usize,
 }
 
-impl<I: Iterator + ExactSizeIterator> PositionalIterator<I> {
+impl<I: Iterator + ExactSizeIterator> PositionalIter<I> {
     pub fn new(inner: I) -> Self {
         Self {
             len: inner.len(),
@@ -276,7 +279,7 @@ impl<I: Iterator + ExactSizeIterator> PositionalIterator<I> {
     }
 }
 
-impl<I: Iterator + ExactSizeIterator> Iterator for PositionalIterator<I> {
+impl<I: Iterator + ExactSizeIterator> Iterator for PositionalIter<I> {
     type Item = (FirstLastPosition, I::Item);
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.inner.next()?;

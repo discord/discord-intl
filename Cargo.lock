@@ -836,7 +836,6 @@ dependencies = [
  "serde_json",
  "slice-dst",
  "test-case",
- "unescape_zero_copy",
  "unicode-properties",
  "unicode-xid",
 ]

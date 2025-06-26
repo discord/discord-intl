@@ -1,11 +1,14 @@
-Document = AnyBlockNode*
+AnyDocument =
+    BlockDocument
+    | InlineContent
+
+BlockDocument = AnyBlockNode*
 
 AnyBlockNode =
       Paragraph
     | ThematicBreak
     | AnyHeading
     | AnyCodeBlock
-    | InlineContent
     | BlockSpace
 
 BlockSpace = ('leading_whitepsace' | 'whitespace' | 'line_ending')*
@@ -64,6 +67,7 @@ AnyInlineNode =
     | Hook
     | Strikethrough
     | Icu
+    | IcuPound
 
 TextSpan = 'text'*
 
@@ -223,3 +227,6 @@ IcuNumber =
 IcuNumberStyle =
     style_comma: ','
     style_text: 'icu_style_text'
+
+IcuPound =
+    '#'

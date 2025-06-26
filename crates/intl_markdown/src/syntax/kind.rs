@@ -78,7 +78,7 @@ pub enum SyntaxKind {
     // easily determine if a kind represents a token or a node.
 
     // CommonMark block nodes
-    DOCUMENT,
+    BLOCK_DOCUMENT,
     /// Any segment of inline content, either contained within a block node or
     /// at the top level on its own.
     INLINE_CONTENT,
@@ -218,6 +218,7 @@ pub enum SyntaxKind {
     ICU_PLURAL_ARMS,     // The list of arms in a plural or select node.
     ICU_PLURAL_ARM,      // The `one {inner}` in `{var, plural, one {inner}}`
     ICU_PLURAL_VALUE,    // The `inner` in `{var, plural, one {inner}}`
+    ICU_POUND,
 }
 
 impl SyntaxKind {
@@ -234,11 +235,11 @@ impl SyntaxKind {
     }
 
     pub const fn is_token(&self) -> bool {
-        (*self as u8) >= (Self::EOF as u8) && (*self as u8) < (Self::DOCUMENT as u8)
+        (*self as u8) >= (Self::EOF as u8) && (*self as u8) < (Self::BLOCK_DOCUMENT as u8)
     }
 
     pub const fn is_node(&self) -> bool {
-        (*self as u8) >= (Self::DOCUMENT as u8)
+        (*self as u8) >= (Self::BLOCK_DOCUMENT as u8)
     }
 
     /// NOTE: Newlines are not considered trivia because Markdown processing almost exclusive
@@ -249,6 +250,17 @@ impl SyntaxKind {
         matches!(
             self,
             SyntaxKind::LEADING_WHITESPACE | SyntaxKind::WHITESPACE
+        )
+    }
+
+    // In Icu contexts, _all_ whitespace is trivia, no matter if it contains newlines or not.
+    pub const fn is_icu_trivia(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::LEADING_WHITESPACE
+                | SyntaxKind::WHITESPACE
+                | SyntaxKind::LINE_ENDING
+                | SyntaxKind::HARD_LINE_ENDING
         )
     }
 
@@ -275,7 +287,7 @@ impl SyntaxKind {
     }
 
     pub const fn is_block_level(&self) -> bool {
-        (*self as u8) >= (Self::DOCUMENT as u8) && (*self as u8) <= (Self::EMPHASIS as u8)
+        (*self as u8) >= (Self::BLOCK_DOCUMENT as u8) && (*self as u8) <= (Self::EMPHASIS as u8)
     }
 
     pub const fn is_inline_level(&self) -> bool {

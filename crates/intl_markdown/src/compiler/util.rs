@@ -1,9 +1,97 @@
 use crate::html_entities::get_html_entity;
-use crate::syntax::{TextPointer, TextSize};
-use crate::{SyntaxKind, SyntaxToken};
-use intl_markdown_macros::generate_ascii_encoding_table;
+use crate::syntax::{
+    MinimalTextIter, PositionalIterator, Syntax, SyntaxNodeTokenIter, TextPointer, TextSize,
+    TokenTextIter, TokenTextIterOptions,
+};
+use crate::{AnyInlineNode, InlineContent, SyntaxKind, SyntaxToken, Visit, VisitWith};
 use memchr::Memchr;
 use std::rc::Rc;
+
+pub fn iter_tokens<N: Syntax>(node: &N) -> SyntaxNodeTokenIter {
+    node.syntax().iter_tokens()
+}
+
+pub fn iter_node_text<N: Syntax>(
+    node: &N,
+    options: TokenTextIterOptions,
+) -> MinimalTextIter<TokenTextIter<SyntaxNodeTokenIter>> {
+    iter_tokens(node)
+        .into_text_iter()
+        .with_options(options)
+        .minimal()
+}
+
+pub struct PlainTextFormatter {
+    pointers: Vec<TextPointer>,
+    text_options: TokenTextIterOptions,
+}
+
+impl PlainTextFormatter {
+    fn new(text_options: TokenTextIterOptions) -> Self {
+        Self {
+            pointers: Vec::with_capacity(4),
+            text_options,
+        }
+    }
+
+    pub fn format<N: VisitWith<Self>>(
+        node: &N,
+        text_options: TokenTextIterOptions,
+    ) -> MinimalTextIter<std::vec::IntoIter<TextPointer>> {
+        let mut f = Self::new(text_options);
+        node.visit_with(&mut f);
+        f.finish()
+    }
+
+    pub fn finish(self) -> MinimalTextIter<std::vec::IntoIter<TextPointer>> {
+        MinimalTextIter::new(self.pointers.into_iter())
+    }
+
+    fn collect_token_pointers(&mut self, tokens: impl Iterator<Item = SyntaxToken>) {
+        for token in tokens {
+            self.pointers.push(token.text_pointer().clone())
+        }
+    }
+}
+
+impl Visit for PlainTextFormatter {
+    /// Processes the list of inline elements by taking only the visual text that appears within each
+    /// item. For example, a `Strong` element like `**hello**` would just be written as `hello` rather
+    /// than `<strong>hello</strong>` as it might in an HTML format.
+    fn visit_inline_content(&mut self, node: &InlineContent) {
+        for (position, child) in node.children().with_positions() {
+            match child {
+                AnyInlineNode::TextSpan(node) => {
+                    // Text spans are the only non-delimited kinds of text possible in inline
+                    // content, so they're the only ones that need to potentially apply trims. All
+                    // other trivia is preserved since it is important within delimiters.
+                    for (span_position, text_child) in node.children().with_positions() {
+                        self.pointers.push(text_child.trimmed_text_pointer(
+                            self.text_options.trim_kind(
+                                position.is_first() && span_position.is_first(),
+                                position.is_last() && span_position.is_last(),
+                            ),
+                        ))
+                    }
+                }
+                AnyInlineNode::Autolink(node) => {
+                    self.pointers.push(node.uri_token().text_pointer().clone());
+                }
+                AnyInlineNode::CodeSpan(node) => {
+                    self.collect_token_pointers(node.content().children());
+                }
+                AnyInlineNode::Link(node) => node.content().visit_with(self),
+                AnyInlineNode::Image(node) => node.content().visit_with(self),
+                AnyInlineNode::Hook(node) => node.content().visit_with(self),
+                AnyInlineNode::Emphasis(node) => node.content().visit_with(self),
+                AnyInlineNode::Strong(node) => node.content().visit_with(self),
+                AnyInlineNode::Strikethrough(node) => node.content().visit_with(self),
+                AnyInlineNode::Icu(_) => todo!(),
+                AnyInlineNode::IcuPound(_) => todo!(),
+            }
+        }
+    }
+}
 
 pub fn unescaped_pointer_chunks(text: &TextPointer) -> UnescapedChunksIterator {
     UnescapedChunksIterator::new(text)
@@ -133,115 +221,4 @@ pub fn replace_entity_reference(token: &SyntaxToken) -> TextPointer {
             kind
         ),
     }
-}
-
-type AsciiReplacementTable = [Option<&'static str>; 256];
-
-/// An iterator that returns chunks of text where each instance of a matching entity is encoded
-/// according to a lookup table containing the replacement text to use.
-pub struct AsciiEncodingIter<'a> {
-    text: &'a str,
-    table: AsciiReplacementTable,
-    cursor: usize,
-}
-
-impl<'a> AsciiEncodingIter<'a> {
-    pub fn new(text: &'a str, table: AsciiReplacementTable) -> Self {
-        Self {
-            text,
-            table,
-            cursor: 0,
-        }
-    }
-}
-
-impl<'a> Iterator for AsciiEncodingIter<'a> {
-    type Item = &'a str;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // No text left, so the iterator is finished.
-        if self.cursor >= self.text.len() {
-            return None;
-        }
-
-        // If we're currently at a character that needs encoding, return that encoding as a
-        // standalone chunk.
-        let current_bytes = &self.text.as_bytes()[self.cursor..];
-        let byte = current_bytes[0] as usize;
-        if self.table[byte].is_some() {
-            self.cursor += 1;
-            return self.table[byte];
-        }
-
-        let chunk_end = current_bytes
-            .iter()
-            .position(|&byte| self.table[byte as usize].is_some())
-            .unwrap_or(current_bytes.len());
-        let text = &self.text[self.cursor..self.cursor + chunk_end];
-        self.cursor += chunk_end;
-        Some(text)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        // There can only be a maximum of one escape per two characters, so the maximum count is
-        // every other character being an escape.
-        (1, Some(self.text.len() / 2 + 1))
-    }
-}
-
-generate_ascii_encoding_table! {
-    PERCENT_ENCODING,
-    // Characters that can safely appear in URLs without needing a percent encoding. Adapted from:
-    // https://github.com/pulldown-cmark/pulldown-cmark/blob/8713a415b04cdb0b7980a9a17c0ed0df0b36395e/pulldown-cmark-escape/src/lib.rs#L28C1-L38C3
-    ! b"!#$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_abcdefghijklmnopqrstuvwxyz~" => "%{:X}",
-    // CommonMark spec tests encode `&` to `&amp;` rather than the percent encoding `%26` that it
-    // would normally have.
-    b'&' => "&amp;"
-}
-
-/// Replaces non-ascii and unsafe characters in a url string with their percent encoding. This is
-/// specifically to match the CommonMark spec's _tests_, but is not actually defined by the spec
-/// itself, and as such there is some slightly special handling, like encoding `&` to `&amp;` rather
-/// than the percent encoding `%26` that it would normally have.
-pub(crate) fn encode_href(text: &str) -> AsciiEncodingIter {
-    AsciiEncodingIter::new(text, PERCENT_ENCODING_REPLACEMENT_TABLE)
-}
-
-generate_ascii_encoding_table! {
-    HTML_CHAR_ENCODING,
-    b'<' => "&lt;",
-    b'>' => "&gt;",
-    b'"' => "&quot;",
-    // This doesn't seem to happen in the spec? But does in some other
-    // implementations.
-    // '\'' => "&#27;",
-    b'&' => "&amp;"
-}
-pub(crate) fn encode_body_text(text: &str) -> AsciiEncodingIter {
-    AsciiEncodingIter::new(text, HTML_CHAR_ENCODING_REPLACEMENT_TABLE)
-}
-
-generate_ascii_encoding_table! {
-    STRING_LITERAL_ENCODING,
-    // ASCII Control characters
-    @control => "\\u00{:x}",
-    b'"' => "\\\"",
-    b'\\' => "\\\\",
-    b'/' => "\\/",
-    // Control characters that are invalid in Rust:
-    b'\x08' => "\\b",
-    b'\x0c' => "\\f",
-    b'\n' => "\\n",
-    b'\r' => "\\r",
-    b'\t' => "\\t"
-}
-/// Replaces ASCII characters that are not representable in JSON strings. This includes the double
-/// quote character that would close the string, newlines and other whitespace, and
-/// This includes
-/// Replaces non-ascii and unsafe characters in a url string with their percent encoding. This is
-/// specifically to match the CommonMark spec's _tests_, but is not actually defined by the spec
-/// itself, and as such there is some slightly special handling, like encoding `&` to `&amp;` rather
-/// than the percent encoding `%26` that it would normally have.
-pub(crate) fn encode_json_string_literal(text: &str) -> AsciiEncodingIter {
-    AsciiEncodingIter::new(text, HTML_CHAR_ENCODING_REPLACEMENT_TABLE)
 }

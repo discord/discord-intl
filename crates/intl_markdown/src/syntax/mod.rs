@@ -13,7 +13,7 @@ pub(crate) use tree::{TreeBuilder, TreeMarker};
 
 pub use element::{SyntaxElement, SyntaxNodeChildren, SyntaxTokenChildren};
 pub use iterators::{
-    MinimalTextIter, SyntaxIterator, SyntaxNodeTokenIter, TokenTextIter, TokenTextIterOptions,
+    MinimalTextIter, PositionalIterator, SyntaxNodeTokenIter, TokenTextIter, TokenTextIterOptions,
 };
 pub use kind::SyntaxKind;
 #[allow(unused)]

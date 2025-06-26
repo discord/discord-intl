@@ -22,14 +22,20 @@ impl TrimKind {
     pub fn allow_leading(&self) -> bool {
         !matches!(
             self,
-            TrimKind::TrimAll | TrimKind::TrimLeading | TrimKind::LeadingOnly
+            TrimKind::TrimAll
+                | TrimKind::TrimLeading
+                | TrimKind::LeadingOnly
+                | TrimKind::TrailingOnly
         )
     }
 
     pub fn allow_trailing(&self) -> bool {
         !matches!(
             self,
-            TrimKind::TrimAll | TrimKind::TrimTrailing | TrimKind::TrailingOnly
+            TrimKind::TrimAll
+                | TrimKind::TrimTrailing
+                | TrimKind::LeadingOnly
+                | TrimKind::TrailingOnly
         )
     }
 }

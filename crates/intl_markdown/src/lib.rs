@@ -17,9 +17,10 @@ mod byte_lookup;
 mod cjk;
 mod cst;
 mod delimiter;
-pub mod formatter;
 mod html_entities;
 // mod icu;
+pub mod compiler;
+pub mod format;
 mod lexer;
 mod parser;
 mod syntax;
@@ -27,18 +28,18 @@ mod syntax;
 extern crate intl_allocator;
 
 /// Parse an intl message into a final AST representing the semantics of the message.
-pub fn parse_intl_message(content: &str, include_blocks: bool) -> Document {
+pub fn parse_intl_message(content: &str, include_blocks: bool) -> AnyDocument {
     let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     parser.parse();
-    Document::from_syntax(parser.finish().tree.node().clone())
+    AnyDocument::from_syntax(parser.finish().tree.node().clone())
 }
 
-/// Return a new Document with the given content as the only value, treated as a raw string with
+/// Return a new AnyDocument with the given content as the only value, treated as a raw string with
 /// no parsing or semantics applied.
-pub fn raw_string_to_document(content: &str) -> Document {
-    Document::from_syntax(SyntaxNode::new(SyntaxKind::DOCUMENT, None))
+pub fn raw_string_to_document(content: &str) -> AnyDocument {
+    AnyDocument::from_syntax(SyntaxNode::new(SyntaxKind::INLINE_CONTENT, None))
 }
 
-// pub fn format_to_icu_string(document: &Document) -> Result<String, std::fmt::Error> {
+// pub fn format_to_icu_string(document: &AnyDocument) -> Result<String, std::fmt::Error> {
 //     format_icu_string(document)
 // }

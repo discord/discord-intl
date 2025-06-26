@@ -1,0 +1,102 @@
+// T = T means a Unit item, like a Unit variant of an enum
+// *Kind becomes a unit-variant enum
+// 'tokens' become TextPointers with that name.
+// `(T)*` becomes a `Box<[T]>`
+// `(T)?` becomes a `Option<T>`
+
+CompiledElement =
+    BlockList
+    | List
+    | CompiledNode
+    | Literal
+
+BlockList = CompiledElement*
+List = CompiledElement*
+CompiledNode =
+    MarkdownNode
+    | IcuNode
+Literal = 'text'
+usize = usize
+
+MarkdownNode =
+    Hook
+    | Paragraph
+    | CodeBlock
+    | Heading
+    | ThematicBreak
+    | Strong
+    | Emphasis
+    | Strikethrough
+    | Code
+    | LineBreak
+    | Link
+
+Hook =
+    'name'
+CodeBlock =
+    'info_string'
+    content: CompiledElement
+Heading =
+    level: usize
+    content: CompiledElement
+Paragraph =
+    content: CompiledElement
+ThematicBreak = ThematicBreak
+LineBreak = LineBreak
+Strong =
+    content: CompiledElement
+Emphasis =
+    content: CompiledElement
+Strikethrough =
+    content: CompiledElement
+Code =
+    content: CompiledElement
+Link =
+    kind: LinkKind
+    destination: LinkDestination
+    'title'?
+    'alt'?
+
+LinkKind =
+    'Link'
+    | 'Image'
+    | 'Email'
+
+LinkDestination =
+    'Url'
+    | IcuNode
+
+IcuNode =
+    Argument
+    | Number
+    | Date
+    | Time
+    | Selectable
+    | Pound
+
+Argument =
+    'name'
+Number =
+    'name'
+    'style'?
+Date =
+    'name'
+    'style'?
+Time =
+    'name'
+    'style'?
+Selectable =
+    'name'
+    kind: SelectableKind
+    'offset'
+    options: (IcuOption)*
+Pound = Pound
+
+SelectableKind =
+    'Plural'
+    | 'Select'
+    | 'SelectOrdinal'
+
+IcuOption =
+    'name'
+    content: CompiledElement

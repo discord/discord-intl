@@ -25,6 +25,18 @@ impl TextPointer {
         }
     }
 
+    /// Create a new empty [TextPointer] that points to "nothing" within the given source text.
+    /// Making a new pointer this way works as a more-accurate default that allows `.extend_back()`
+    /// and `.extend_front()` to function as expected without having to use an `Option` or create a
+    /// special case for the first element.
+    pub fn empty_from(source: Rc<str>) -> Self {
+        Self {
+            source,
+            offset: 0,
+            len: 0,
+        }
+    }
+
     pub fn from_str(source: &str) -> Self {
         Self {
             source: Rc::from(source),

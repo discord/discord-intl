@@ -1,21 +1,66 @@
 use crate::cst::util::*;
 use crate::syntax::*;
 #[derive(Clone, Eq, PartialEq)]
+pub enum AnyDocument {
+    BlockDocument(BlockDocument),
+    InlineContent(InlineContent),
+}
+impl Syntax for AnyDocument {
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::BlockDocument(node) => node.syntax(),
+            Self::InlineContent(node) => node.syntax(),
+        }
+    }
+}
+impl FromSyntax for AnyDocument {
+    fn from_syntax(syntax: SyntaxNode) -> Self {
+        match syntax.kind() {
+            SyntaxKind::BLOCK_DOCUMENT => Self::BlockDocument(BlockDocument::from_syntax(syntax)),
+            SyntaxKind::INLINE_CONTENT => Self::InlineContent(InlineContent::from_syntax(syntax)),
+            kind => unreachable!(
+                "Invalid syntax kind {:?} encountered when constructing enum node {}",
+                kind, "AnyDocument"
+            ),
+        }
+    }
+}
+impl From<BlockDocument> for AnyDocument {
+    fn from(value: BlockDocument) -> Self {
+        Self::BlockDocument(value)
+    }
+}
+impl From<InlineContent> for AnyDocument {
+    fn from(value: InlineContent) -> Self {
+        Self::InlineContent(value)
+    }
+}
+impl std::fmt::Debug for AnyDocument {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut tuple = f.debug_tuple("AnyDocument");
+        match self {
+            Self::BlockDocument(node) => tuple.field(node),
+            Self::InlineContent(node) => tuple.field(node),
+        };
+        tuple.finish()
+    }
+}
+#[derive(Clone, Eq, PartialEq)]
 #[repr(transparent)]
-pub struct Document {
+pub struct BlockDocument {
     syntax: SyntaxNode,
 }
-impl Syntax for Document {
+impl Syntax for BlockDocument {
     fn syntax(&self) -> &SyntaxNode {
         &self.syntax
     }
 }
-impl FromSyntax for Document {
+impl FromSyntax for BlockDocument {
     fn from_syntax(syntax: SyntaxNode) -> Self {
         Self { syntax }
     }
 }
-impl Document {
+impl BlockDocument {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
@@ -28,15 +73,55 @@ impl Document {
             .map(|node| AnyBlockNode::from_syntax_element(node.clone()))
     }
 }
-impl std::ops::Index<usize> for Document {
+impl std::ops::Index<usize> for BlockDocument {
     type Output = SyntaxToken;
     fn index(&self, index: usize) -> &Self::Output {
         &self.syntax[index].token()
     }
 }
-impl std::fmt::Debug for Document {
+impl std::fmt::Debug for BlockDocument {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Document")?;
+        f.write_str("BlockDocument")?;
+        f.debug_list().entries(self.children()).finish()
+    }
+}
+#[derive(Clone, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct InlineContent {
+    syntax: SyntaxNode,
+}
+impl Syntax for InlineContent {
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl FromSyntax for InlineContent {
+    fn from_syntax(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+}
+impl InlineContent {
+    pub fn len(&self) -> usize {
+        self.syntax.len()
+    }
+    pub fn children(&self) -> TypedNodeChildren<AnyInlineNode> {
+        TypedNodeChildren::new(SyntaxNodeChildren::new(self.syntax.children()))
+    }
+    pub fn get(&self, index: usize) -> Option<AnyInlineNode> {
+        self.syntax
+            .get(index)
+            .map(|node| AnyInlineNode::from_syntax_element(node.clone()))
+    }
+}
+impl std::ops::Index<usize> for InlineContent {
+    type Output = SyntaxToken;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.syntax[index].token()
+    }
+}
+impl std::fmt::Debug for InlineContent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("InlineContent")?;
         f.debug_list().entries(self.children()).finish()
     }
 }
@@ -46,7 +131,6 @@ pub enum AnyBlockNode {
     ThematicBreak(ThematicBreak),
     Heading(AnyHeading),
     CodeBlock(AnyCodeBlock),
-    InlineContent(InlineContent),
     BlockSpace(BlockSpace),
 }
 impl Syntax for AnyBlockNode {
@@ -56,7 +140,6 @@ impl Syntax for AnyBlockNode {
             Self::ThematicBreak(node) => node.syntax(),
             Self::Heading(node) => node.syntax(),
             Self::CodeBlock(node) => node.syntax(),
-            Self::InlineContent(node) => node.syntax(),
             Self::BlockSpace(node) => node.syntax(),
         }
     }
@@ -70,7 +153,6 @@ impl FromSyntax for AnyBlockNode {
             SyntaxKind::SETEXT_HEADING => Self::Heading(AnyHeading::from_syntax(syntax)),
             SyntaxKind::INDENTED_CODE_BLOCK => Self::CodeBlock(AnyCodeBlock::from_syntax(syntax)),
             SyntaxKind::FENCED_CODE_BLOCK => Self::CodeBlock(AnyCodeBlock::from_syntax(syntax)),
-            SyntaxKind::INLINE_CONTENT => Self::InlineContent(InlineContent::from_syntax(syntax)),
             SyntaxKind::BLOCK_SPACE => Self::BlockSpace(BlockSpace::from_syntax(syntax)),
             kind => unreachable!(
                 "Invalid syntax kind {:?} encountered when constructing enum node {}",
@@ -99,11 +181,6 @@ impl From<AnyCodeBlock> for AnyBlockNode {
         Self::CodeBlock(value)
     }
 }
-impl From<InlineContent> for AnyBlockNode {
-    fn from(value: InlineContent) -> Self {
-        Self::InlineContent(value)
-    }
-}
 impl From<BlockSpace> for AnyBlockNode {
     fn from(value: BlockSpace) -> Self {
         Self::BlockSpace(value)
@@ -117,7 +194,6 @@ impl std::fmt::Debug for AnyBlockNode {
             Self::ThematicBreak(node) => tuple.field(node),
             Self::Heading(node) => tuple.field(node),
             Self::CodeBlock(node) => tuple.field(node),
-            Self::InlineContent(node) => tuple.field(node),
             Self::BlockSpace(node) => tuple.field(node),
         };
         tuple.finish()
@@ -284,46 +360,6 @@ impl std::fmt::Debug for AnyCodeBlock {
             Self::FencedCodeBlock(node) => tuple.field(node),
         };
         tuple.finish()
-    }
-}
-#[derive(Clone, Eq, PartialEq)]
-#[repr(transparent)]
-pub struct InlineContent {
-    syntax: SyntaxNode,
-}
-impl Syntax for InlineContent {
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-}
-impl FromSyntax for InlineContent {
-    fn from_syntax(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-}
-impl InlineContent {
-    pub fn len(&self) -> usize {
-        self.syntax.len()
-    }
-    pub fn children(&self) -> TypedNodeChildren<AnyInlineNode> {
-        TypedNodeChildren::new(SyntaxNodeChildren::new(self.syntax.children()))
-    }
-    pub fn get(&self, index: usize) -> Option<AnyInlineNode> {
-        self.syntax
-            .get(index)
-            .map(|node| AnyInlineNode::from_syntax_element(node.clone()))
-    }
-}
-impl std::ops::Index<usize> for InlineContent {
-    type Output = SyntaxToken;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.syntax[index].token()
-    }
-}
-impl std::fmt::Debug for InlineContent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("InlineContent")?;
-        f.debug_list().entries(self.children()).finish()
     }
 }
 #[derive(Clone, Eq, PartialEq)]
@@ -634,6 +670,7 @@ pub enum AnyInlineNode {
     Hook(Hook),
     Strikethrough(Strikethrough),
     Icu(Icu),
+    IcuPound(IcuPound),
 }
 impl Syntax for AnyInlineNode {
     fn syntax(&self) -> &SyntaxNode {
@@ -648,6 +685,7 @@ impl Syntax for AnyInlineNode {
             Self::Hook(node) => node.syntax(),
             Self::Strikethrough(node) => node.syntax(),
             Self::Icu(node) => node.syntax(),
+            Self::IcuPound(node) => node.syntax(),
         }
     }
 }
@@ -664,6 +702,7 @@ impl FromSyntax for AnyInlineNode {
             SyntaxKind::HOOK => Self::Hook(Hook::from_syntax(syntax)),
             SyntaxKind::STRIKETHROUGH => Self::Strikethrough(Strikethrough::from_syntax(syntax)),
             SyntaxKind::ICU => Self::Icu(Icu::from_syntax(syntax)),
+            SyntaxKind::ICU_POUND => Self::IcuPound(IcuPound::from_syntax(syntax)),
             kind => unreachable!(
                 "Invalid syntax kind {:?} encountered when constructing enum node {}",
                 kind, "AnyInlineNode"
@@ -721,6 +760,11 @@ impl From<Icu> for AnyInlineNode {
         Self::Icu(value)
     }
 }
+impl From<IcuPound> for AnyInlineNode {
+    fn from(value: IcuPound) -> Self {
+        Self::IcuPound(value)
+    }
+}
 impl std::fmt::Debug for AnyInlineNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut tuple = f.debug_tuple("AnyInlineNode");
@@ -735,6 +779,7 @@ impl std::fmt::Debug for AnyInlineNode {
             Self::Hook(node) => tuple.field(node),
             Self::Strikethrough(node) => tuple.field(node),
             Self::Icu(node) => tuple.field(node),
+            Self::IcuPound(node) => tuple.field(node),
         };
         tuple.finish()
     }
@@ -1117,6 +1162,33 @@ impl std::fmt::Debug for Icu {
             .field("[0] l_curly_token", &self.l_curly_token())
             .field("[1] value", &self.value())
             .field("[2] r_curly_token", &self.r_curly_token())
+            .finish()
+    }
+}
+#[derive(Clone, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct IcuPound {
+    syntax: SyntaxNode,
+}
+impl Syntax for IcuPound {
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+impl FromSyntax for IcuPound {
+    fn from_syntax(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+}
+impl IcuPound {
+    pub fn hash_token(&self) -> SyntaxToken {
+        support::required_token(&self.syntax, 0usize)
+    }
+}
+impl std::fmt::Debug for IcuPound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IcuPound")
+            .field("[0] hash_token", &self.hash_token())
             .finish()
     }
 }

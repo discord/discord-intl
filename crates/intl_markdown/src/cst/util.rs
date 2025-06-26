@@ -1,4 +1,4 @@
-use crate::syntax::{FromSyntax, SyntaxIterator, SyntaxNodeChildren};
+use crate::syntax::{FromSyntax, PositionalIterator, SyntaxNodeChildren};
 use std::marker::PhantomData;
 
 pub struct TypedNodeChildren<'a, T: FromSyntax> {
@@ -25,4 +25,4 @@ impl<T: FromSyntax> ExactSizeIterator for TypedNodeChildren<'_, T> {
         self.children.len()
     }
 }
-impl<T: FromSyntax> SyntaxIterator for TypedNodeChildren<'_, T> {}
+impl<T: FromSyntax> PositionalIterator for TypedNodeChildren<'_, T> {}

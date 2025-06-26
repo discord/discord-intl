@@ -2,12 +2,14 @@ use std::collections::HashMap;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use intl_markdown::{formatter, Document, ICUMarkdownParser, SourceText};
+use intl_markdown::{compiler, format, ICUMarkdownParser, SourceText};
 
-fn parse_to_ast(content: &str, include_blocks: bool) -> Document {
+fn parse_to_html(content: &str, include_blocks: bool) -> String {
     let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     parser.parse();
-    parser.finish().to_document()
+    let document = parser.finish().to_document();
+    let compiled = compiler::compile_document(&document);
+    format::to_html(&compiled)
 }
 
 /// NOTE: To run this test, copy the commonmark spec text from
@@ -18,8 +20,8 @@ fn long_documents(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             let content = include_str!("./spec.md");
-            let ast = parse_to_ast(content, true);
-            let _output = formatter::to_html(&ast);
+            let output = parse_to_html(content, true);
+            let _len = output.len();
         })
     });
 
@@ -29,6 +31,7 @@ fn long_documents(c: &mut Criterion) {
             let parser = pulldown_cmark::Parser::new(content);
             let mut html_output = String::new();
             pulldown_cmark::html::push_html(&mut html_output, parser);
+            let _len = html_output.len();
         })
     });
     group.finish();
@@ -39,15 +42,15 @@ fn short_inlines(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
-            let ast = parse_to_ast(content, true);
-            let _output = formatter::to_html(&ast);
+            let output = parse_to_html(content, true);
+            let _len = output.len();
         })
     });
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             let content = "*this ***has some* various things* that** [create multiple elements](while/inline 'but without') taking _too_ much ![effort] to parse, and should `be a decent` test` ``of ``whether this works quickly.";
-            let ast = parse_to_ast(content, false);
-            let _output = formatter::to_html(&ast);
+            let output = parse_to_html(content, false);
+            let _len = output.len();
         })
     });
     group.bench_function("pulldown_cmark", |b| {
@@ -72,16 +75,16 @@ fn real_messages(c: &mut Criterion) {
     group.bench_function("intl-markdown", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let ast = parse_to_ast(message, true);
-                let _output = formatter::to_html(&ast);
+                let output = parse_to_html(message, true);
+                let _len = output.len();
             }
         })
     });
     group.bench_function("intl-markdown no blocks", |b| {
         b.iter(|| {
             for message in messages.values() {
-                let ast = parse_to_ast(message, true);
-                let _output = formatter::to_html(&ast);
+                let output = parse_to_html(message, false);
+                let _len = output.len();
             }
         })
     });
@@ -91,6 +94,7 @@ fn real_messages(c: &mut Criterion) {
                 let parser = pulldown_cmark::Parser::new(&message);
                 let mut html_output = String::new();
                 pulldown_cmark::html::push_html(&mut html_output, parser);
+                let _len = html_output.len();
             }
         })
     });

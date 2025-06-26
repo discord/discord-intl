@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod harness {
-    use intl_markdown::{formatter, ICUMarkdownParser, SourceText};
+    use intl_markdown::{compiler, format, ICUMarkdownParser, SourceText};
     pub fn parse(input: &str) -> String {
         let mut parser = ICUMarkdownParser::new(SourceText::from(input), true);
         #[cfg(feature = "debug-tracing")]
@@ -12,8 +12,10 @@ mod harness {
         println!("Tree:\n-------\n{:#?}\n", result.tree);
         let ast = result.to_document();
         println!("AST:\n----\n{:#?}\n", ast);
-        let output = formatter::to_html(&ast);
+        let compiled = compiler::compile_document(&ast);
+        println!("Compiled:\n---------\n{:#?}\n", compiled);
         println!("Input:\n------\n{}\n", input);
+        let output = format::to_html(&compiled);
         println!("HTML Format:\n------------\n{}\n{:?}", output, output);
         output
     }
