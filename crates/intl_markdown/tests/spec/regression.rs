@@ -44,3 +44,18 @@ fn regression_1() {
     let parsed = harness::parse(input);
     assert_eq!(expected, parsed);
 }
+
+#[test]
+fn regression_2() {
+    // Most CommonMark rules work well and aren't a concern for conflicting with natural language
+    // syntax, but sometimes things overlap a little bit. For example, the image syntax `![]` is
+    // ambiguous with a natural link following an exclamation, like `hello![foo](./bar)`. In
+    // reality, the correct thing to do here is add a space between either the `o` and `!` to
+    // create a phrase and an image _or_ between the `!` and the `[` to create a phrase and a
+    // regular link. However, since most of the time we're working with untrustable user input for
+    // intl messages, we want a way to more definitively distinguish them. It's also exceedingly
+    // rare for an image to be intentional, so preferring the link tag is more natural.
+    let input = "hello![foo](./bar)";
+    let expected = r#"<p>hello!<a href="./bar">foo</a></p>"#;
+    assert_eq!(expected, harness::parse(input));
+}

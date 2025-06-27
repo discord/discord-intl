@@ -198,4 +198,44 @@ mod markdown {
 
         harness::assert_ast(expected, &harness::parse_and_compile(input, false));
     }
+
+    #[test]
+    fn ambiguous_image_link() {
+        let input = "hello![foo](./bar)";
+        let expected = r#"["hello!",[8,"$link",["foo"],["./bar"]]]"#;
+
+        harness::assert_ast(expected, &harness::parse_and_compile(input, false));
+    }
+
+    #[test]
+    fn no_content_link() {
+        let input = "hello![](./bar)";
+        let expected = r#"["hello!",[8,"$link",[],["./bar"]]]"#;
+
+        harness::assert_ast(expected, &harness::parse_and_compile(input, false));
+    }
+
+    #[test]
+    fn no_destination_link() {
+        let input = "hello![foo]()";
+        let expected = r#"["hello!",[8,"$link",["foo"],[""]]]"#;
+
+        harness::assert_ast(expected, &harness::parse_and_compile(input, false));
+    }
+
+    #[test]
+    fn incidental_image() {
+        let input = "hello ![foo](./bar)";
+        let expected = r#"["hello ",[8,"$link",["foo"],["./bar"]]]"#;
+
+        harness::assert_ast(expected, &harness::parse_and_compile(input, false));
+    }
+
+    #[test]
+    fn no_content_image() {
+        let input = "hello ![](./bar)";
+        let expected = r#"["hello ",[8,"$link",[],["./bar"]]]"#;
+
+        harness::assert_ast(expected, &harness::parse_and_compile(input, false));
+    }
 }

@@ -992,7 +992,7 @@ impl Lexer {
     }
 
     /// Returns the character `offset` characters _before_ the current one in the source text.
-    fn peek_back(&self, offset: isize) -> u8 {
+    pub(super) fn peek_back(&self, offset: isize) -> u8 {
         let position = self.position as isize - offset;
         if !(0isize..self.text.len() as isize).contains(&(position)) {
             return 0;

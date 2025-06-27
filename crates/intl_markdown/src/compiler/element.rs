@@ -25,6 +25,25 @@ pub enum CompiledElement {
     Literal(TextPointer),
 }
 
+impl CompiledElement {
+    /// Convenience method for creating "empty content". Typically used for tags where a list value
+    /// is expected but none is present. This ensures that empty values do not become `null` in a
+    /// serialized AST.
+    pub fn empty_list() -> CompiledElement {
+        CompiledElement::List(Box::new([]))
+    }
+
+    /// Conditionally wraps the `content` to ensure that it is a `List` variant. If the content is
+    /// already a list, it is returned as-is. Otherwise, it is wrapped into a new Box slice and
+    /// that list element is returned.
+    pub fn list_from(content: impl Into<CompiledElement>) -> CompiledElement {
+        match content.into() {
+            element @ CompiledElement::BlockList(_) | element @ CompiledElement::List(_) => element,
+            element => CompiledElement::List(Box::from([element])),
+        }
+    }
+}
+
 impl From<TextPointer> for CompiledElement {
     fn from(pointer: TextPointer) -> Self {
         CompiledElement::Literal(pointer)
@@ -174,7 +193,7 @@ pub struct LinkNode {
     pub destination: LinkDestination,
     pub title: Option<TextPointer>,
     pub alt: Option<TextPointer>,
-    pub content: Option<Box<CompiledElement>>,
+    pub content: Box<CompiledElement>,
 }
 compiled_element_from_node!(Markdown, Link, LinkNode);
 impl LinkNode {
@@ -183,14 +202,14 @@ impl LinkNode {
         destination: LinkDestination,
         title: Option<TextPointer>,
         alt: Option<TextPointer>,
-        content: impl Into<Option<CompiledElement>>,
+        content: impl Into<CompiledElement>,
     ) -> Self {
         Self {
             kind,
             destination,
             title,
             alt,
-            content: content.into().map(Box::from),
+            content: Box::from(content.into()),
         }
     }
 }

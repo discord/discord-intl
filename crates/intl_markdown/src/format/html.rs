@@ -4,7 +4,6 @@ use crate::compiler::{
     SelectKind,
 };
 use crate::syntax::{PositionalIterator, TextPointer};
-use std::ops::Deref;
 
 pub struct HtmlFormatter {
     result: String,
@@ -113,7 +112,7 @@ impl HtmlFormatter {
                             self.result.push('\"');
                         }
                         self.result.push('>');
-                        self.format_optional_element(&link.content);
+                        self.format_element(&link.content);
                         self.result.push_str("</a>");
                     }
                     LinkKind::Image => {
@@ -223,12 +222,6 @@ impl HtmlFormatter {
 
     pub fn format_literal(&mut self, literal: &TextPointer) {
         push_str_iter(&mut self.result, encode_body_text(&literal))
-    }
-
-    fn format_optional_element<T: Deref<Target = CompiledElement>>(&mut self, element: &Option<T>) {
-        if let Some(element) = element.as_deref() {
-            self.format_element(element);
-        }
     }
 }
 

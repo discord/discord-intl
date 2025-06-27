@@ -256,13 +256,7 @@ impl Visit for Compiler {
         let mark = self.mark();
         node.content().visit_with(self);
         let content = self.collect_children(mark);
-        let link = LinkNode::new(
-            LinkKind::Link,
-            destination,
-            title,
-            None,
-            Some(content.into()),
-        );
+        let link = LinkNode::new(LinkKind::Link, destination, title, None, content);
         self.children.push(link.into())
     }
 
@@ -271,8 +265,21 @@ impl Visit for Compiler {
             .title()
             .and_then(|title| iter_tokens(&title.content()).into_text_iter().collect());
         let destination = self.collect_link_destination(node.destination().as_ref());
-        let alt = PlainTextFormatter::format(&node.content(), Default::default()).collect();
-        let link = LinkNode::new(LinkKind::Image, destination, title, alt, None);
+        let alt: Option<TextPointer> =
+            PlainTextFormatter::format(&node.content(), Default::default()).collect();
+        let link = LinkNode::new(
+            LinkKind::Image,
+            destination,
+            title,
+            alt.clone(),
+            // Technically images do not have "content", they just have alt text. But for the sake
+            // of consistent serialization of all "links", we can turn it into content. HTML will
+            // know not to render the content of an image tag, but other renderers can choose how
+            // to represent this, like in a serialized AST, images are just `$link`s, so they
+            // _expect_ a content field.
+            alt.map(CompiledElement::list_from)
+                .unwrap_or_else(CompiledElement::empty_list),
+        );
         self.children.push(link.into())
     }
 
@@ -284,7 +291,7 @@ impl Visit for Compiler {
         } else {
             LinkKind::Link
         };
-        let link = LinkNode::new(kind, destination, None, None, Some(content.into()));
+        let link = LinkNode::new(kind, destination, None, None, content);
         self.children.push(link.into());
     }
 

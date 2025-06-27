@@ -68,7 +68,7 @@ fn serialize_tag<S: Serializer>(
     tag.serialize_field("content", &content)?;
     tag.end()
 }
-fn serialize_tag_with_control<S: Serializer>(
+fn serialize_controlled_tag<S: Serializer>(
     serializer: S,
     name: &str,
     content: impl Serialize,
@@ -110,7 +110,7 @@ impl Serialize for MarkdownNode {
             }
             MarkdownNode::Code(code) => serialize_tag(serializer, "$code", &code.content),
             MarkdownNode::Link(link) => {
-                serialize_tag_with_control(serializer, "$link", &link.content, &link.destination)
+                serialize_controlled_tag(serializer, "$link", &link.content, &link.destination)
             }
             MarkdownNode::Hook(hook) => serialize_tag(serializer, &hook.name, &hook.content),
         }
@@ -127,7 +127,9 @@ impl Serialize for LinkDestination {
             LinkDestination::Static(text) => control.serialize_element(text.as_str())?,
             LinkDestination::Dynamic(dynamic) => control.serialize_element(dynamic)?,
             LinkDestination::Handler(argument) => control.serialize_element(argument)?,
-            LinkDestination::Empty => {}
+            // Empty destinations are treated as empty strings rather than actually being _empty_,
+            // so that the serialized type is _always_ a string and never nullish.
+            LinkDestination::Empty => control.serialize_element("")?,
         }
         control.end()
     }

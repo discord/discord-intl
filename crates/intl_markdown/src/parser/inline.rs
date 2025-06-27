@@ -40,7 +40,26 @@ pub(super) fn parse_inline(p: &mut ICUMarkdownParser, is_inside_icu: bool) {
             // Emphasis
             SyntaxKind::STAR | SyntaxKind::UNDER => parse_delimiter_run(p, p.current()),
             // Links and Images
-            SyntaxKind::EXCLAIM => parse_image_open(p),
+            SyntaxKind::EXCLAIM => {
+                // Most CommonMark rules work well and aren't a concern for conflicting with
+                // natural language syntax, but sometimes things overlap a little bit. For example,
+                // the image syntax `![]` is ambiguous with a natural link following an
+                // exclamation, like `hello![foo](./bar)`. In reality, the correct thing to do here
+                // is add a space between either the `o` and `!` to create a phrase and an image
+                // _or_ between the `!` and the `[` to create a phrase and a regular link. However,
+                // since most of the time we're working with untrustable user input for intl
+                // messages, we want a way to more definitively distinguish them. It's also
+                // exceedingly rare for an image to be intentional, so preferring the link tag is
+                // more natural.
+                // `peek_back(2)` gets the character _before_ the `!`.
+                let prev = p.lexer.peek_back(2);
+                if prev == b'\0' || prev.is_ascii_whitespace() || prev.is_ascii_punctuation() {
+                    parse_image_open(p)
+                } else {
+                    p.bump();
+                    continue;
+                }
+            }
             SyntaxKind::LSQUARE => parse_link_open(p),
             SyntaxKind::RSQUARE => parse_link_like_close(p),
             // Code spans
