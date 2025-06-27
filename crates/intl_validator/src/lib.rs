@@ -27,9 +27,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
     let mut diagnostics = MessageDiagnosticsBuilder::new(message.key());
 
     let source_variables = &source.variables;
-    let source_has_variables = source_variables
-        .as_ref()
-        .is_some_and(|variables| variables.count() > 0);
+    let source_has_variables = source_variables.count() > 0;
 
     for (locale, translation) in message.translations() {
         diagnostics.extend_from_value_diagnostics(
@@ -41,46 +39,34 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
             continue;
         }
 
-        let _translation_variables = match &translation.variables {
-            // If the translation contains variables but the source does not,
-            // it's likely unintended (the only time this should reasonably
-            // happen is when translations are out-of-date, which should be
-            // fixed automatically once the translations are imported again).
-            Some(translation_variables)
-                if !source_has_variables && translation_variables.count() > 0 =>
-            {
-                diagnostics.add(MessageDiagnostic {
-                        key: message.key(),
-                        file_position: translation.file_position,
-                        locale: locale.clone(),
-                        name: DiagnosticName::NoExtraTranslationVariables,
-                        severity: DiagnosticSeverity::Warning,
-                        description: "Translation includes variables, but the source message does not"
-                            .into(),
-                        help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
-                    });
-                continue;
-            }
-
-            Some(translated_variables) => translated_variables,
-            // If the translation has no variables, but the source does, this
-            // also likely not intentional, but still won't break things.
-            _ => {
-                if source_has_variables {
-                    diagnostics.add(MessageDiagnostic {
-                        key: message.key(),
-                        file_position: translation.file_position,
-                        locale: locale.clone(),
-                        name: DiagnosticName::NoMissingSourceVariables,
-                        severity: DiagnosticSeverity::Warning,
-                        description: "Source message includes variables, but this translation has none.".into(),
-                        help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
-                    });
-                }
-
-                continue;
-            }
-        };
+        // If the translation contains variables but the source does not,
+        // it's likely unintended (the only time this should reasonably
+        // happen is when translations are out-of-date, which should be
+        // fixed automatically once the translations are imported again).
+        if !source_has_variables && !translation.variables.is_empty() {
+            diagnostics.add(MessageDiagnostic {
+                key: message.key(),
+                file_position: translation.file_position,
+                locale: locale.clone(),
+                name: DiagnosticName::NoExtraTranslationVariables,
+                severity: DiagnosticSeverity::Warning,
+                description: "Translation includes variables, but the source message does not"
+                    .into(),
+                help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
+            });
+        // If the translation has no variables, but the source does, this
+        // also likely not intentional, but still won't break things.
+        } else if source_has_variables && translation.variables.is_empty() {
+            diagnostics.add(MessageDiagnostic {
+                key: message.key(),
+                file_position: translation.file_position,
+                locale: locale.clone(),
+                name: DiagnosticName::NoMissingSourceVariables,
+                severity: DiagnosticSeverity::Warning,
+                description: "Source message includes variables, but this translation has none.".into(),
+                help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
+            });
+        }
     }
 
     diagnostics.diagnostics

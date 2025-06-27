@@ -3,7 +3,7 @@ use crate::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, TextPoin
 use crate::SourceText;
 use std::fmt::Debug;
 use std::ptr;
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// A transparent representation of an index and state of the tree, used for creating markers to
 /// indicate where nodes should begin and end. `child_idx` is used as a starting marker, indicating
@@ -137,7 +137,7 @@ impl TreeBuilder {
     pub fn push_token(&mut self, token: SyntaxToken) {
         // SAFETY: We should be the only ones mutating this data, meaning we can safely take a
         // mutable reference to it to amend leading trivia to later on.
-        self.last_token_data = Rc::as_ptr(&token.raw_data()) as *mut SyntaxTokenData;
+        self.last_token_data = Arc::as_ptr(&token.raw_data()) as *mut SyntaxTokenData;
         self.text_offset += token.len() as usize;
         // Add any unconsumed leading trivia to the token before adding it to the tree.
         if !self.pending_leading_trivia.is_empty() {

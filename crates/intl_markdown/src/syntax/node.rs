@@ -3,7 +3,7 @@ use crate::syntax::{SyntaxElement, SyntaxKind, SyntaxToken, TextSize};
 use slice_dst::SliceWithHeader;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Index, Range};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct SyntaxNodeHeader {
@@ -11,9 +11,9 @@ pub struct SyntaxNodeHeader {
     pub text_len: TextSize,
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
-pub struct SyntaxNode(Rc<SliceWithHeader<SyntaxNodeHeader, SyntaxElement>>);
+pub struct SyntaxNode(Arc<SliceWithHeader<SyntaxNodeHeader, SyntaxElement>>);
 
 impl SyntaxNode {
     pub fn new<I>(kind: SyntaxKind, children: I) -> Self
@@ -44,8 +44,8 @@ impl SyntaxNode {
                 .into_iter()
                 .inspect(|child| text_len += child.text_len());
             let mut data =
-                SliceWithHeader::new::<Rc<_>, _>(SyntaxNodeHeader { kind, text_len: 0 }, children);
-            let header = &mut Rc::get_mut(&mut data).unwrap().header;
+                SliceWithHeader::new::<Arc<_>, _>(SyntaxNodeHeader { kind, text_len: 0 }, children);
+            let header = &mut Arc::get_mut(&mut data).unwrap().header;
             header.text_len = text_len;
             Self(data)
         }

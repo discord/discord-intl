@@ -5,7 +5,7 @@ use crate::syntax::{
 };
 use crate::{AnyInlineNode, InlineContent, SyntaxKind, SyntaxToken, Visit, VisitWith};
 use memchr::Memchr;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub fn iter_tokens<N: Syntax>(node: &N) -> SyntaxNodeTokenIter {
     node.syntax().iter_tokens()
@@ -192,7 +192,7 @@ pub fn fast_replace_pointer(pointer: TextPointer, needle: u8, replacement: u8) -
     for index in matches {
         bytes[index] = replacement;
     }
-    TextPointer::new(Rc::from(clone), 0, pointer.len() as TextSize)
+    TextPointer::new(Arc::from(clone), 0, pointer.len() as TextSize)
 }
 
 pub fn get_referenced_char(text: &str, radix: u32) -> Box<str> {

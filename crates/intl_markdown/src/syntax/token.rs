@@ -2,10 +2,10 @@ use super::SyntaxKind;
 use crate::syntax::text::TextPointer;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, Range};
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// An opaque type representing a reference to the source text of the parser.
-pub type SourceText = Rc<str>;
+pub type SourceText = Arc<str>;
 pub type TextSize = u32;
 pub type TextSpan = Range<usize>;
 
@@ -77,12 +77,12 @@ impl SyntaxTokenData {
 }
 
 #[derive(Clone, Default, Eq, PartialEq, Hash)]
-pub struct SyntaxToken(Rc<SyntaxTokenData>);
+pub struct SyntaxToken(Arc<SyntaxTokenData>);
 
 impl SyntaxToken {
     pub fn new(kind: SyntaxKind, text: TextPointer) -> Self {
         let len = text.len_size();
-        Self(Rc::new(SyntaxTokenData {
+        Self(Arc::new(SyntaxTokenData {
             kind,
             text,
             text_start: 0,
@@ -91,7 +91,7 @@ impl SyntaxToken {
     }
 
     pub fn from_str(kind: SyntaxKind, text: &str) -> Self {
-        Self(Rc::new(SyntaxTokenData {
+        Self(Arc::new(SyntaxTokenData {
             kind,
             text: TextPointer::from_str(text),
             text_start: TextSize::default(),
@@ -109,7 +109,7 @@ impl SyntaxToken {
         text_start: TextSize,
         trailing_start: TextSize,
     ) -> Self {
-        Self(Rc::new(SyntaxTokenData {
+        Self(Arc::new(SyntaxTokenData {
             kind,
             text,
             text_start,
@@ -121,7 +121,7 @@ impl SyntaxToken {
         // TODO: Optimize this to actually use static text pointers. This is intentionally
         // different from `from_str` in that it's meant to support string literals that are
         // commonly used and avoid allocating a new pointer for each one.
-        Self(Rc::new(SyntaxTokenData {
+        Self(Arc::new(SyntaxTokenData {
             kind: SyntaxKind::TEXT,
             text: TextPointer::from_str(text),
             text_start: 0,
@@ -262,7 +262,7 @@ impl SyntaxToken {
     // be added after a token has been pushed elsewhere into the tree structure.
     // See [TreeBuilder::add_trivia] for context on the usage.
 
-    pub(super) fn raw_data(&self) -> Rc<SyntaxTokenData> {
+    pub(super) fn raw_data(&self) -> Arc<SyntaxTokenData> {
         self.0.clone()
     }
 }

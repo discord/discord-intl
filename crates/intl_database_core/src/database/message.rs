@@ -134,7 +134,7 @@ impl Message {
     /// Returns a set of variables present in the source translation of this message.
     pub fn source_variables(&self) -> Option<&MessageVariables> {
         match self.get_source_translation() {
-            Some(translation) => translation.variables.as_ref(),
+            Some(translation) => Some(&translation.variables),
             _ => None,
         }
     }
@@ -146,12 +146,7 @@ impl Message {
             .map_or_else(|| MessageVariables::new(), Clone::clone);
 
         for (_, translation) in self.translations() {
-            match &translation.variables {
-                Some(variables) => {
-                    merged.merge(variables);
-                }
-                None => continue,
-            }
+            merged.merge(&translation.variables);
         }
 
         merged

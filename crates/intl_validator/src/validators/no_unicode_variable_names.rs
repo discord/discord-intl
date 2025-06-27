@@ -1,6 +1,5 @@
 use intl_database_core::MessageValue;
-use intl_markdown::IcuVariable;
-use intl_markdown_visitor::{visit_with_mut, Visit};
+use intl_markdown::{IcuVariable, Visit, VisitWith};
 
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
@@ -20,14 +19,15 @@ impl NoUnicodeVariableNames {
 
 impl Validator for NoUnicodeVariableNames {
     fn validate_ast(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
-        visit_with_mut(&message.parsed, self);
+        message.cst.visit_with(self);
         Some(self.diagnostics.clone())
     }
 }
 
 impl Visit for NoUnicodeVariableNames {
     fn visit_icu_variable(&mut self, node: &IcuVariable) {
-        let name = node.name();
+        let ident = node.ident_token();
+        let name = ident.text();
         if !name.is_ascii() {
             let help_text = format!("\"{name}\" should be renamed to only use ASCII characters. If this is a translation, ensure the name matches the expected name in the source text");
             self.diagnostics.push(ValueDiagnostic {

@@ -601,7 +601,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "   **Foo** f";
+        let content = "Перейдите по ссылке ниже и войдите в учётную запись Fortnite, чтобы активировать код![Подробнее]({learnMoreUrl})";
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         #[cfg(feature = "debug-tracing")]
         println!("Blocks: {:?}\n", parser.lexer_block_bounds());

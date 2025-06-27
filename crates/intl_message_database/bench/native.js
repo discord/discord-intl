@@ -103,8 +103,13 @@ switch (COMPILATION_FORMAT) {
   case IntlCompiledMessageFormat.KeylessJson:
     bench('hydrate json', () => {
       for (const [, data] of Object.entries(COMPILED_FILES)) {
-        for (const [, message] of Object.entries(data)) {
-          hydrateFormatJsAst(message);
+        for (const [key, message] of Object.entries(data)) {
+          try {
+            hydrateFormatJsAst(message);
+          } catch (e) {
+            console.log(`Failed to parse ${key}:`, util.inspect(message, { depth: null }));
+            throw e;
+          }
         }
       }
     });

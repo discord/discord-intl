@@ -2,7 +2,6 @@ mod comment;
 mod type_def;
 mod writer;
 
-use rustc_hash::FxHashSet;
 use std::fmt::Write;
 use thiserror::Error;
 
@@ -73,11 +72,7 @@ impl<'a> IntlTypesGenerator<'a> {
             return AlphabeticSymbolMap::default();
         };
 
-        let source_variables = source
-            .variables
-            .as_ref()
-            .map(|variables| variables.get_keys())
-            .unwrap_or(FxHashSet::default());
+        let source_variables = source.variables.get_keys();
 
         // Map of variable keys to locales that define them when the variable
         // is not present in the source message.
@@ -92,11 +87,7 @@ impl<'a> IntlTypesGenerator<'a> {
                 continue;
             }
 
-            let Some(variables) = &translation.variables else {
-                continue;
-            };
-
-            for variable in variables.get_keys() {
+            for variable in translation.variables.get_keys() {
                 if !source_variables.contains(variable) {
                     // For some reason, `entry().or_insert().and_modify()` is not available here.
                     spurious_variables

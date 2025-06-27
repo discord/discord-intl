@@ -1,6 +1,6 @@
 use crate::cst::util::*;
 use crate::syntax::*;
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyDocument {
     BlockDocument(BlockDocument),
     InlineContent(InlineContent),
@@ -45,7 +45,7 @@ impl std::fmt::Debug for AnyDocument {
         tuple.finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct BlockDocument {
     syntax: SyntaxNode,
@@ -85,7 +85,7 @@ impl std::fmt::Debug for BlockDocument {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct InlineContent {
     syntax: SyntaxNode,
@@ -125,7 +125,7 @@ impl std::fmt::Debug for InlineContent {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyBlockNode {
     Paragraph(Paragraph),
     ThematicBreak(ThematicBreak),
@@ -199,7 +199,7 @@ impl std::fmt::Debug for AnyBlockNode {
         tuple.finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Paragraph {
     syntax: SyntaxNode,
@@ -230,7 +230,7 @@ impl std::fmt::Debug for Paragraph {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct ThematicBreak {
     syntax: SyntaxNode,
@@ -268,7 +268,7 @@ impl std::fmt::Debug for ThematicBreak {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyHeading {
     AtxHeading(AtxHeading),
     SetextHeading(SetextHeading),
@@ -313,7 +313,7 @@ impl std::fmt::Debug for AnyHeading {
         tuple.finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyCodeBlock {
     IndentedCodeBlock(IndentedCodeBlock),
     FencedCodeBlock(FencedCodeBlock),
@@ -362,7 +362,7 @@ impl std::fmt::Debug for AnyCodeBlock {
         tuple.finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct BlockSpace {
     syntax: SyntaxNode,
@@ -400,7 +400,7 @@ impl std::fmt::Debug for BlockSpace {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct AtxHeading {
     syntax: SyntaxNode,
@@ -439,7 +439,7 @@ impl std::fmt::Debug for AtxHeading {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct SetextHeading {
     syntax: SyntaxNode,
@@ -478,7 +478,7 @@ impl std::fmt::Debug for SetextHeading {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct SetextHeadingUnderline {
     syntax: SyntaxNode,
@@ -516,7 +516,7 @@ impl std::fmt::Debug for SetextHeadingUnderline {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IndentedCodeBlock {
     syntax: SyntaxNode,
@@ -543,7 +543,7 @@ impl std::fmt::Debug for IndentedCodeBlock {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct FencedCodeBlock {
     syntax: SyntaxNode,
@@ -582,7 +582,7 @@ impl std::fmt::Debug for FencedCodeBlock {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct CodeBlockContent {
     syntax: SyntaxNode,
@@ -620,7 +620,7 @@ impl std::fmt::Debug for CodeBlockContent {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct CodeBlockInfoString {
     syntax: SyntaxNode,
@@ -658,7 +658,7 @@ impl std::fmt::Debug for CodeBlockInfoString {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyInlineNode {
     TextSpan(TextSpan),
     Emphasis(Emphasis),
@@ -784,7 +784,7 @@ impl std::fmt::Debug for AnyInlineNode {
         tuple.finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct TextSpan {
     syntax: SyntaxNode,
@@ -822,7 +822,7 @@ impl std::fmt::Debug for TextSpan {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Emphasis {
     syntax: SyntaxNode,
@@ -857,7 +857,7 @@ impl std::fmt::Debug for Emphasis {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Strong {
     syntax: SyntaxNode,
@@ -900,7 +900,7 @@ impl std::fmt::Debug for Strong {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Link {
     syntax: SyntaxNode,
@@ -939,7 +939,7 @@ impl std::fmt::Debug for Link {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Image {
     syntax: SyntaxNode,
@@ -982,7 +982,7 @@ impl std::fmt::Debug for Image {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Autolink {
     syntax: SyntaxNode,
@@ -1017,7 +1017,7 @@ impl std::fmt::Debug for Autolink {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct CodeSpan {
     syntax: SyntaxNode,
@@ -1052,7 +1052,7 @@ impl std::fmt::Debug for CodeSpan {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Hook {
     syntax: SyntaxNode,
@@ -1095,7 +1095,7 @@ impl std::fmt::Debug for Hook {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Strikethrough {
     syntax: SyntaxNode,
@@ -1130,7 +1130,7 @@ impl std::fmt::Debug for Strikethrough {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Icu {
     syntax: SyntaxNode,
@@ -1165,7 +1165,7 @@ impl std::fmt::Debug for Icu {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuPound {
     syntax: SyntaxNode,
@@ -1192,7 +1192,7 @@ impl std::fmt::Debug for IcuPound {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct LinkResource {
     syntax: SyntaxNode,
@@ -1231,7 +1231,7 @@ impl std::fmt::Debug for LinkResource {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyLinkDestination {
     StaticLinkDestination(StaticLinkDestination),
     DynamicLinkDestination(DynamicLinkDestination),
@@ -1291,7 +1291,7 @@ impl std::fmt::Debug for AnyLinkDestination {
         tuple.finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct LinkTitle {
     syntax: SyntaxNode,
@@ -1330,7 +1330,7 @@ impl std::fmt::Debug for LinkTitle {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct StaticLinkDestination {
     syntax: SyntaxNode,
@@ -1368,7 +1368,7 @@ impl std::fmt::Debug for StaticLinkDestination {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct DynamicLinkDestination {
     syntax: SyntaxNode,
@@ -1395,7 +1395,7 @@ impl std::fmt::Debug for DynamicLinkDestination {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct ClickHandlerLinkDestination {
     syntax: SyntaxNode,
@@ -1422,7 +1422,7 @@ impl std::fmt::Debug for ClickHandlerLinkDestination {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct LinkTitleContent {
     syntax: SyntaxNode,
@@ -1460,7 +1460,7 @@ impl std::fmt::Debug for LinkTitleContent {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct CodeSpanContent {
     syntax: SyntaxNode,
@@ -1498,7 +1498,7 @@ impl std::fmt::Debug for CodeSpanContent {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct HookName {
     syntax: SyntaxNode,
@@ -1533,7 +1533,7 @@ impl std::fmt::Debug for HookName {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyIcuPlaceholder {
     IcuVariable(IcuVariable),
     IcuPlural(IcuPlural),
@@ -1625,7 +1625,7 @@ impl std::fmt::Debug for AnyIcuPlaceholder {
         tuple.finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuVariable {
     syntax: SyntaxNode,
@@ -1652,7 +1652,7 @@ impl std::fmt::Debug for IcuVariable {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuPlural {
     syntax: SyntaxNode,
@@ -1695,7 +1695,7 @@ impl std::fmt::Debug for IcuPlural {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuSelectOrdinal {
     syntax: SyntaxNode,
@@ -1738,7 +1738,7 @@ impl std::fmt::Debug for IcuSelectOrdinal {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuSelect {
     syntax: SyntaxNode,
@@ -1781,7 +1781,7 @@ impl std::fmt::Debug for IcuSelect {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuDate {
     syntax: SyntaxNode,
@@ -1820,7 +1820,7 @@ impl std::fmt::Debug for IcuDate {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuTime {
     syntax: SyntaxNode,
@@ -1859,7 +1859,7 @@ impl std::fmt::Debug for IcuTime {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuNumber {
     syntax: SyntaxNode,
@@ -1898,7 +1898,7 @@ impl std::fmt::Debug for IcuNumber {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuPluralArms {
     syntax: SyntaxNode,
@@ -1938,7 +1938,7 @@ impl std::fmt::Debug for IcuPluralArms {
         f.debug_list().entries(self.children()).finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuPluralArm {
     syntax: SyntaxNode,
@@ -1977,7 +1977,7 @@ impl std::fmt::Debug for IcuPluralArm {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuPluralValue {
     syntax: SyntaxNode,
@@ -2004,7 +2004,7 @@ impl std::fmt::Debug for IcuPluralValue {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuDateTimeStyle {
     syntax: SyntaxNode,
@@ -2035,7 +2035,7 @@ impl std::fmt::Debug for IcuDateTimeStyle {
             .finish()
     }
 }
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct IcuNumberStyle {
     syntax: SyntaxNode,

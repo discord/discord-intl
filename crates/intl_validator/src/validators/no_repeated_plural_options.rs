@@ -1,6 +1,5 @@
 use intl_database_core::MessageValue;
-use intl_markdown::IcuPlural;
-use intl_markdown_visitor::{visit_with_mut, Visit};
+use intl_markdown::{IcuPlural, Visit, VisitWith};
 use std::collections::HashSet;
 
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
@@ -21,23 +20,25 @@ impl NoRepeatedPluralOptions {
 
 impl Validator for NoRepeatedPluralOptions {
     fn validate_ast(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
-        visit_with_mut(&message.parsed, self);
+        message.cst.visit_with(self);
         Some(self.diagnostics.clone())
     }
 }
 
 impl Visit for NoRepeatedPluralOptions {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
-        let plural_name = node.name();
-        let arm_names = node.arms().iter().map(|arm| arm.selector().as_str());
+        let ident = node.variable().ident_token();
+        let plural_name = ident.text();
         let mut seen = HashSet::new();
         // Allotting enough capacity to handle basically every possible case. More than 4
         // repetitions is egregious and there will almost never be more than 1, but this just
         // ensures it's always consistent allocation.
-        let mut repeated_names: Vec<&str> = Vec::with_capacity(4);
+        let mut repeated_names: Vec<String> = Vec::with_capacity(4);
 
-        for name in arm_names {
-            if seen.contains(name) {
+        for arm in node.arms().children() {
+            let selector = arm.selector_token();
+            let name = selector.text().to_string();
+            if seen.contains(&name) {
                 repeated_names.push(name);
             } else {
                 seen.insert(name);

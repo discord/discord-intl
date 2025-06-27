@@ -1,8 +1,7 @@
 use crate::syntax::TextSize;
 use std::collections::Bound;
 use std::ops::{Deref, Range, RangeBounds};
-use std::rc::Rc;
-
+use std::sync::Arc;
 // TODO: Implement static text pointers with `lazy_static!`?
 // TODO: Implement general text interning? Less useful for speed, more for memory
 
@@ -11,13 +10,13 @@ use std::rc::Rc;
 /// pointed text, and the byte length of the text to use.
 #[derive(Debug, Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TextPointer {
-    source: Rc<str>,
+    source: Arc<str>,
     offset: TextSize,
     len: TextSize,
 }
 
 impl TextPointer {
-    pub fn new(source: Rc<str>, offset: TextSize, len: TextSize) -> Self {
+    pub fn new(source: Arc<str>, offset: TextSize, len: TextSize) -> Self {
         Self {
             source,
             offset,
@@ -29,7 +28,7 @@ impl TextPointer {
     /// Making a new pointer this way works as a more-accurate default that allows `.extend_back()`
     /// and `.extend_front()` to function as expected without having to use an `Option` or create a
     /// special case for the first element.
-    pub fn empty_from(source: Rc<str>) -> Self {
+    pub fn empty_from(source: Arc<str>) -> Self {
         Self {
             source,
             offset: 0,
@@ -39,7 +38,7 @@ impl TextPointer {
 
     pub fn from_str(source: &str) -> Self {
         Self {
-            source: Rc::from(source),
+            source: Arc::from(source),
             offset: 0,
             len: source.len() as TextSize,
         }
@@ -74,7 +73,7 @@ impl TextPointer {
     /// Returns true if this text pointer references a text range that is immediately before the
     /// range that `next` points to within the same source string.
     pub fn is_adjacent_before(&self, next: &Self) -> bool {
-        Rc::ptr_eq(&self.source, &next.source) && self.offset + self.len == next.offset
+        Arc::ptr_eq(&self.source, &next.source) && self.offset + self.len == next.offset
     }
 
     /// Returns true if this text pointer references a text range that is immediately after the
@@ -241,7 +240,7 @@ impl From<&str> for TextPointer {
 impl From<Box<str>> for TextPointer {
     fn from(text: Box<str>) -> Self {
         let len = text.len() as TextSize;
-        TextPointer::new(Rc::from(text), 0, len)
+        TextPointer::new(Arc::from(text), 0, len)
     }
 }
 

@@ -17,7 +17,7 @@ macro_rules! compiled_element_from_node {
     };
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum CompiledElement {
     BlockList(Box<[CompiledElement]>),
     List(Box<[CompiledElement]>),
@@ -55,13 +55,13 @@ impl From<IcuNode> for CompiledElement {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum CompiledNode {
     Markdown(MarkdownNode),
     Icu(IcuNode),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum MarkdownNode {
     Paragraph(ParagraphNode),
     CodeBlock(CodeBlockNode),
@@ -77,7 +77,7 @@ pub enum MarkdownNode {
     Hook(HookNode),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ParagraphNode {
     pub content: Box<CompiledElement>,
 }
@@ -89,7 +89,7 @@ impl ParagraphNode {
     }
 }
 compiled_element_from_node!(Markdown, Paragraph, ParagraphNode);
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct CodeBlockNode {
     pub info_string: Option<TextPointer>,
     pub content: Box<CompiledElement>,
@@ -106,7 +106,7 @@ impl CodeBlockNode {
         }
     }
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct HeadingNode {
     pub level: u8,
     pub content: Box<CompiledElement>,
@@ -120,7 +120,7 @@ impl HeadingNode {
         }
     }
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct StrongNode {
     pub content: Box<CompiledElement>,
 }
@@ -132,7 +132,7 @@ impl StrongNode {
         }
     }
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct EmphasisNode {
     pub content: Box<CompiledElement>,
 }
@@ -144,7 +144,7 @@ impl EmphasisNode {
         }
     }
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct StrikethroughNode {
     pub content: Box<CompiledElement>,
 }
@@ -156,7 +156,7 @@ impl StrikethroughNode {
         }
     }
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct CodeNode {
     pub content: Box<CompiledElement>,
 }
@@ -168,7 +168,7 @@ impl CodeNode {
         }
     }
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct LinkNode {
     pub kind: LinkKind,
     pub destination: LinkDestination,
@@ -194,7 +194,7 @@ impl LinkNode {
         }
     }
 }
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct HookNode {
     pub name: TextPointer,
     pub content: Box<CompiledElement>,
@@ -209,14 +209,14 @@ impl HookNode {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LinkKind {
     Link,
     Image,
     Email,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum LinkDestination {
     Static(TextPointer),
     Dynamic(IcuNode),
@@ -225,7 +225,7 @@ pub enum LinkDestination {
 }
 
 // This ordering is roughly meant to be the same as FormatJS
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum IcuNode {
     Argument(ArgumentNode),
     Number(NumberNode),
@@ -245,41 +245,41 @@ impl From<CompiledElement> for IcuNode {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ArgumentNode {
     pub name: TextPointer,
 }
 compiled_element_from_node!(Icu, Argument, ArgumentNode);
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct NumberNode {
     pub name: TextPointer,
     pub style: Option<TextPointer>,
 }
 compiled_element_from_node!(Icu, Number, NumberNode);
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct DateNode {
     pub name: TextPointer,
     pub style: Option<TextPointer>,
 }
 compiled_element_from_node!(Icu, Date, DateNode);
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct TimeNode {
     pub name: TextPointer,
     pub style: Option<TextPointer>,
 }
 compiled_element_from_node!(Icu, Time, TimeNode);
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SelectKind {
     Select,
     SelectOrdinal,
     Plural,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct SelectableNode {
     pub name: TextPointer,
     pub kind: SelectKind,
@@ -288,7 +288,7 @@ pub struct SelectableNode {
 }
 compiled_element_from_node!(Icu, Selectable, SelectableNode);
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct IcuOption {
     pub name: TextPointer,
     pub value: Box<CompiledElement>,

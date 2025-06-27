@@ -166,7 +166,7 @@ fn impl_node(node: &GrammarStructNode) -> TokenStream {
     }
 
     quote! {
-        #[derive(Clone, Eq, PartialEq)]
+        #[derive(Clone, Eq, PartialEq, Hash)]
         #[repr(transparent)]
         pub struct #ident {
             syntax: SyntaxNode
@@ -225,7 +225,7 @@ fn impl_list_node(node: &GrammarListNode) -> TokenStream {
     let name = node.name.clone();
 
     quote! {
-        #[derive(Clone, Eq, PartialEq)]
+        #[derive(Clone, Eq, PartialEq, Hash)]
         #[repr(transparent)]
         pub struct #ident {
             syntax: SyntaxNode
@@ -274,7 +274,7 @@ fn impl_enum_node(node: &GrammarEnumNode) -> TokenStream {
     let syntax_mappings = node.syntax_mappings();
 
     quote! {
-        #[derive(Clone, Eq, PartialEq)]
+        #[derive(Clone, Eq, PartialEq, Hash)]
         pub enum #ident {
             #(#variant_defs),*
         }

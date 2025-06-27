@@ -747,7 +747,7 @@ name = "intl_database_core"
 version = "0.1.0"
 dependencies = [
  "intl_markdown",
- "intl_markdown_visitor",
+ "intl_markdown_macros",
  "intl_message_utils",
  "path-absolutize",
  "rustc-hash 2.0.0",
@@ -850,13 +850,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "intl_markdown_visitor"
-version = "0.1.0"
-dependencies = [
- "intl_markdown",
-]
-
-[[package]]
 name = "intl_message_database"
 version = "0.1.0"
 dependencies = [
@@ -895,7 +888,6 @@ version = "0.1.0"
 dependencies = [
  "intl_database_core",
  "intl_markdown",
- "intl_markdown_visitor",
  "serde",
 ]
 
