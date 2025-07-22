@@ -34,7 +34,7 @@ pub struct GrammarField {
 }
 
 impl GrammarField {
-    fn new(name: String, return_kind: ElementKind, optional: bool, slot: usize) -> Self {
+    pub fn new(name: String, return_kind: ElementKind, optional: bool, slot: usize) -> Self {
         Self {
             name,
             return_kind,

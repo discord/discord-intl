@@ -1,6 +1,6 @@
 use crate::compiler::{
     ArgumentNode, CompiledElement, CompiledNode, IcuNode, IcuOption, LinkDestination, MarkdownNode,
-    SelectKind,
+    SelectableKind,
 };
 use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
 use serde::{Serialize, Serializer};
@@ -183,9 +183,9 @@ impl Serialize for IcuNode {
             }
             IcuNode::Selectable(selectable) => {
                 let (ty, type_id, length) = match selectable.kind {
-                    SelectKind::Select => (None, NodeTypeId::Select, 3),
-                    SelectKind::Plural => (Some("cardinal"), NodeTypeId::Plural, 4),
-                    SelectKind::SelectOrdinal => (Some("ordinal"), NodeTypeId::Plural, 4),
+                    SelectableKind::Select => (None, NodeTypeId::Select, 3),
+                    SelectableKind::Plural => (Some("cardinal"), NodeTypeId::Plural, 4),
+                    SelectableKind::SelectOrdinal => (Some("ordinal"), NodeTypeId::Plural, 4),
                 };
                 let mut select = serializer.serialize_struct("Selectable", length)?;
                 select.serialize_field("type", &type_id)?;

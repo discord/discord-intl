@@ -1,6 +1,8 @@
 mod compiler;
 mod element;
+mod element_ext;
 mod util;
+mod visitor;
 
 use crate::{AnyDocument, VisitWith};
 pub use compiler::Compiler;

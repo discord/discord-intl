@@ -5,7 +5,7 @@ use super::util::{
 use crate::compiler::{
     ArgumentNode, CodeBlockNode, CodeNode, CompiledElement, DateNode, EmphasisNode, HeadingNode,
     HookNode, IcuNode, IcuOption, LinkDestination, LinkKind, LinkNode, MarkdownNode, NumberNode,
-    ParagraphNode, SelectKind, SelectableNode, StrikethroughNode, StrongNode, TimeNode,
+    ParagraphNode, SelectableKind, SelectableNode, StrikethroughNode, StrongNode, TimeNode,
 };
 use crate::cst::*;
 use crate::syntax::{PositionalIterator, Syntax, TextPointer, TokenTextIterOptions, TrimKind};
@@ -401,7 +401,7 @@ impl Visit for Compiler {
                 let options = self.collect_icu_options(&select.arms());
                 self.children.push(
                     SelectableNode {
-                        kind: SelectKind::Select,
+                        kind: SelectableKind::Select,
                         name: self.icu_variable_name(&select.variable()),
                         // TODO: implement offsets
                         offset: None,
@@ -415,7 +415,7 @@ impl Visit for Compiler {
                 let options = self.collect_icu_options(&select_ordinal.arms());
                 self.children.push(
                     SelectableNode {
-                        kind: SelectKind::SelectOrdinal,
+                        kind: SelectableKind::SelectOrdinal,
                         name: self.icu_variable_name(&select_ordinal.variable()),
                         // TODO: implement offsets
                         offset: None,
@@ -429,7 +429,7 @@ impl Visit for Compiler {
                 let options = self.collect_icu_options(&plural.arms());
                 self.children.push(
                     SelectableNode {
-                        kind: SelectKind::Plural,
+                        kind: SelectableKind::Plural,
                         name: self.icu_variable_name(&plural.variable()),
                         // TODO: implement offsets
                         offset: None,

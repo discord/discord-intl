@@ -1,7 +1,7 @@
 use super::util::{encode_body_text, encode_href};
 use crate::compiler::{
     CompiledElement, CompiledNode, IcuNode, LinkDestination, LinkKind, LinkNode, MarkdownNode,
-    SelectKind,
+    SelectableKind,
 };
 use crate::syntax::{PositionalIterator, TextPointer};
 
@@ -199,9 +199,9 @@ impl HtmlFormatter {
                 self.result.push('{');
                 self.result.push_str(&selectable.name);
                 self.result.push_str(match selectable.kind {
-                    SelectKind::Plural => ", plural,",
-                    SelectKind::Select => ", select,",
-                    SelectKind::SelectOrdinal => ", selectordinal,",
+                    SelectableKind::Plural => ", plural,",
+                    SelectableKind::Select => ", select,",
+                    SelectableKind::SelectOrdinal => ", selectordinal,",
                 });
                 if let Some(offset) = &selectable.offset {
                     self.result.push_str(&offset);

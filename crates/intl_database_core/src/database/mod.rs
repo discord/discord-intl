@@ -258,7 +258,7 @@ impl MessagesDatabase {
                 let message = Message::from_translation(key, locale, value);
                 self.known_locales.insert(locale);
                 self.hash_lookup.insert(message.hashed_key().clone(), key);
-                self.messages.insert(key.into(), message);
+                self.messages.insert(key, message);
             }
         }
 

@@ -3,6 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use std::str::FromStr;
 use ungrammar::Grammar;
+use xtask::compiled_syntax::codegen_compiled_syntax;
 use xtask::grammar::{
     syntax_from_grammar, AnyGrammarNode, ElementKind, GrammarEnumNode, GrammarListNode,
     GrammarStructNode,
@@ -18,12 +19,15 @@ fn main() {
 }
 
 fn try_main() -> anyhow::Result<()> {
-    let mut codegen = Codegen::new(util::repo_root().join("crates/intl_markdown/src/cst"));
+    let mut codegen = Codegen::new(util::repo_root().join("crates/intl_markdown/src"));
 
     let grammar = Grammar::from_str(include_str!("../../data/markdown.ungram"))?;
     let syntax = syntax_from_grammar(&grammar);
-    codegen.write_file("nodes.rs", generate_tree_from_grammar(&syntax))?;
-    codegen.write_file("visitor.rs", generate_visitor_from_grammar(&syntax))?;
+    codegen.write_file("cst/nodes.rs", generate_tree_from_grammar(&syntax))?;
+    codegen.write_file("cst/visitor.rs", generate_visitor_from_grammar(&syntax))?;
+
+    let compiled_grammar = Grammar::from_str(include_str!("../../data/compiled.ungram"))?;
+    codegen_compiled_syntax(&mut codegen, &compiled_grammar)?;
     codegen.finish()
 }
 

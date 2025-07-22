@@ -1,102 +1,105 @@
 // T = T means a Unit item, like a Unit variant of an enum
-// *Kind becomes a unit-variant enum
-// 'tokens' become TextPointers with that name.
+// 'u*' and 'i*' become primitive integer types
+// `name: Empty` becomes an empty Unit (`()`), or a unit enum variant with no value.
 // `(T)*` becomes a `Box<[T]>`
 // `(T)?` becomes a `Option<T>`
 
-CompiledElement =
-    BlockList
-    | List
-    | CompiledNode
-    | Literal
+// Empty is a unit struct, or an indication that an enum variant has no value
+Empty = Empty
+// TextPointer is defined externally, so it needs a name here
+TextPointer = TextPointer
 
-BlockList = CompiledElement*
-List = CompiledElement*
+CompiledElement =
+    BlockList: CompiledElement*
+    | List: CompiledElement*
+    | Node: CompiledNode
+    | Literal: TextPointer
+
 CompiledNode =
-    MarkdownNode
-    | IcuNode
-Literal = 'text'
-usize = usize
+    Markdown: MarkdownNode
+    | Icu: IcuNode
 
 MarkdownNode =
-    Hook
-    | Paragraph
-    | CodeBlock
-    | Heading
-    | ThematicBreak
-    | Strong
-    | Emphasis
-    | Strikethrough
-    | Code
-    | LineBreak
-    | Link
+    Paragraph: ParagraphNode
+    | CodeBlock: CodeBlockNode
+    | Heading: HeadingNode
+    | ThematicBreak: Empty
+    | LineBreak: Empty
+    | Strong: StrongNode
+    | Emphasis: EmphasisNode
+    | Strikethrough: StrikethroughNode
+    | Code: CodeNode
+    | Link: LinkNode
+    | Hook: HookNode
 
-Hook =
-    'name'
-CodeBlock =
-    'info_string'
+ParagraphNode =
     content: CompiledElement
-Heading =
-    level: usize
+CodeBlockNode =
+    info_string: TextPointer?
     content: CompiledElement
-Paragraph =
+HeadingNode =
+    level: 'u8'
     content: CompiledElement
-ThematicBreak = ThematicBreak
-LineBreak = LineBreak
-Strong =
+StrongNode =
     content: CompiledElement
-Emphasis =
+EmphasisNode =
     content: CompiledElement
-Strikethrough =
+StrikethroughNode =
     content: CompiledElement
-Code =
+CodeNode =
     content: CompiledElement
-Link =
+LinkNode =
     kind: LinkKind
     destination: LinkDestination
-    'title'?
-    'alt'?
+    title: TextPointer?
+    alt: TextPointer?
+    content: CompiledElement
+HookNode =
+    name: TextPointer
+    content: CompiledElement
 
 LinkKind =
-    'Link'
-    | 'Image'
-    | 'Email'
+    Link: Empty
+    | Image: Empty
+    | Email: Empty
 
 LinkDestination =
-    'Url'
-    | IcuNode
+    Static: TextPointer
+    | Dynamic: IcuNode
+    | Handler: ArgumentNode
+    | Empty: Empty
+
 
 IcuNode =
-    Argument
-    | Number
-    | Date
-    | Time
-    | Selectable
-    | Pound
+    Argument: ArgumentNode
+    | Number: NumberNode
+    | Date: DateNode
+    | Time: TimeNode
+    | Selectable: SelectableNode
+    | Pound: Empty
 
-Argument =
-    'name'
-Number =
-    'name'
-    'style'?
-Date =
-    'name'
-    'style'?
-Time =
-    'name'
-    'style'?
-Selectable =
-    'name'
+ArgumentNode =
+    name: TextPointer
+NumberNode =
+    name: TextPointer
+    style: TextPointer?
+DateNode =
+    name: TextPointer
+    style: TextPointer?
+TimeNode =
+    name: TextPointer
+    style: TextPointer?
+SelectableNode =
+    name: TextPointer
     kind: SelectableKind
-    'offset'
-    options: (IcuOption)*
-Pound = Pound
+    offset: TextPointer?
+    options: IcuOption*
 
 SelectableKind =
-    'Plural'
-    | 'Select'
-    | 'SelectOrdinal'
+    Select: Empty
+    | SelectOrdinal: Empty
+    | Plural: Empty
 
 IcuOption =
-    'name'
-    content: CompiledElement
+    name: TextPointer
+    value: CompiledElement
