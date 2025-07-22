@@ -2,9 +2,8 @@ use thiserror::Error;
 
 use intl_database_core::{KeySymbol, Message, MessageValue, MessagesDatabase};
 use intl_database_service::IntlDatabaseService;
-use intl_markdown::{
-    compile_to_format_js, raw_string_to_document, BlockNode, Document, InlineContent,
-};
+use intl_markdown::compiler::CompiledElement;
+use intl_markdown::raw_string_to_document;
 
 #[derive(Debug, Error)]
 pub enum IntlMessageBundlerError {
@@ -107,33 +106,22 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
         message.meta().secret && !self.options.bundle_secrets
     }
 
-    fn maybe_serialize_static_document(&mut self, document: &Document) -> anyhow::Result<bool> {
-        if document.blocks().len() > 1 {
-            return Ok(false);
-        }
-
-        let Some(BlockNode::InlineContent(items)) = document.blocks().get(0) else {
-            return Ok(false);
-        };
-
-        let mut buffer = Vec::with_capacity(items.len() * 20);
-
-        for item in items {
-            match item {
-                InlineContent::Text(text) => {
-                    keyless_json::write_escaped_str_contents(&mut buffer, &text)?
-                }
-                _ => return Ok(false),
+    fn maybe_serialize_static_document(
+        &mut self,
+        document: &CompiledElement,
+    ) -> anyhow::Result<bool> {
+        match document {
+            CompiledElement::Literal(text) => {
+                self.output.write_all(b"\"")?;
+                keyless_json::write_escaped_str_contents(&mut self.output, &text)?;
+                self.output.write_all(b"\"")?;
+                Ok(true)
             }
+            _ => Ok(false),
         }
-
-        self.output.write_all(b"\"")?;
-        self.output.write_all(&buffer)?;
-        self.output.write_all(b"\"")?;
-        Ok(true)
     }
 
-    fn serialize_document(&mut self, document: &Document) -> anyhow::Result<()> {
+    fn serialize_document(&mut self, document: &CompiledElement) -> anyhow::Result<()> {
         // Serialize static documents as single strings, both for space savings and faster runtime
         // evaluation.
         if let Ok(true) = self.maybe_serialize_static_document(document) {
@@ -143,10 +131,9 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
         // For any other document, just serialize it as-is.
         match self.options.format {
             CompiledMessageFormat::Json => Ok(serde_json::to_writer(&mut self.output, &document)?),
-            CompiledMessageFormat::KeylessJson => Ok(keyless_json::to_writer(
-                &mut self.output,
-                &compile_to_format_js(&document),
-            )?),
+            CompiledMessageFormat::KeylessJson => {
+                Ok(keyless_json::to_writer(&mut self.output, &document)?)
+            }
         }
     }
 
@@ -154,7 +141,7 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
     /// content of the message, to obfuscate the value irreversibly and prevent leaking secrets.
     fn serialize_value(&mut self, message: &Message, value: &MessageValue) -> anyhow::Result<()> {
         let document = if self.should_obfuscate(message) {
-            &raw_string_to_document(message.hashed_key())
+            &raw_string_to_document(message.hashed_key()).compiled
         } else {
             &value.parsed
         };

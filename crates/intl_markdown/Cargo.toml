@@ -11,14 +11,19 @@ bench = false
 # Not using doctests currently
 doctest = false
 
+[features]
+# Enable extra tracking and tracing within the parser to aid debugging.
+test = ["debug-tracing"]
+debug-tracing = []
+
 [dependencies]
-bitflags = "2"
+intl_allocator = { workspace = true }
 intl_markdown_macros = { workspace = true }
 memchr = { workspace = true }
 pulldown-cmark = "0.11.0"
 serde = { workspace = true }
 serde_json = { workspace = true }
-unescape_zero_copy = { workspace = true }
+slice-dst = "1.6.0"
 unicode-properties = "0.1.3"
 unicode-xid = { workspace = true }
 lazy_static = "1.5.0"
@@ -27,16 +32,6 @@ lazy_static = "1.5.0"
 test-case = "3"
 criterion = { workspace = true }
 keyless_json = { workspace = true }
-
-# Test generation script
-[[example]]
-name = "gen-spec-tests"
-path = "./examples/gen-spec-tests.rs"
-
-# HTML Entity generation script
-[[example]]
-name = "gen-html-entities"
-path = "./examples/gen-html-entities.rs"
 
 [[bench]]
 name = "long_documents"

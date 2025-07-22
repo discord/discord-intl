@@ -1,6 +1,8 @@
 use crate::delimiter::{Delimiter, StrikethroughDelimiter};
+use crate::lexer::LexContext;
+use crate::parser::delimiter::get_surrounding_delimiter_state;
 use crate::parser::emphasis::{complete_emphasis_and_content_marker_pairs, EmphasisMatchResult};
-use crate::{ICUMarkdownParser, SyntaxKind};
+use crate::{syntax::SyntaxKind, ICUMarkdownParser};
 
 /// Consume a sequence of contiguous delimiter tokens of the same kind to
 /// create a new Delimiter stack entry with the kind and number of tokens
@@ -16,8 +18,11 @@ pub(super) fn parse_strikethrough_delimiter_run(
     p: &mut ICUMarkdownParser,
     kind: SyntaxKind,
 ) -> Option<()> {
-    let delimiter_mark = p.mark();
-    let marker_index = delimiter_mark.event_index();
+    // Sanity check that we're actually ready to parse this run.
+    if !p.at(kind) {
+        return None;
+    }
+    let cursor = p.mark();
 
     // Determining whether the run can open or close relies on the fact that
     // the property is transitive across the sequence of delimiter tokens. If
@@ -27,70 +32,37 @@ pub(super) fn parse_strikethrough_delimiter_run(
     // because delimiters are considered "removed from the text" when they
     // are consumed, so once one is consumed, the following ones shift into
     // their place.
-    let first_flags = p.current_flags();
+    p.relex_with_context(LexContext::AsciiPunctuationRun);
+    let byte_span = p.lexer.current_byte_span();
+    let count = byte_span.len();
+    p.bump();
 
-    let mut last_flags = first_flags;
-    let mut count = 0;
-    while p.current() == kind {
-        last_flags = p.current_flags();
-        count += 1;
-
-        p.bump();
-    }
     // Strikethrough delimiters are capped at two characters. They can't nest,
     // and they can't be partially consumed, so if there were more than two
-    // tokens matched, this can't be a delimiter, so no more work needs to be
+    // tokens matched, this can't be a delimiter, and no more work needs to be
     // done.
     if count > 2 {
         return None;
     }
-    // Completing as a tombstone lets this delimiter get pushed to the stack
-    // and processed at a future time, since it requires a matching closing
-    // delimiter to actually become a strikethrough.
-    delimiter_mark.complete(p, SyntaxKind::TOMBSTONE);
 
-    // Double tildes for strikethroughs are flanking can open so long as
-    // they are not surrounded by whitespace. Single tildes match the
-    // normal flanking rules.
+    let delimiter_state = get_surrounding_delimiter_state(p, &byte_span, &byte_span);
+    // Double tildes for strikethroughs are flanking and can open so long as they are not
+    // surrounded by whitespace. Single tildes match the normal flanking rules.
     let can_open_emphasis = if count == 1 {
-        // Left-flanking definition
-        // 1. Not followed by whitespace AND
-        !last_flags.has_following_whitespace()
-            // 2. Either:
-            && (
-            // - not followed by a punctuation. OR
-            !last_flags.has_following_punctuation()
-                // - followed by punctuation but preceded by whitespace or punctuation.
-                || (first_flags.has_preceding_whitespace() || first_flags.has_preceding_punctuation())
-        )
+        delimiter_state.is_left_flanking()
     } else {
-        !last_flags.has_following_whitespace()
+        !delimiter_state.has_following_whitespace
     };
 
     let can_close_emphasis = if count == 1 {
-        // Right-flanking definition:
-        // 1. Not preceded by whitespace AND
-        !first_flags.has_preceding_whitespace()
-            // 2. Either:
-            && (
-            // - not preceded by a punctuation. OR
-            !first_flags.has_preceding_punctuation()
-                // - preceded by punctuation but followed by whitespace or punctuation
-                || (last_flags.has_following_whitespace() || last_flags.has_following_punctuation())
-        )
+        delimiter_state.is_right_flanking()
     } else {
-        !first_flags.has_preceding_whitespace()
+        !delimiter_state.has_preceding_whitespace
     };
 
     p.push_delimiter(
-        StrikethroughDelimiter::new(
-            kind,
-            count,
-            can_open_emphasis,
-            can_close_emphasis,
-            marker_index,
-        )
-        .into(),
+        StrikethroughDelimiter::new(kind, count, can_open_emphasis, can_close_emphasis, *cursor)
+            .into(),
     );
 
     Some(())

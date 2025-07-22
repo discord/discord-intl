@@ -36,12 +36,14 @@ fn find_and_process_files(database: &mut MessagesDatabase) -> anyhow::Result<()>
 }
 
 pub fn main() {
-    let mut database = MessagesDatabase::new();
+    let mut databases = vec![];
     for _ in 0..10 {
+        let mut database = MessagesDatabase::new();
         find_and_process_files(&mut database).expect("Failed to process message files");
+        databases.push(database);
     }
 
-    println!("Processed {} unique messages", database.messages.len());
+    println!("Processed {} unique messages", databases[0].messages.len());
 
     // validate_messages(&database).expect("validated messages");
 

@@ -1,45 +1,55 @@
 #![feature(portable_simd)]
+#![feature(iter_collect_into)]
+#![feature(substr_range)]
+extern crate core;
 
-pub use ast::format::format_ast;
-pub use ast::process::process_cst_to_ast;
-pub use ast::*;
-pub use icu::compile::compile_to_format_js;
-pub use icu::format::format_icu_string;
-pub use icu::tags::DEFAULT_TAG_NAMES;
+pub use cst::*;
 pub use parser::ICUMarkdownParser;
-pub use syntax::SyntaxKind;
-pub use token::SyntaxToken;
-pub use tree_builder::cst::Document as CstDocument;
 
-pub mod ast;
+use crate::compiler::CompiledElement;
+use crate::syntax::TextPointer;
+pub use crate::syntax::{SourceText, SyntaxKind, SyntaxNode, SyntaxToken};
+use syntax::FromSyntax;
+
 mod block_parser;
 mod byte_lookup;
 mod cjk;
+pub mod compiler;
+mod cst;
 mod delimiter;
-mod event;
+pub mod format;
 mod html_entities;
-mod icu;
 mod lexer;
 mod parser;
 mod syntax;
-mod token;
-mod tree_builder;
+
+extern crate intl_allocator;
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct MarkdownDocument {
+    pub cst: AnyDocument,
+    pub compiled: CompiledElement,
+}
 
 /// Parse an intl message into a final AST representing the semantics of the message.
-pub fn parse_intl_message(content: &str, include_blocks: bool) -> Document {
-    let mut parser = ICUMarkdownParser::new(content, include_blocks);
-    let source = parser.source().clone();
+pub fn parse_intl_message(content: &str, include_blocks: bool) -> MarkdownDocument {
+    let mut parser = ICUMarkdownParser::new(SourceText::from(content), include_blocks);
     parser.parse();
-    let cst = parser.into_cst();
-    process_cst_to_ast(source, &cst)
+    let document = parser.finish().to_document();
+    let compiled = compiler::compile_document(&document);
+    MarkdownDocument {
+        cst: document,
+        compiled,
+    }
 }
 
-/// Return a new Document with the given content as the only value, treated as a raw string with
-/// no parsing or semantics applied.
-pub fn raw_string_to_document(content: &str) -> Document {
-    Document::from_literal(content)
-}
-
-pub fn format_to_icu_string(document: &Document) -> Result<String, std::fmt::Error> {
-    format_icu_string(document)
+/// Return a new MarkdownDocument with the given content as the only value, treated as a raw string
+/// with no parsing or semantics applied.
+pub fn raw_string_to_document(content: &str) -> MarkdownDocument {
+    let cst = AnyDocument::from_syntax(SyntaxNode::new(
+        SyntaxKind::INLINE_CONTENT,
+        [SyntaxToken::from_str(SyntaxKind::TEXT, content).into()].into_iter(),
+    ));
+    let compiled = CompiledElement::Literal(TextPointer::from_str(content));
+    MarkdownDocument { cst, compiled }
 }

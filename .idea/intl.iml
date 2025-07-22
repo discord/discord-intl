@@ -23,6 +23,8 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_flat_json_parser/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_allocator/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_flat_json_parser/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/codegen/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/xtask/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/runtime-bench/data" />
       <excludeFolder url="file://$MODULE_DIR$/crates/intl_markdown/target" />

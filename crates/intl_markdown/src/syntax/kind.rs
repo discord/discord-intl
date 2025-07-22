@@ -1,0 +1,323 @@
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum SyntaxKind {
+    // Tokens
+    #[default]
+    TOMBSTONE = 0, // The start of the input text, or an emptied token.
+    EOF, // The end of the input text.
+    // Trivia
+    WHITESPACE,         // Any non-textual, non-newline space character.
+    LINE_ENDING,        // \n, \r, or \r\n
+    LEADING_WHITESPACE, // ASCII whitespace occurring at the start of a line matching an expected line depth.
+    ESCAPED,            // Any valid, backslash-escaped character.
+    ESCAPED_BACKTICK,   // An escaped backtick, which can close a code span on its own.
+    // Block Bounds
+    BLOCK_START,  // A zero-width marker of the start of a block element.
+    BLOCK_END,    // A zero-width representing the end of a block element.
+    INLINE_START, // A zero-width marker of the start of inline content.
+    INLINE_END,   // A zero-width marker of the end of inline content.
+    // Tokens
+    TEXT,             // Any string of contiguous plain text.
+    HARD_LINE_ENDING, // A line ending preceded immediately by two or more spaces.
+    BACKSLASH_BREAK,  // A line ending preceded immediately by a backslash character.
+    HTML_ENTITY,      // HTML &-prefixed entity names, like `&amp;` and `&copy`.
+    DEC_CHAR_REF,     // Decimal numeric character references, like `&#35;`.
+    HEX_CHAR_REF,     // Hexadecimal numeric character reference, like `&#X22;`.
+    ABSOLUTE_URI,     // An absolute URI, used in autolinks.
+    EMAIL_ADDRESS,    // An email address, used in autolinks.
+    VERBATIM_LINE,    // A line that is consumed as a whole with no interpretation.
+    // Punctuation
+    STAR,          // *
+    UNDER,         // _
+    TILDE,         // ~
+    MINUS,         // -
+    EQUAL,         // =
+    HASH,          // #
+    COLON,         // :
+    QUOTE,         // '
+    DOUBLE_QUOTE,  // "
+    AMPER,         // &
+    LSQUARE,       // [
+    RSQUARE,       // ]
+    LPAREN,        // (
+    RPAREN,        // )
+    LANGLE,        // <
+    RANGLE,        // >
+    LCURLY,        // {
+    RCURLY,        // }
+    UNSAFE_LCURLY, // !!{
+    UNSAFE_RCURLY, // }!!
+    BACKTICK,      // `
+    DOLLAR,        // $
+    COMMA,         // ,
+    EXCLAIM,       // !
+
+    PUNCTUATION_RUN, // Sequence of homogenous punctuation characters, often used as delimiters.
+
+    // ICU Extension tokens
+    // ICU keywords
+    ICU_NUMBER_KW,         // number
+    ICU_DATE_KW,           // date
+    ICU_TIME_KW,           // time
+    ICU_SELECT_KW,         // select
+    ICU_SELECT_ORDINAL_KW, // selectordinal
+    ICU_PLURAL_KW,         // plural
+    // ICU tokens
+    ICU_DOUBLE_COLON, // ::
+    // ICU literals
+    ICU_IDENT,           // Any user-created identifier, used for variable names.
+    ICU_PLURAL_CATEGORY, // `one`, `zero`, `other`, etc. in a plural or select ordinal.
+    ICU_PLURAL_EXACT,    // Exact value match in a plural block, like `=0`.
+    ICU_STYLE_TEXT,      // The text token of the ICU_STYLE_ARGUMENT node above.
+
+    // Nodes:
+    //
+    // All token kinds should be placed _above_ this point. All node kinds
+    // should be placed _below_ it (beneath `DOCUMENT`). This lets the parser
+    // easily determine if a kind represents a token or a node.
+
+    // CommonMark block nodes
+    BLOCK_DOCUMENT,
+    /// Any segment of inline content, either contained within a block node or
+    /// at the top level on its own.
+    INLINE_CONTENT,
+    /// Any blank space between block elements. This space is generally collapsible and follows
+    /// different rules than most inline content.
+    BLOCK_SPACE,
+    /// Any list of plain text tokens that require no special treatment.
+    TEXT_SPAN,
+
+    /// 4.1 Thematic breaks
+    ///
+    /// A line consisting of optionally up to three spaces of indentation,
+    /// followed by a sequence of three or more matching -, _, or * characters,
+    /// each followed optionally by any number of spaces or tabs, forms a
+    /// thematic break.
+    THEMATIC_BREAK,
+    /// 4.2 ATX headings
+    ///
+    /// An ATX heading consists of a string of characters, parsed as inline
+    /// content, between an opening sequence of 1–6 unescaped # characters and
+    /// an optional closing sequence of any number of unescaped # characters.
+    /// ...
+    /// The opening # character may be preceded by up to three spaces of
+    /// indentation.
+    ATX_HEADING,
+    /// 4.3 Setext headings
+    ///
+    /// A setext heading consists of one or more lines of text, not interrupted
+    /// by a blank line, of which the first line does not have more than 3
+    /// spaces of indentation, followed by a setext heading underline.
+    SETEXT_HEADING,
+    /// 4.4 Indented code blocks
+    ///
+    /// An indented code block is composed of one or more indented chunks
+    /// separated by blank lines. The contents of the code block are the literal
+    /// contents of the lines, including trailing line endings, minus four
+    /// spaces of indentation. An indented code block has no info string.
+    INDENTED_CODE_BLOCK,
+    /// 4.5 Fenced code blocks
+    ///
+    /// A code fence is a sequence of at least three consecutive backtick
+    /// characters (`) or tildes (~). (Tildes and backticks cannot be mixed.)
+    /// A fenced code block begins with a code fence, preceded by up to three
+    /// spaces of indentation.
+    FENCED_CODE_BLOCK,
+    CODE_BLOCK_INFO_STRING,
+    /// 4.6 HTML blocks
+    ///
+    /// An HTML block is a group of lines that is treated as raw HTML (and will
+    /// not be escaped in HTML output).
+    HTML_BLOCK,
+    /// 4.7 Link reference definitions
+    ///
+    /// A link reference definition consists of a link label, optionally
+    /// preceded by up to three spaces of indentation, followed by a colon (:),
+    /// optional spaces or tabs (including up to one line ending), a link
+    /// destination, optional spaces or tabs (including up to one line ending),
+    /// and an optional link title, which if it is present must be separated
+    /// from the link destination by spaces or tabs. No further character may
+    /// occur.
+    LINK_REFERENCE_DEFINITION,
+    /// 4.8 Paragraphs
+    ///
+    /// A sequence of non-blank lines that cannot be interpreted as other kinds
+    /// of blocks forms a paragraph. The contents of the paragraph are the
+    /// result of parsing the paragraph’s raw content as inlines. The
+    /// paragraph’s raw content is formed by concatenating the lines and
+    /// removing initial and final spaces or tabs.
+    PARAGRAPH,
+
+    // Container blocks
+    /// 5.1 Block quotes
+    ///
+    /// A block quote marker, optionally preceded by up to three spaces of
+    /// indentation, consists of (a) the character > together with a following
+    /// space of indentation, or (b) a single character > not followed by a
+    /// space of indentation.
+    BLOCK_QUOTE,
+    /// 5.2 List items
+    ///
+    /// A list marker is a bullet list marker or an ordered list marker.
+    /// A bullet list marker is a -, +, or * character.
+    /// An ordered list marker is a sequence of 1–9 arabic digits (0-9),
+    /// followed by either a . character or a ) character.
+    LIST_ITEM,
+    BULLET_LIST_MARKER,
+    ORDERED_LIST_MARKER,
+    /// 5.3 Lists
+    ///
+    /// A list is a sequence of one or more list items of the same type. The
+    /// list items may be separated by any number of blank lines.
+    LIST,
+
+    // Everything above this point is a Block-level node. Everything below here
+    // is an Inline-level node.
+
+    // CommonMark inline nodes
+    EMPHASIS,
+    STRONG,
+    IMAGE,
+    LINK,
+    LINK_RESOURCE,
+    STATIC_LINK_DESTINATION,
+    DYNAMIC_LINK_DESTINATION,
+    LINK_TITLE,
+    LINK_TITLE_CONTENT,
+    AUTOLINK,
+    CODE_SPAN,
+    CODE_SPAN_DELIMITER,
+    CODE_SPAN_CONTENT,
+
+    // Markdown extension nodes
+    STRIKETHROUGH,
+    ATX_HASH_SEQUENCE,
+    SETEXT_HEADING_UNDERLINE,
+    CODE_BLOCK_CONTENT,
+
+    // Syntax extension nodes
+    HOOK,
+    HOOK_NAME,
+    CLICK_HANDLER_LINK_DESTINATION,
+
+    // ICU extension nodes
+    ICU,        // The overall container node for any ICU content.
+    ICU_UNSAFE, // An additional wrapping node for the `!!{...}!!` syntax.
+    // ICU Nodes
+    ICU_DATE,            // {var, date} or {var, date, format}
+    ICU_TIME,            // {var, time} or {var, time, format}
+    ICU_NUMBER,          // {var, number} or {var, number, format}
+    ICU_DATE_TIME_STYLE, // Either a keyword like `short` or a skeleton like `::hmsGy`
+    ICU_NUMBER_STYLE,    // A number style argument, almost always a skeleton like `::.##`.
+    ICU_PLACEHOLDER,     // {var}
+    ICU_PLURAL,          // {var, plural, ...}
+    ICU_SELECT,          // {var, select, ...}
+    ICU_SELECT_ORDINAL,  // {var, selectordinal, ...}
+    ICU_VARIABLE,        // `var` in `{var}` or `{var, plural}` and so on.
+    ICU_PLURAL_ARMS,     // The list of arms in a plural or select node.
+    ICU_PLURAL_ARM,      // The `one {inner}` in `{var, plural, one {inner}}`
+    ICU_PLURAL_VALUE,    // The `inner` in `{var, plural, one {inner}}`
+    ICU_POUND,
+}
+
+impl SyntaxKind {
+    /// Returns true if this kind of syntax element is dynamically sized, and thus requires a
+    /// homogenous set of children. [`SyntaxNode`] uses this to know when it requires extra
+    /// processing to ensure a valid tree structure. Any tokens left as children of this node will
+    /// be wrapped into additional [`SyntaxKind::TEXT_SPAN`] nodes and conjoined where possible.
+    ///
+    /// Right now, this is only necessary for inline content, where processing emphasis and links
+    /// within the content can end up leaving a heterogeneous set of tokens and nodes behind when
+    /// some delimiters go unmatched.
+    pub const fn expects_inline_node_children(&self) -> bool {
+        matches!(self, SyntaxKind::INLINE_CONTENT)
+    }
+
+    pub const fn is_token(&self) -> bool {
+        (*self as u8) >= (Self::EOF as u8) && (*self as u8) < (Self::BLOCK_DOCUMENT as u8)
+    }
+
+    pub const fn is_node(&self) -> bool {
+        (*self as u8) >= (Self::BLOCK_DOCUMENT as u8)
+    }
+
+    /// NOTE: Newlines are not considered trivia because Markdown processing almost exclusive
+    /// requires trimming whitespace around newline boundaries. This is much easier to do when the
+    /// newline is treated as its own token, as the trivia can just be attached to that token
+    /// and then the entire token gets replaced by a literal newline character as needed.
+    pub const fn is_trivia(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::LEADING_WHITESPACE | SyntaxKind::WHITESPACE
+        )
+    }
+
+    // In Icu contexts, _all_ whitespace is trivia, no matter if it contains newlines or not.
+    pub const fn is_icu_trivia(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::LEADING_WHITESPACE
+                | SyntaxKind::WHITESPACE
+                | SyntaxKind::LINE_ENDING
+                | SyntaxKind::HARD_LINE_ENDING
+        )
+    }
+
+    pub const fn is_leading_whitespace(&self) -> bool {
+        matches!(self, SyntaxKind::LEADING_WHITESPACE)
+    }
+
+    pub const fn is_line_ending(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::LINE_ENDING | SyntaxKind::HARD_LINE_ENDING | SyntaxKind::BACKSLASH_BREAK
+        )
+    }
+
+    pub const fn is_block_bound(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::EOF
+                | SyntaxKind::BLOCK_START
+                | SyntaxKind::INLINE_START
+                | SyntaxKind::INLINE_END
+                | SyntaxKind::BLOCK_END
+        )
+    }
+
+    pub const fn is_block_level(&self) -> bool {
+        (*self as u8) >= (Self::BLOCK_DOCUMENT as u8) && (*self as u8) <= (Self::EMPHASIS as u8)
+    }
+
+    pub const fn is_inline_level(&self) -> bool {
+        (*self as u8) >= (Self::EMPHASIS as u8)
+            && (*self as u8) <= (Self::CODE_SPAN_DELIMITER as u8)
+    }
+
+    pub const fn is_icu_keyword(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::ICU_NUMBER_KW
+                | SyntaxKind::ICU_DATE_KW
+                | SyntaxKind::ICU_TIME_KW
+                | SyntaxKind::ICU_SELECT_KW
+                | SyntaxKind::ICU_SELECT_ORDINAL_KW
+                | SyntaxKind::ICU_PLURAL_KW
+        )
+    }
+
+    pub const fn is_hard_line_break(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::HARD_LINE_ENDING | SyntaxKind::BACKSLASH_BREAK
+        )
+    }
+
+    pub const fn is_entity_reference(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::HTML_ENTITY | SyntaxKind::HEX_CHAR_REF | SyntaxKind::DEC_CHAR_REF
+        )
+    }
+}

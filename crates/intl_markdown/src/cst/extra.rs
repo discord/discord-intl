@@ -1,0 +1,74 @@
+use crate::cst::*;
+use crate::syntax::Syntax;
+use crate::SyntaxKind;
+
+impl AnyHeading {
+    pub fn level(&self) -> u8 {
+        match self {
+            AnyHeading::AtxHeading(node) => node.level(),
+            AnyHeading::SetextHeading(node) => node.level(),
+        }
+    }
+}
+
+impl AtxHeading {
+    /// Returns the heading level (1-6, inclusive) that this heading should
+    /// have according to the opening sequence
+    pub fn level(&self) -> u8 {
+        self.opening_run_token().text_len() as u8
+    }
+}
+
+impl SetextHeading {
+    pub fn level(&self) -> u8 {
+        self.underline().level()
+    }
+}
+
+impl SetextHeadingUnderline {
+    /// Returns the heading level (1 or 2) that this heading should have
+    /// according to the type of underline.
+    pub fn level(&self) -> u8 {
+        match self.syntax().children()[0].kind() {
+            SyntaxKind::EQUAL => 1,
+            SyntaxKind::MINUS => 2,
+            found => unreachable!(
+                "Found a setext heading underline character that is invalid: {:?}",
+                found
+            ),
+        }
+    }
+}
+
+impl AnyCodeBlock {
+    pub fn info_string(&self) -> Option<CodeBlockInfoString> {
+        match self {
+            AnyCodeBlock::IndentedCodeBlock(_) => None,
+            AnyCodeBlock::FencedCodeBlock(block) => block.info_string(),
+        }
+    }
+}
+
+impl Link {
+    pub fn destination(&self) -> Option<AnyLinkDestination> {
+        self.resource().destination()
+    }
+    pub fn title(&self) -> Option<LinkTitle> {
+        self.resource().title()
+    }
+}
+
+impl Image {
+    pub fn destination(&self) -> Option<AnyLinkDestination> {
+        self.resource().destination()
+    }
+    pub fn title(&self) -> Option<LinkTitle> {
+        self.resource().title()
+    }
+}
+
+impl Autolink {
+    pub fn is_email(&self) -> bool {
+        self.uri_token().kind() == SyntaxKind::EMAIL_ADDRESS
+    }
+}

@@ -82,7 +82,7 @@ pub(crate) fn is_ivs_codepoint(codepoint: char) -> bool {
     matches!(codepoint as u32, 0xe0100..=0xe01ef)
 }
 
-pub(crate) fn is_punctuation(codepoint: char) -> bool {
+pub(crate) fn is_any_punctuation(codepoint: char) -> bool {
     codepoint.is_ascii_punctuation()
         || matches!(
             codepoint.general_category_group(),

@@ -1,18 +1,21 @@
+use super::{delimiter::process_closed_delimiter, ICUMarkdownParser};
 use crate::lexer::LexContext;
 use crate::parser::icu::{is_at_normal_icu, parse_icu};
+use crate::parser::marker::{Marker, MarkerSpan};
 use crate::{
     delimiter::{Delimiter, LinkDelimiter},
-    event::{Event, Marker, MarkerSpan},
-    SyntaxKind,
+    syntax::SyntaxKind,
 };
-
-use super::{delimiter::process_closed_delimiter, ICUMarkdownParser};
 
 fn is_link_kind(kind: SyntaxKind) -> bool {
     matches!(
         kind,
         SyntaxKind::LINK | SyntaxKind::IMAGE | SyntaxKind::HOOK
     )
+}
+
+fn is_allowed_link_title_whitespace(kind: SyntaxKind) -> bool {
+    matches!(kind, SyntaxKind::WHITESPACE | SyntaxKind::LINE_ENDING)
 }
 
 pub(super) fn parse_hook_open(p: &mut ICUMarkdownParser) -> Option<()> {
@@ -44,27 +47,21 @@ pub(super) fn parse_link_like_open(
     // the event stream otherwise.
     let content_start = p.mark();
 
-    let delimiter = LinkDelimiter::new(
-        kind,
-        false,
-        start_marker.event_index(),
-        content_start.event_index(),
-    );
+    let delimiter = LinkDelimiter::new(kind, false, *start_marker, *content_start);
     p.push_delimiter(delimiter.into());
 
     Some(())
 }
 
 pub(super) fn parse_link_like_close(p: &mut ICUMarkdownParser) -> Option<()> {
-    let content_end_index = p.buffer_index();
-    p.push_event(Event::Finish(SyntaxKind::TOMBSTONE));
+    let content_end_index = p.mark();
     p.expect(SyntaxKind::RSQUARE)?;
 
     // Find a potential opener for this link
     let Some(opener_index) = p
         .delimiter_stack()
         .iter()
-        .rposition(|delim| is_link_kind(delim.kind()) && delim.count() > 0)
+        .rposition(|delim| is_link_kind(delim.syntax_kind()) && delim.count() > 0)
     else {
         // If no opener is found, then this can't be a link no matter what, so
         // there's nothing left to do, it's just plain text.
@@ -83,7 +80,7 @@ pub(super) fn parse_link_like_close(p: &mut ICUMarkdownParser) -> Option<()> {
             return None;
         }
 
-        delimiter.kind()
+        delimiter.syntax_kind()
     };
 
     // Otherwise, try to finish out the link as an inline resource. If the
@@ -117,28 +114,28 @@ pub(super) fn complete_link_like(
     p: &mut ICUMarkdownParser,
     kind: SyntaxKind,
     open_delimiter_index: usize,
-    content_end_index: usize,
+    content_end_index: Marker,
     allow_nesting: bool,
 ) {
-    // The link wrapper uses the `opening_cursor` of each delimiter.
-    Marker::new(p.delimiter_stack()[open_delimiter_index].opening_cursor())
-        .complete_as_start(p, kind);
-    p.push_event(Event::Finish(kind));
-
-    // Link content uses the `closing_cursor` of the delimiters.
-    MarkerSpan::new(
-        p.delimiter_stack()[open_delimiter_index].closing_cursor(),
-        content_end_index,
-    )
-    .complete(p, SyntaxKind::INLINE_CONTENT);
-
     process_closed_delimiter(
         p,
         open_delimiter_index..p.delimiter_stack_length(),
         kind,
-        true,
         !allow_nesting,
     );
+
+    let (content_marker, link_marker) = {
+        let delimiter = p.delimiter_stack()[open_delimiter_index]
+            .as_link_delimiter()
+            .unwrap();
+        (*delimiter.content_cursor(), *delimiter.link_cursor())
+    };
+
+    // Link content uses the `closing_cursor` of the delimiters.
+    MarkerSpan::new(content_marker, *content_end_index).complete(p, SyntaxKind::INLINE_CONTENT);
+
+    // The link wrapper uses the `opening_cursor` of each delimiter.
+    Marker::new(link_marker).complete(p, kind);
 }
 
 fn parse_link_or_hook_resource(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option<()> {
@@ -160,19 +157,18 @@ fn parse_hook_name(p: &mut ICUMarkdownParser) -> Option<()> {
 fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
     let marker = p.mark();
 
-    // Links allow whitespace and a single newline between elements of the
-    // resource. Normally, this would require some special handling to ensure
-    // that there is only a single newline and not multiple in a row, but since
-    // the block parser will insert block boundaries when blank lines exist, we
-    // can be confident that skipping whitespace here will only continue until
-    // a block boundary is found, after which either the closing parenthesis
-    // will be found, or parsing will fail since the block boundary was reached.
     p.expect(SyntaxKind::LPAREN)?;
+    // Links allow whitespace and a single newline between elements of the
+    // resource.
     p.skip_whitespace_as_trivia();
+    if p.expect(SyntaxKind::LINE_ENDING).is_some() {
+        p.skip_whitespace_as_trivia();
+    }
 
-    // If the next token is a closing parenthesis, that's fine, the url just
-    // becomes empty.
-    if p.expect(SyntaxKind::RPAREN).is_some() {
+    if p.at(SyntaxKind::RPAREN) {
+        p.push_missing(); // Missing destination element
+        p.push_missing(); // Missing title token
+        p.bump();
         marker.complete(p, SyntaxKind::LINK_RESOURCE);
         return Some(());
     }
@@ -182,15 +178,14 @@ fn parse_link_resource(p: &mut ICUMarkdownParser) -> Option<()> {
     // Whitespace and a single newline are allowed between the destination and
     // the title, and the title can _only_ appear if there is some whitespace
     // between them, so it is nested inside here.
-    if p.current().is_same_line_whitespace() {
+    p.optional(is_allowed_link_title_whitespace(p.current()), |p| {
         p.skip_whitespace_as_trivia();
-        // Not using ? since it's okay for this to be empty.
-        if parse_link_title(p).is_some() {
-            // Whitespace and a single newline are also allowed between the title
-            // and the ending.
-            p.skip_whitespace_as_trivia();
-        }
-    }
+        parse_link_title(p)?;
+        // Whitespace and a single newline are also allowed between the title
+        // and the ending.
+        p.skip_whitespace_as_trivia();
+        Some(())
+    });
 
     // The next token afterward _must_ be a closing parenthesis. Any other token
     // causes the link to break and be treated as plain text instead.
@@ -242,17 +237,12 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
     // and qualify as a click handler rather than a static link.
     if token_count == 1 {
         // SAFETY: The condition asserts that a token was pushed, so this must
-        // be present _and_ be a token event.
-        let token = p.get_last_event().and_then(Event::as_token).unwrap();
-        // SAFETY: Token ranges are always valid, so this is safe.
-        let text = unsafe {
-            let size_span = token.span().start as usize..token.span().end as usize;
-            p.source().get_unchecked(size_span)
-        };
+        // be present _and_ be a token.
+        let token = p.last_element().unwrap().token();
         // If the text _doesn't_ contain characters that _aren't_ alphanumeric,
         // then it's a valid identifier in this context and counts as a click
         // handler.
-        if !text.contains(|c: char| !c.is_ascii_alphanumeric()) {
+        if !token.text().contains(|c: char| !c.is_ascii_alphanumeric()) {
             return marker.complete(p, SyntaxKind::CLICK_HANDLER_LINK_DESTINATION);
         }
     }
@@ -262,6 +252,15 @@ fn parse_link_destination(p: &mut ICUMarkdownParser) -> Option<()> {
 
 fn parse_link_title(p: &mut ICUMarkdownParser) -> Option<()> {
     let marker = p.mark();
+
+    // Link titles are allowed to appear on a new line after the destination, so we need to accept
+    // an optional line ending token to represent that.
+    if p.current().is_line_ending() {
+        p.bump();
+        p.skip_whitespace_as_trivia();
+    } else {
+        p.push_missing();
+    }
 
     let end_quote_kind = match p.current() {
         SyntaxKind::DOUBLE_QUOTE => SyntaxKind::DOUBLE_QUOTE,

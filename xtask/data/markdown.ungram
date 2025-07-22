@@ -1,0 +1,232 @@
+AnyDocument =
+    BlockDocument
+    | InlineContent
+
+BlockDocument = AnyBlockNode*
+
+AnyBlockNode =
+      Paragraph
+    | ThematicBreak
+    | AnyHeading
+    | AnyCodeBlock
+    | BlockSpace
+
+BlockSpace = ('leading_whitepsace' | 'whitespace' | 'line_ending')*
+
+Paragraph =
+    leading_space: 'leading_whitespace'?
+    content: InlineContent
+
+ThematicBreak = 'text'*
+
+AnyHeading =
+      AtxHeading
+    | SetextHeading
+
+AtxHeading =
+    leading_space: 'leading_whitespace'?
+    opening_run: 'punctuation_run'
+    content: InlineContent
+    closing_run: 'punctuation_run'?
+
+SetextHeading =
+    leading_space: 'leading_whitespace'?
+    content: InlineContent
+    joining_lines: 'line_ending'?
+    underline: SetextHeadingUnderline
+
+SetextHeadingUnderline = ('-' | '=')*
+
+AnyCodeBlock =
+      IndentedCodeBlock
+    | FencedCodeBlock
+
+IndentedCodeBlock =
+    content: CodeBlockContent
+
+FencedCodeBlock =
+    opening_run: 'punctuation_run'
+    info_string: CodeBlockInfoString?
+    content: CodeBlockContent
+    closing_run: 'punctuation_run'?
+
+CodeBlockInfoString = 'text'*
+
+CodeBlockContent = ('verbatim_line' | 'line_ending')*
+
+InlineContent = AnyInlineNode*
+
+AnyInlineNode =
+      TextSpan
+    | Emphasis
+    | Strong
+    | Link
+    | Image
+    | Autolink
+    | CodeSpan
+    | Hook
+    | Strikethrough
+    | Icu
+    | IcuPound
+
+TextSpan = 'text'*
+
+Emphasis =
+    open: ('*' | '_')
+    content: InlineContent
+    close: ('*' | '_')
+
+Strong =
+    open: ('*' | '_')
+    open_two: ('*' | '_')
+    content: InlineContent
+    close: ('*' | '_')
+    close_two: ('*' | '_')
+
+Link =
+    '['
+    content: InlineContent
+    ']'
+    resource: LinkResource
+
+Image =
+    '!'
+    '['
+    content: InlineContent
+    ']'
+    resource: LinkResource
+
+LinkResource =
+    '('
+    destination: AnyLinkDestination?
+    title: LinkTitle?
+    ')'
+
+AnyLinkDestination =
+    StaticLinkDestination
+    | DynamicLinkDestination
+    | ClickHandlerLinkDestination
+
+StaticLinkDestination = 'text'*
+
+DynamicLinkDestination =
+    url: Icu
+
+ClickHandlerLinkDestination =
+    name: 'text'
+
+LinkTitle =
+    leading_newline: 'line_ending'?
+    open: ('"' | '\'' | '(')
+    content: LinkTitleContent
+    close: ('"' | '\'' | ')')
+
+LinkTitleContent = 'link_title_piece'*
+
+Autolink =
+    '<'
+    uri: ('absolute_uri' | 'email_address')
+    '>'
+
+CodeSpan =
+    open_run: 'punctuation_run'
+    content: CodeSpanContent
+    close_run: 'punctuation_run'
+
+CodeSpanContent = 'text'*
+
+Hook =
+    '$'
+    '['
+    content: InlineContent
+    ']'
+    name: HookName
+
+HookName =
+    '('
+    name: 'hook_name'
+    ')'
+
+
+Strikethrough =
+    opening_run: 'punctuation_run'
+    content: InlineContent
+    closing_run: 'punctuation_run'
+
+Icu =
+    '{'
+    value: AnyIcuPlaceholder
+    '}'
+
+AnyIcuPlaceholder =
+      IcuVariable
+    | IcuPlural
+    | IcuSelectOrdinal
+    | IcuSelect
+    | IcuDate
+    | IcuTime
+    | IcuNumber
+
+IcuVariable =
+    ident: 'icu_ident'
+
+IcuPlural =
+    variable: IcuVariable
+    variable_comma: ','
+    format: 'icu_plural_kw'
+    format_comma: ','
+    arms: IcuPluralArms
+
+IcuSelectOrdinal =
+    variable: IcuVariable
+    variable_comma: ','
+    format: 'icu_select_ordinal_kw'
+    format_comma: ','
+    arms: IcuPluralArms
+
+IcuSelect =
+    variable: IcuVariable
+    variable_comma: ','
+    format: 'icu_select_kw'
+    format_comma: ','
+    arms: IcuPluralArms
+
+IcuPluralArms = IcuPluralArm*
+
+IcuPluralArm =
+    selector: ('icu_plural_category' | 'icu_plural_exact')
+    '{'
+    value: IcuPluralValue
+    '}'
+
+IcuPluralValue =
+    content: InlineContent
+
+IcuDate =
+    variable: IcuVariable
+    variable_comma: ','
+    format: 'icu_date_kw'
+    style: IcuDateTimeStyle?
+
+IcuTime =
+    variable: IcuVariable
+    variable_comma: ','
+    format: 'icu_time_kw'
+    style: IcuDateTimeStyle?
+
+IcuDateTimeStyle =
+    style_comma: ','
+    style_text: 'icu_style_text'
+
+IcuNumber =
+    variable: IcuVariable
+    variable_comma: ','
+    format: 'icu_number_kw'
+    style: IcuNumberStyle?
+
+IcuNumberStyle =
+    style_comma: ','
+    style_text: 'icu_style_text'
+
+IcuPound =
+    '#'

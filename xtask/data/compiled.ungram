@@ -1,0 +1,109 @@
+// T = T means a Unit item, like a Unit variant of an enum
+// 'u*' and 'i*' become primitive integer types
+// `name: Empty` becomes an empty Unit (`()`), or a unit enum variant with no value.
+// `(T)*` becomes a `Box<[T]>`
+// `(T)?` becomes a `Option<T>`
+
+// Empty is a unit struct, or an indication that an enum variant has no value
+Empty = Empty
+// TextPointer is defined externally, so it needs a name here
+TextPointer = TextPointer
+
+CompiledElement =
+    BlockList: CompiledElement*
+    | List: CompiledElement*
+    | Node: CompiledNode
+    | Literal: TextPointer
+
+CompiledNode =
+    Markdown: MarkdownNode
+    | Icu: IcuNode
+
+MarkdownNode =
+    Paragraph: ParagraphNode
+    | CodeBlock: CodeBlockNode
+    | Heading: HeadingNode
+    | ThematicBreak: ThematicBreakNode
+    | LineBreak: LineBreakNode
+    | Strong: StrongNode
+    | Emphasis: EmphasisNode
+    | Strikethrough: StrikethroughNode
+    | Code: CodeNode
+    | Link: LinkNode
+    | Hook: HookNode
+
+ParagraphNode =
+    content: CompiledElement
+CodeBlockNode =
+    info_string: TextPointer?
+    content: CompiledElement
+HeadingNode =
+    level: 'u8'
+    content: CompiledElement
+ThematicBreakNode = Empty
+LineBreakNode = Empty
+StrongNode =
+    content: CompiledElement
+EmphasisNode =
+    content: CompiledElement
+StrikethroughNode =
+    content: CompiledElement
+CodeNode =
+    content: CompiledElement
+LinkNode =
+    kind: LinkKind
+    destination: LinkDestination
+    title: TextPointer?
+    alt: TextPointer?
+    content: CompiledElement
+HookNode =
+    name: TextPointer
+    content: CompiledElement
+
+LinkKind =
+    Link: Empty
+    | Image: Empty
+    | Email: Empty
+
+LinkDestination =
+    Static: TextPointer
+    | Dynamic: IcuNode
+    | Handler: ArgumentNode
+    | Empty: Empty
+
+
+IcuNode =
+    Argument: ArgumentNode
+    | Number: NumberNode
+    | Date: DateNode
+    | Time: TimeNode
+    | Selectable: SelectableNode
+    | Pound: PoundNode
+
+PoundNode = Empty
+
+ArgumentNode =
+    name: TextPointer
+NumberNode =
+    name: TextPointer
+    style: TextPointer?
+DateNode =
+    name: TextPointer
+    style: TextPointer?
+TimeNode =
+    name: TextPointer
+    style: TextPointer?
+SelectableNode =
+    name: TextPointer
+    kind: SelectableKind
+    offset: TextPointer?
+    options: IcuOption*
+
+SelectableKind =
+    Select: Empty
+    | SelectOrdinal: Empty
+    | Plural: Empty
+
+IcuOption =
+    name: TextPointer
+    value: CompiledElement

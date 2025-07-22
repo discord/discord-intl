@@ -1,4 +1,5 @@
-use crate::SyntaxKind;
+use crate::lexer::LexContext;
+use crate::syntax::SyntaxKind;
 
 use super::ICUMarkdownParser;
 
@@ -7,12 +8,6 @@ use super::ICUMarkdownParser;
 /// then the parser is rewound to the opener, it is deactivated to plain text,
 /// and parsing continues as normal afterward.
 pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Option<()> {
-    // If the first backticks are escaped, then bump those tokens out, since
-    // they won't be included in the delimiter.
-    while p.current() == kind && p.current_flags().is_escaped() {
-        p.bump();
-    }
-
     if !p.at(kind) {
         return None;
     }
@@ -21,13 +16,10 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
     // them to create the opening delimiter. As soon as a non-escaped backtick
     // is encountered, no further backticks in the run can be escaped, either.
     let marker = p.mark();
-    let open_delimiter_start = p.mark();
-    let mut open_count = 0;
-    while p.current() == kind && !p.current_flags().is_escaped() {
-        p.bump();
-        open_count += 1;
-    }
-    let open_delimiter_end = p.mark();
+    p.relex_with_context(LexContext::AsciiPunctuationRun);
+    let open_count = p.current_token_len();
+    p.expect(SyntaxKind::PUNCTUATION_RUN)?;
+    let content_start = p.mark();
 
     // Parsing the content of the codespan is predictive, meaning we don't know
     // if it will actually become a codespan until we've reached a closer. If
@@ -39,25 +31,23 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
     let did_complete = loop {
         match p.current() {
             // EOF means the codespan wasn't matched. Spans are also bounded as
-            // inline elements, so the end of a block terminates it's reach.
+            // inline elements, so the end of a block terminates its reach.
             SyntaxKind::EOF | SyntaxKind::BLOCK_END => break false,
             // If another delimiter is found, try to match it and complete the
             // codespan, otherwise just continue consuming it.
-            SyntaxKind::BACKTICK => {
-                let close_delimiter = p.mark();
-                p.bump();
-                let mut close_count = 1;
-                while p.current() == kind && !p.current_flags().is_escaped() {
-                    p.bump();
-                    close_count += 1;
+            SyntaxKind::BACKTICK | SyntaxKind::ESCAPED_BACKTICK => {
+                p.relex_with_context(LexContext::AsciiPunctuationRun);
+                // If this is an escaped backtick, reinterpret the single backslash as plain text,
+                // leaving the backticks alone in sequence afterward.
+                if p.lexer.current_text().starts_with('\\') {
+                    p.bump_with_context(LexContext::AsciiPunctuationRun);
                 }
+                let close_count = p.current_token_len();
                 // If a match is found, complete the marker and stop parsing,
                 // indicating that the marker was completed.
                 if open_count == close_count {
-                    open_delimiter_start
-                        .span_to(open_delimiter_end)
-                        .complete(p, SyntaxKind::CODE_SPAN_DELIMITER);
-                    close_delimiter.complete(p, SyntaxKind::CODE_SPAN_DELIMITER);
+                    content_start.complete(p, SyntaxKind::CODE_SPAN_CONTENT)?;
+                    p.expect(SyntaxKind::PUNCTUATION_RUN)?;
                     marker.complete(p, SyntaxKind::CODE_SPAN);
                     break true;
                 }
@@ -66,12 +56,12 @@ pub(super) fn parse_code_span(p: &mut ICUMarkdownParser, kind: SyntaxKind) -> Op
         }
     };
 
-    // Reaching this point means the code span wasn't closed, so the parser must
-    // be rewound for the caller to continue parsing normally.
     if !did_complete {
+        // Reaching this point means the code span wasn't closed, so the parser must
+        // be rewound for the caller to continue parsing normally.
         p.rewind(checkpoint);
-        return None;
+        None
+    } else {
+        Some(())
     }
-
-    Some(())
 }
