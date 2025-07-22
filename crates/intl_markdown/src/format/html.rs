@@ -73,7 +73,7 @@ impl HtmlFormatter {
                 self.result
                     .push_str(HEADER_CLOSE_TAGS[heading.level as usize - 1]);
             }
-            MarkdownNode::ThematicBreak => self.result.push_str("<hr />"),
+            MarkdownNode::ThematicBreak(_) => self.result.push_str("<hr />"),
             MarkdownNode::Strong(strong) => {
                 self.result.push_str("<strong>");
                 self.format_element(&strong.content);
@@ -94,7 +94,7 @@ impl HtmlFormatter {
                 self.format_element(&code.content);
                 self.result.push_str("</code>");
             }
-            MarkdownNode::LineBreak => {
+            MarkdownNode::LineBreak(_) => {
                 self.result.push_str("<br />\n");
             }
             MarkdownNode::Link(link) => {
@@ -216,7 +216,7 @@ impl HtmlFormatter {
                 }
                 self.result.push_str("}");
             }
-            IcuNode::Pound => self.result.push('#'),
+            IcuNode::Pound(_) => self.result.push('#'),
         }
     }
 

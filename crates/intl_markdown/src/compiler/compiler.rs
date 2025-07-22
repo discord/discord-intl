@@ -4,8 +4,9 @@ use super::util::{
 };
 use crate::compiler::{
     ArgumentNode, CodeBlockNode, CodeNode, CompiledElement, DateNode, EmphasisNode, HeadingNode,
-    HookNode, IcuNode, IcuOption, LinkDestination, LinkKind, LinkNode, MarkdownNode, NumberNode,
-    ParagraphNode, SelectableKind, SelectableNode, StrikethroughNode, StrongNode, TimeNode,
+    HookNode, IcuNode, IcuOption, LineBreakNode, LinkDestination, LinkKind, LinkNode, NumberNode,
+    ParagraphNode, PoundNode, SelectableKind, SelectableNode, StrikethroughNode, StrongNode,
+    ThematicBreakNode, TimeNode,
 };
 use crate::cst::*;
 use crate::syntax::{PositionalIterator, Syntax, TextPointer, TokenTextIterOptions, TrimKind};
@@ -128,7 +129,7 @@ impl Visit for Compiler {
     }
 
     fn visit_thematic_break(&mut self, _: &ThematicBreak) {
-        self.children.push(MarkdownNode::ThematicBreak.into());
+        self.children.push(ThematicBreakNode.into());
     }
 
     fn visit_any_heading(&mut self, node: &AnyHeading) {
@@ -204,7 +205,7 @@ impl Visit for Compiler {
             match token.kind() {
                 SyntaxKind::HARD_LINE_ENDING | SyntaxKind::BACKSLASH_BREAK => {
                     self.push_text(std::mem::take(&mut pointer).into());
-                    self.children.push(MarkdownNode::LineBreak.into());
+                    self.children.push(LineBreakNode.into());
                 }
                 SyntaxKind::LINE_ENDING => pointer = pointer.extend_back("\n"),
                 SyntaxKind::HTML_ENTITY | SyntaxKind::HEX_CHAR_REF | SyntaxKind::DEC_CHAR_REF => {
@@ -324,7 +325,7 @@ impl Visit for Compiler {
     }
 
     fn visit_icu_pound(&mut self, _: &IcuPound) {
-        self.children.push(IcuNode::Pound.into());
+        self.children.push(PoundNode.into());
     }
 
     fn visit_code_span_content(&mut self, node: &CodeSpanContent) {

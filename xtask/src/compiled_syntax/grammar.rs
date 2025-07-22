@@ -123,12 +123,32 @@ impl Field {
     pub fn complete_type(&self) -> proc_macro2::TokenStream {
         proc_macro2::TokenStream::from_str(&self.complete_type_string()).unwrap()
     }
+
+    pub fn is_node(&self) -> bool {
+        let Some(ty) = &self.value_type else {
+            return false;
+        };
+        if ty.ends_with("Kind") {
+            return false;
+        }
+        if ty == "TextPointer"
+            || ty == "Empty"
+            || ty == "u8"
+            || ty == "u16"
+            || ty == "u32"
+            || ty == "usize"
+        {
+            return false;
+        }
+        true
+    }
 }
 
 pub enum CompiledGrammarNode {
     Struct(CompiledStructNode),
     List(CompiledListNode),
     Enum(CompiledEnumNode),
+    Empty(String),
 }
 
 impl CompiledGrammarNode {
@@ -137,6 +157,7 @@ impl CompiledGrammarNode {
             CompiledGrammarNode::Struct(node) => node.ident(),
             CompiledGrammarNode::List(node) => node.ident(),
             CompiledGrammarNode::Enum(node) => node.ident(),
+            CompiledGrammarNode::Empty(name) => as_ident(name),
         }
     }
 
@@ -145,6 +166,7 @@ impl CompiledGrammarNode {
             CompiledGrammarNode::Struct(node) => &node.name,
             CompiledGrammarNode::List(node) => &node.name,
             CompiledGrammarNode::Enum(node) => &node.name,
+            CompiledGrammarNode::Empty(name) => &name,
         }
     }
 }
@@ -183,6 +205,12 @@ impl CompiledEnumNode {
 }
 
 pub(super) fn parse_struct_node(node: &NodeData, grammar: &Grammar) -> CompiledGrammarNode {
+    match &node.rule {
+        Rule::Node(inner) if grammar[*inner].name == "Empty" => {
+            return CompiledGrammarNode::Empty(node.name.clone());
+        }
+        _ => {}
+    };
     let fields = match &node.rule {
         Rule::Seq(rules) => rules
             .iter()

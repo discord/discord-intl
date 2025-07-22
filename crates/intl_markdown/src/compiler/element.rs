@@ -31,6 +31,16 @@ impl From<HeadingNode> for CompiledElement {
         CompiledElement::Node(CompiledNode::Markdown(MarkdownNode::Heading(value)))
     }
 }
+impl From<ThematicBreakNode> for CompiledElement {
+    fn from(value: ThematicBreakNode) -> Self {
+        CompiledElement::Node(CompiledNode::Markdown(MarkdownNode::ThematicBreak(value)))
+    }
+}
+impl From<LineBreakNode> for CompiledElement {
+    fn from(value: LineBreakNode) -> Self {
+        CompiledElement::Node(CompiledNode::Markdown(MarkdownNode::LineBreak(value)))
+    }
+}
 impl From<StrongNode> for CompiledElement {
     fn from(value: StrongNode) -> Self {
         CompiledElement::Node(CompiledNode::Markdown(MarkdownNode::Strong(value)))
@@ -91,6 +101,11 @@ impl From<SelectableNode> for CompiledElement {
         CompiledElement::Node(CompiledNode::Icu(IcuNode::Selectable(value)))
     }
 }
+impl From<PoundNode> for CompiledElement {
+    fn from(value: PoundNode) -> Self {
+        CompiledElement::Node(CompiledNode::Icu(IcuNode::Pound(value)))
+    }
+}
 impl From<TextPointer> for CompiledElement {
     fn from(value: TextPointer) -> Self {
         CompiledElement::Literal(value)
@@ -119,6 +134,16 @@ impl From<CodeBlockNode> for CompiledNode {
 impl From<HeadingNode> for CompiledNode {
     fn from(value: HeadingNode) -> Self {
         CompiledNode::Markdown(MarkdownNode::Heading(value))
+    }
+}
+impl From<ThematicBreakNode> for CompiledNode {
+    fn from(value: ThematicBreakNode) -> Self {
+        CompiledNode::Markdown(MarkdownNode::ThematicBreak(value))
+    }
+}
+impl From<LineBreakNode> for CompiledNode {
+    fn from(value: LineBreakNode) -> Self {
+        CompiledNode::Markdown(MarkdownNode::LineBreak(value))
     }
 }
 impl From<StrongNode> for CompiledNode {
@@ -181,13 +206,18 @@ impl From<SelectableNode> for CompiledNode {
         CompiledNode::Icu(IcuNode::Selectable(value))
     }
 }
+impl From<PoundNode> for CompiledNode {
+    fn from(value: PoundNode) -> Self {
+        CompiledNode::Icu(IcuNode::Pound(value))
+    }
+}
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum MarkdownNode {
     Paragraph(ParagraphNode),
     CodeBlock(CodeBlockNode),
     Heading(HeadingNode),
-    ThematicBreak,
-    LineBreak,
+    ThematicBreak(ThematicBreakNode),
+    LineBreak(LineBreakNode),
     Strong(StrongNode),
     Emphasis(EmphasisNode),
     Strikethrough(StrikethroughNode),
@@ -208,6 +238,16 @@ impl From<CodeBlockNode> for MarkdownNode {
 impl From<HeadingNode> for MarkdownNode {
     fn from(value: HeadingNode) -> Self {
         MarkdownNode::Heading(value)
+    }
+}
+impl From<ThematicBreakNode> for MarkdownNode {
+    fn from(value: ThematicBreakNode) -> Self {
+        MarkdownNode::ThematicBreak(value)
+    }
+}
+impl From<LineBreakNode> for MarkdownNode {
+    fn from(value: LineBreakNode) -> Self {
+        MarkdownNode::LineBreak(value)
     }
 }
 impl From<StrongNode> for MarkdownNode {
@@ -247,7 +287,7 @@ pub enum IcuNode {
     Date(DateNode),
     Time(TimeNode),
     Selectable(SelectableNode),
-    Pound,
+    Pound(PoundNode),
 }
 impl From<ArgumentNode> for IcuNode {
     fn from(value: ArgumentNode) -> Self {
@@ -272,6 +312,11 @@ impl From<TimeNode> for IcuNode {
 impl From<SelectableNode> for IcuNode {
     fn from(value: SelectableNode) -> Self {
         IcuNode::Selectable(value)
+    }
+}
+impl From<PoundNode> for IcuNode {
+    fn from(value: PoundNode) -> Self {
+        IcuNode::Pound(value)
     }
 }
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -314,6 +359,10 @@ impl HeadingNode {
         }
     }
 }
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct ThematicBreakNode;
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct LineBreakNode;
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct StrongNode {
     pub content: Box<CompiledElement>,
@@ -444,6 +493,11 @@ impl From<SelectableNode> for LinkDestination {
         LinkDestination::Dynamic(IcuNode::Selectable(value))
     }
 }
+impl From<PoundNode> for LinkDestination {
+    fn from(value: PoundNode) -> Self {
+        LinkDestination::Dynamic(IcuNode::Pound(value))
+    }
+}
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ArgumentNode {
     pub name: TextPointer,
@@ -505,6 +559,8 @@ impl SelectableNode {
         }
     }
 }
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct PoundNode;
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum SelectableKind {
     Select,

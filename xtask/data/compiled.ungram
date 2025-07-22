@@ -23,8 +23,8 @@ MarkdownNode =
     Paragraph: ParagraphNode
     | CodeBlock: CodeBlockNode
     | Heading: HeadingNode
-    | ThematicBreak: Empty
-    | LineBreak: Empty
+    | ThematicBreak: ThematicBreakNode
+    | LineBreak: LineBreakNode
     | Strong: StrongNode
     | Emphasis: EmphasisNode
     | Strikethrough: StrikethroughNode
@@ -40,6 +40,8 @@ CodeBlockNode =
 HeadingNode =
     level: 'u8'
     content: CompiledElement
+ThematicBreakNode = Empty
+LineBreakNode = Empty
 StrongNode =
     content: CompiledElement
 EmphasisNode =
@@ -76,7 +78,9 @@ IcuNode =
     | Date: DateNode
     | Time: TimeNode
     | Selectable: SelectableNode
-    | Pound: Empty
+    | Pound: PoundNode
+
+PoundNode = Empty
 
 ArgumentNode =
     name: TextPointer

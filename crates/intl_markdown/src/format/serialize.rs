@@ -101,8 +101,8 @@ impl Serialize for MarkdownNode {
                 HEADER_TAGS[heading.level as usize - 1],
                 &heading.content,
             ),
-            MarkdownNode::ThematicBreak => serialize_empty_tag(serializer, "$hr"),
-            MarkdownNode::LineBreak => serialize_empty_tag(serializer, "$br"),
+            MarkdownNode::ThematicBreak(_) => serialize_empty_tag(serializer, "$hr"),
+            MarkdownNode::LineBreak(_) => serialize_empty_tag(serializer, "$br"),
             MarkdownNode::Strong(strong) => serialize_tag(serializer, "$b", &strong.content),
             MarkdownNode::Emphasis(emphasis) => serialize_tag(serializer, "$i", &emphasis.content),
             MarkdownNode::Strikethrough(strikethrough) => {
@@ -197,7 +197,7 @@ impl Serialize for IcuNode {
                 }
                 select.end()
             }
-            IcuNode::Pound => {
+            IcuNode::Pound(_) => {
                 let mut pound = serializer.serialize_struct("Pound", 1)?;
                 pound.serialize_field("type", &NodeTypeId::Pound)?;
                 pound.end()
