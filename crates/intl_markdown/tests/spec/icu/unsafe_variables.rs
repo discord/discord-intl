@@ -1,14 +1,32 @@
-mod unsafe_variable_strings {
-    use crate::harness::ast_test;
-    ast_test!(basic_unsafe, "!!{username}!!", r#"[[1,"username"]]"#);
-    ast_test!(
-        nested_unsafe,
-        "{count, plural, one {hi !!{username}!!}}",
-        r#"[[6,"count",{"one":["hi ",[1,"username"]]},0,"cardinal"]]"#
-    );
-    ast_test!(
-        wrapped_unsafe,
-        "**!!{username}!!**",
-        r#"[[8,"$b",[[1,"username"]]]]"#
-    );
+use crate::spec::icu::harness;
+
+#[test]
+fn basic_unsafe() {
+    let input = "!!{username}!!";
+    let expected = "{username}";
+    assert_eq!(expected, harness::parse_inline(input));
+}
+
+#[test]
+fn basic_unsafe_2() {
+    let input = "hello !!{username}!!. again!";
+    let expected = "hello {username}. again!";
+
+    assert_eq!(expected, harness::parse_inline(input));
+}
+
+#[test]
+fn nested_unsafe() {
+    let input = "{count, plural, one {hi !!{username}!!}}";
+    let expected = "{count, plural, one {hi {username}}}";
+
+    assert_eq!(expected, harness::parse_inline(input));
+}
+
+#[test]
+fn wrapped_unsafe() {
+    let input = "**!!{username}!!**";
+    let expected = "<strong>{username}</strong>";
+
+    assert_eq!(expected, harness::parse_inline(input));
 }

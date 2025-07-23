@@ -924,7 +924,7 @@ impl Lexer {
     }
 
     fn consume_maybe_icu_unsafe_lcurly(&mut self) -> SyntaxKind {
-        if self.current_slice().starts_with(b"!!{") {
+        if self.remaining_text().starts_with(b"!!{") {
             self.advance_n_bytes(3);
             SyntaxKind::UNSAFE_LCURLY
         } else {
@@ -932,7 +932,7 @@ impl Lexer {
         }
     }
     fn consume_maybe_icu_unsafe_rcurly(&mut self) -> SyntaxKind {
-        if self.current_slice().starts_with(b"}!!") {
+        if self.remaining_text().starts_with(b"}!!") {
             self.advance_n_bytes(3);
             SyntaxKind::UNSAFE_RCURLY
         } else {
@@ -964,8 +964,15 @@ impl Lexer {
         self.text.as_bytes()[self.position]
     }
 
+    /// Return a reference to the span of bytes that have been lexed as part of
+    /// the current token.
     fn current_slice(&self) -> &[u8] {
         &self.text.as_bytes()[self.last_position..self.position]
+    }
+
+    /// Return a reference to the remaining unlexed text from the source.
+    fn remaining_text(&self) -> &[u8] {
+        &self.text.as_bytes()[self.position..]
     }
 
     /// Returns the complete char at the current position.

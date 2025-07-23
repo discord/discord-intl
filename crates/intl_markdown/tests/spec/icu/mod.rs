@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod harness {
+    use intl_markdown::compiler::CompiledElement;
     use intl_markdown::{compiler, format, ICUMarkdownParser, SourceText};
 
-    fn parse(input: &str, include_blocks: bool) -> String {
+    pub fn parse(input: &str, include_blocks: bool) -> CompiledElement {
         let mut parser = ICUMarkdownParser::new(SourceText::from(input), include_blocks);
         #[cfg(feature = "debug-tracing")]
         if include_blocks {
@@ -17,18 +18,25 @@ mod harness {
         println!("AST:\n----\n{:#?}\n", ast);
         let compiled = compiler::compile_document(&ast);
         println!("Compiled:\n---------\n{:#?}\n", compiled);
-        let output = format::to_html(&compiled);
-        println!("Input:\n------\n{}\n", input);
-        println!("HTML Format:\n------------\n{}\n{:?}", output, output);
-        output
+        compiled
     }
 
     pub fn parse_inline(input: &str) -> String {
-        parse(input, false)
+        let compiled = parse(input, false);
+        println!("Input:\n------\n{}\n", input);
+        format_html(compiled)
     }
 
     pub fn parse_blocks(input: &str) -> String {
-        parse(input, true)
+        let compiled = parse(input, true);
+        println!("Input:\n------\n{}\n", input);
+        format_html(compiled)
+    }
+
+    pub fn format_html(element: CompiledElement) -> String {
+        let output = format::to_html(&element);
+        println!("HTML Format:\n------------\n{}\n{:?}", output, output);
+        output
     }
 }
 
@@ -38,4 +46,5 @@ mod inline;
 mod markdown_blocks;
 mod markdown_headings;
 mod nodes;
+mod unsafe_variables;
 mod variable_formats;
