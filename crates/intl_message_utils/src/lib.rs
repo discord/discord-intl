@@ -32,7 +32,7 @@ pub fn hash_message_key(content: &str) -> String {
         BASE64_TABLE[((input[1] & 0x0f) << 2 | input[2] >> 6) as usize],
         BASE64_TABLE[(input[2] & 0x3f) as usize],
         BASE64_TABLE[(input[3] >> 2) as usize],
-        BASE64_TABLE[((input[3] & 0x03) << 4 | input[3] >> 4) as usize],
+        BASE64_TABLE[((input[3] & 0x03) << 4 | input[4] >> 4) as usize],
     ];
 
     // SAFETY: We built this string out of ASCII characters, it doesn't need to
