@@ -127,11 +127,11 @@ mod tests {
         import messages from "some/module.messages";
         import differentMess from "different.messages";
         import other from "another/place";
-        console.log(messages["Q5kgoa"]);
+        console.log(messages["Q5kgob"]);
         console.log(other.NOT_A_STRING);
         something.messages.WHAT;
-        messages["nWsV4+"].anotherThing;
-        differentMess["PuzRxM"];
+        messages["nWsV48"].anotherThing;
+        differentMess["PuzRxG"];
         "#,
         )
     }
@@ -160,8 +160,8 @@ mod tests {
         import {untouchedSameSpec, t} from "@app/intl";
         import {untranslated} from "somewhere/else";
         import messages from "some.messages";
-        console.log(t["Q5kgoa"]);
-        console.log(messages["Q5kgoa"]);
+        console.log(t["Q5kgob"]);
+        console.log(messages["Q5kgob"]);
         console.log(untranslated.SOME_STRING);
         console.log(untouchedSameSpec.SOME_STRING);
         "#,
