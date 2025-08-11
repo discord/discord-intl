@@ -191,7 +191,10 @@ impl Serialize for IcuNode {
                 select.serialize_field("type", &type_id)?;
                 select.serialize_field("value", selectable.name.as_str())?;
                 select.serialize_field("options", &SerializeIcuOptions(&selectable.options))?;
-                // TODO: implement `offset`?
+                // TODO: implement `offset` properly
+                if !matches!(selectable.kind, SelectableKind::Select) {
+                    select.serialize_field("offset", &0)?;
+                }
                 if let Some(ty) = ty {
                     select.serialize_field("pluralType", ty)?;
                 }

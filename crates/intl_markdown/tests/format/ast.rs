@@ -81,14 +81,14 @@ mod icu {
     #[test]
     fn plural() {
         let input = "{count, plural, one {#}}";
-        let expected = r#"[[6,"count",{"one":[[7]]},"cardinal"]]"#;
+        let expected = r#"[[6,"count",{"one":[[7]]},0,"cardinal"]]"#;
 
         harness::assert_ast(expected, &harness::parse_and_compile(input, false));
     }
     #[test]
     fn plural_exact() {
         let input = "{count, plural, =-1 {#} =5 {five}}";
-        let expected = r#"[[6,"count",{"=-1":[[7]],"=5":["five"]},"cardinal"]]"#;
+        let expected = r#"[[6,"count",{"=-1":[[7]],"=5":["five"]},0,"cardinal"]]"#;
 
         harness::assert_ast(expected, &harness::parse_and_compile(input, false));
     }
@@ -96,7 +96,7 @@ mod icu {
     fn plural_surrounded_pound() {
         let input = "{count, plural, one {put the # in the middle of an arm}}";
         let expected =
-            r#"[[6,"count",{"one":["put the ",[7]," in the middle of an arm"]},"cardinal"]]"#;
+            r#"[[6,"count",{"one":["put the ",[7]," in the middle of an arm"]},0,"cardinal"]]"#;
 
         harness::assert_ast(expected, &harness::parse_and_compile(input, false));
     }
@@ -110,7 +110,7 @@ mod icu {
     #[test]
     fn select_ordinal() {
         let input = "{count, selectordinal, one {#}}";
-        let expected = r#"[[6,"count",{"one":[[7]]},"ordinal"]]"#;
+        let expected = r#"[[6,"count",{"one":[[7]]},0,"ordinal"]]"#;
 
         harness::assert_ast(expected, &harness::parse_and_compile(input, false));
     }
@@ -193,8 +193,7 @@ mod markdown {
     #[test]
     fn plural_link() {
         let input = "[hello]({target, plural, one {foo} other {bar}})";
-        let expected =
-            r#"[[8,"$link",["hello"],[[6,"target",{"one":["foo"],"other":["bar"]},"cardinal"]]]]"#;
+        let expected = r#"[[8,"$link",["hello"],[[6,"target",{"one":["foo"],"other":["bar"]},0,"cardinal"]]]]"#;
 
         harness::assert_ast(expected, &harness::parse_and_compile(input, false));
     }
