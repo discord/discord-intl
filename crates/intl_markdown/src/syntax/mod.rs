@@ -2,6 +2,7 @@ mod element;
 mod iterators;
 mod kind;
 mod node;
+mod printer;
 pub mod support;
 mod text;
 mod token;

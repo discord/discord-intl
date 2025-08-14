@@ -50,6 +50,7 @@ impl Visit for NoRepeatedPluralNames {
                 severity: DiagnosticSeverity::Warning,
                 description: String::from("Plural variable names should use # instead of repeating the name of the variable"),
                 help: Some(String::from("Replace this variable name with #")),
+                fixes: vec![],
             };
 
             self.diagnostics.push(diagnostic);

@@ -8,7 +8,7 @@ pub use parser::ICUMarkdownParser;
 
 use crate::compiler::CompiledElement;
 use crate::syntax::TextPointer;
-pub use crate::syntax::{SourceText, SyntaxKind, SyntaxNode, SyntaxToken};
+pub use crate::syntax::{SourceText, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
 use syntax::FromSyntax;
 
 mod block_parser;

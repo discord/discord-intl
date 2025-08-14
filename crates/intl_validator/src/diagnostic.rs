@@ -1,4 +1,6 @@
 use intl_database_core::{FilePosition, KeySymbol};
+use intl_markdown::SyntaxElement;
+use std::fmt::{Display, Formatter};
 
 use crate::DiagnosticSeverity;
 
@@ -11,6 +13,12 @@ pub enum DiagnosticName {
     NoRepeatedPluralOptions,
     NoTrimmableWhitespace,
     NoUnicodeVariableNames,
+}
+
+impl Display for DiagnosticName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 impl DiagnosticName {
@@ -26,12 +34,14 @@ impl DiagnosticName {
     }
 }
 
-impl ToString for DiagnosticName {
-    fn to_string(&self) -> String {
-        self.as_str().into()
-    }
+#[derive(Debug, Clone)]
+pub struct DiagnosticFix {
+    pub message: Option<String>,
+    pub source_span: (usize, usize),
+    pub replacement: SyntaxElement,
 }
 
+#[derive(Debug, Clone)]
 pub struct MessageDiagnostic {
     pub key: KeySymbol,
     pub file_position: FilePosition,
@@ -40,15 +50,17 @@ pub struct MessageDiagnostic {
     pub severity: DiagnosticSeverity,
     pub description: String,
     pub help: Option<String>,
+    pub fixes: Vec<DiagnosticFix>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ValueDiagnostic {
     pub name: DiagnosticName,
-    pub span: Option<usize>,
+    pub span: Option<(usize, usize)>,
     pub severity: DiagnosticSeverity,
     pub description: String,
     pub help: Option<String>,
+    pub fixes: Vec<DiagnosticFix>,
 }
 
 pub struct MessageDiagnosticsBuilder {
@@ -85,8 +97,13 @@ impl MessageDiagnosticsBuilder {
                     severity: diagnostic.severity,
                     description: diagnostic.description,
                     help: diagnostic.help,
+                    fixes: diagnostic.fixes,
                 });
 
         self.diagnostics.extend(converted_diagnostics);
     }
+}
+
+pub(crate) fn span_from_element(_element: SyntaxElement) -> (usize, usize) {
+    (0, 0)
 }

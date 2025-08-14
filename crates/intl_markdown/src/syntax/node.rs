@@ -106,6 +106,22 @@ impl SyntaxNode {
     pub fn iter_tokens(&self) -> SyntaxNodeTokenIter {
         SyntaxNodeTokenIter::new(&self)
     }
+
+    pub fn first_token(&self) -> Option<&SyntaxToken> {
+        match self.first_child()? {
+            SyntaxElement::Node(node) => node.first_token(),
+            SyntaxElement::Token(token) => Some(token),
+            SyntaxElement::Empty => None,
+        }
+    }
+
+    pub fn last_token(&self) -> Option<&SyntaxToken> {
+        match self.last_child()? {
+            SyntaxElement::Node(node) => node.last_token(),
+            SyntaxElement::Token(token) => Some(token),
+            SyntaxElement::Empty => None,
+        }
+    }
 }
 
 impl Debug for SyntaxNode {

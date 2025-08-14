@@ -52,7 +52,8 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
                 severity: DiagnosticSeverity::Warning,
                 description: "Translation includes variables, but the source message does not"
                     .into(),
-                help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
+                help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into()),
+                fixes: vec![],
             });
         // If the translation has no variables, but the source does, this
         // also likely not intentional, but still won't break things.
@@ -64,7 +65,8 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
                 name: DiagnosticName::NoMissingSourceVariables,
                 severity: DiagnosticSeverity::Warning,
                 description: "Source message includes variables, but this translation has none.".into(),
-                help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into())
+                help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into()),
+                fixes: vec![],
             });
         }
     }
