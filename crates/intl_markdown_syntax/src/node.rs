@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Index, Range};
 use std::sync::Arc;
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
 pub struct SyntaxNodeHeader {
     pub kind: SyntaxKind,
     /// Position of this node in the original source text.

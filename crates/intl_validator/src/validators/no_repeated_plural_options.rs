@@ -54,6 +54,7 @@ impl Visit for NoRepeatedPluralOptions {
                     "Plural options must be unique within the plural selector",
                 ),
                 help: Some(format!("The option '{name}' is present more than once in the plural value '{plural_name}'. Remove or rename one of these options to fix it.")),
+                fixes: vec![],
             };
 
             self.diagnostics.push(diagnostic);

@@ -36,6 +36,7 @@ impl Visit for NoUnicodeVariableNames {
                 severity: DiagnosticSeverity::Error,
                 description: "Variable names should not contain unicode characters to avoid ambiguity during translation".into(),
                 help: Some(help_text),
+                fixes: vec![]
             });
         }
     }

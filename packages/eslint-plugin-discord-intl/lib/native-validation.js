@@ -1,5 +1,6 @@
 /** @typedef {import('eslint').Rule.RuleListener} RuleListener */
 /** @typedef {import('eslint').Rule.RuleContext} RuleContext */
+/** @typedef {import('eslint').Rule.ReportDescriptor} ReportDescriptor */
 /** @typedef {import('eslint').SourceCode} SourceCode */
 /** @typedef {import("@discord/intl-loader-core/types").IntlDiagnostic} IntlDiagnostic */
 
@@ -67,6 +68,7 @@ function processAndValidateNative(sourceCode, fileName, content) {
         col: error.col ?? 0,
         locale: error.locale ?? 'definition',
         severity: 'error',
+        fixes: [],
       });
     }
   }
@@ -106,10 +108,29 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
     for (const diagnostic of diagnostics) {
       if (!predicate(diagnostic)) continue;
 
-      context.report({
+      /** @type {ReportDescriptor} */
+      const report = {
         node: value,
         message: diagnostic.description,
-      });
+      };
+      if (diagnostic.fixes.length > 0 && value.range != null) {
+        const valueStart = value.range[0] + 1;
+        report.fix = (fixer) => {
+          return diagnostic.fixes.map((fix) =>
+            fixer.replaceTextRange([valueStart + fix.start, valueStart + fix.end], fix.replacement),
+          );
+        };
+
+        const suggestableFixes = diagnostic.fixes.filter((fix) => fix.message != null);
+        if (suggestableFixes.length > 0) {
+          report.suggest = suggestableFixes.map((fix) => ({
+            desc: /** @type {string} */ (fix.message),
+            fix: (fixer) => fixer.replaceTextRange([fix.start, fix.end], fix.replacement),
+          }));
+        }
+      }
+
+      context.report(report);
     }
   });
 }

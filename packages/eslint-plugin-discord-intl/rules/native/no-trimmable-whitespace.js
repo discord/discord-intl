@@ -3,6 +3,7 @@ const { traverseAndReportMatchingNativeValidations } = require('../../lib/native
 module.exports = /** @type {import('eslint').Rule.RuleModule} */ ({
   meta: {
     fixable: 'code',
+    hasSuggestions: true,
     docs: {
       description: 'Disallow whitespace at the beginning and end of intl messages',
       category: 'Best Practices',

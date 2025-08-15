@@ -1,7 +1,7 @@
 use crate::sources::{MessagesFileDescriptor, SourceFileInsertionData};
 use intl_database_core::{key_symbol, DatabaseError, DatabaseInsertStrategy};
 use intl_database_exporter::CompiledMessageFormat;
-use intl_validator::MessageDiagnostic;
+use intl_validator::{DiagnosticFix, MessageDiagnostic};
 use napi::{JsObject, JsString};
 use napi_derive::napi;
 use std::collections::HashMap;
@@ -29,6 +29,25 @@ impl Into<intl_database_exporter::IntlMessageBundlerOptions> for IntlMessageBund
 }
 
 #[napi(object)]
+pub struct IntlDiagnosticFix {
+    pub message: Option<String>,
+    pub start: u32,
+    pub end: u32,
+    pub replacement: String,
+}
+
+impl From<DiagnosticFix> for IntlDiagnosticFix {
+    fn from(fix: DiagnosticFix) -> Self {
+        Self {
+            message: fix.message,
+            start: fix.source_span.0 as u32,
+            end: fix.source_span.1 as u32,
+            replacement: fix.replacement,
+        }
+    }
+}
+
+#[napi(object)]
 pub struct IntlDiagnostic {
     pub name: String,
     pub key: String,
@@ -39,6 +58,7 @@ pub struct IntlDiagnostic {
     pub severity: String,
     pub description: String,
     pub help: Option<String>,
+    pub fixes: Vec<IntlDiagnosticFix>,
 }
 
 impl From<MessageDiagnostic> for IntlDiagnostic {
@@ -53,6 +73,7 @@ impl From<MessageDiagnostic> for IntlDiagnostic {
             severity: value.severity.to_string(),
             description: value.description,
             help: value.help,
+            fixes: value.fixes.into_iter().map(|fix| fix.into()).collect(),
         }
     }
 }
