@@ -1,5 +1,5 @@
 use crate::syntax::iterators::SyntaxNodeTokenIter;
-use crate::syntax::{SyntaxElement, SyntaxKind, SyntaxToken, TextSize};
+use crate::syntax::{SyntaxElement, SyntaxKind, TextSize};
 use slice_dst::SliceWithHeader;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Index, Range};
@@ -51,10 +51,6 @@ impl SyntaxNode {
         }
     }
 
-    pub fn is_tombstone(&self) -> bool {
-        self.0.header.kind == SyntaxKind::TOMBSTONE
-    }
-
     pub fn text_len(&self) -> TextSize {
         self.0.header.text_len
     }
@@ -63,40 +59,12 @@ impl SyntaxNode {
         self.0.header.kind
     }
 
-    pub fn is_token(&self) -> bool {
-        self.0.header.kind.is_token()
-    }
-
-    pub fn required_node(&self, slot: usize) -> SyntaxNode {
-        self.0.slice[slot].node().to_owned()
-    }
-
-    pub fn optional_node(&self, slot: usize) -> Option<SyntaxNode> {
-        self.0.slice[slot].as_node().cloned()
-    }
-
-    pub fn required_token(&self, slot: usize) -> SyntaxToken {
-        self.0.slice[slot].token().to_owned()
-    }
-
-    pub fn optional_token(&self, slot: usize) -> Option<SyntaxToken> {
-        self.0.slice[slot].as_token().cloned()
-    }
-
     pub fn children(&self) -> &[SyntaxElement] {
         self.0.slice.as_ref()
     }
 
     pub fn len(&self) -> usize {
         self.0.slice.len()
-    }
-
-    pub fn first_child(&self) -> Option<&SyntaxElement> {
-        self.0.slice.get(0)
-    }
-
-    pub fn last_child(&self) -> Option<&SyntaxElement> {
-        self.0.slice.get(self.0.slice.len() - 1)
     }
 
     pub fn get(&self, index: usize) -> Option<&SyntaxElement> {
