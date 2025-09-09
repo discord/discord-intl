@@ -1,11 +1,9 @@
 use super::{delimiter::process_closed_delimiter, ICUMarkdownParser};
+use crate::delimiter::{Delimiter, LinkDelimiter};
 use crate::lexer::LexContext;
 use crate::parser::icu::{is_at_normal_icu, parse_icu};
 use crate::parser::marker::{Marker, MarkerSpan};
-use crate::{
-    delimiter::{Delimiter, LinkDelimiter},
-    syntax::SyntaxKind,
-};
+use intl_markdown_syntax::SyntaxKind;
 
 fn is_link_kind(kind: SyntaxKind) -> bool {
     matches!(

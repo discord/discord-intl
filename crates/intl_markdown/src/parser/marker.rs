@@ -1,6 +1,5 @@
-use crate::syntax::SyntaxKind;
-use crate::syntax::TreeMarker;
 use crate::ICUMarkdownParser;
+use intl_markdown_syntax::{SyntaxKind, TreeMarker};
 use std::ops::Deref;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

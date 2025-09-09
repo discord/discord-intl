@@ -2,16 +2,13 @@ use crate::byte_lookup::{
     self, char_length_from_byte, get_byte_type, is_unicode_identifier_continue,
     is_unicode_identifier_start, ByteType,
 };
-use crate::html_entities::is_valid_html_entity;
-use crate::syntax::{SourceText, TextPointer, TextSize, TextSpan};
+use intl_markdown_syntax::html_entities::is_valid_html_entity;
+use intl_markdown_syntax::{SourceText, SyntaxKind, SyntaxToken, TextPointer, TextSize, TextSpan};
 
-use super::{
-    block_parser::BlockBound,
-    syntax::{SyntaxKind, SyntaxToken},
-};
+use super::block_parser::BlockBound;
 
 /// A dedicated struct for storing ephemeral state that influences the lexer's
-/// decision making.
+/// decision-making.
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct LexerState {
     pub indent_depth: u32,

@@ -1,4 +1,4 @@
-use crate::syntax::FromSyntax;
+use crate::FromSyntax;
 use crate::{SyntaxNode, SyntaxToken};
 
 pub fn required_node<N: FromSyntax>(node: &SyntaxNode, slot: usize) -> N {

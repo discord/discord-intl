@@ -134,7 +134,7 @@ fn generate_visitor_from_grammar(nodes: &Vec<AnyGrammarNode>) -> String {
 
 fn generate_tree_from_grammar(nodes: &Vec<AnyGrammarNode>) -> String {
     let mut result = quote! {
-        use crate::syntax::*;
+        use intl_markdown_syntax::*;
         use crate::cst::util::*;
     };
     for node in nodes {

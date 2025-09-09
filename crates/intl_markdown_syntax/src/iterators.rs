@@ -1,5 +1,5 @@
 use crate::html_entities::get_html_entity;
-use crate::syntax::{SyntaxElement, TextPointer, TrimKind};
+use crate::{SyntaxElement, TextPointer, TrimKind};
 use crate::{SyntaxNode, SyntaxToken};
 use std::iter::Peekable;
 

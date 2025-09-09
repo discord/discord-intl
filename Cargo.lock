@@ -828,13 +828,13 @@ dependencies = [
  "criterion",
  "intl_allocator",
  "intl_markdown_macros",
+ "intl_markdown_syntax",
  "keyless_json",
  "lazy_static",
  "memchr",
  "pulldown-cmark",
  "serde",
  "serde_json",
- "slice-dst",
  "test-case",
  "unicode-properties",
  "unicode-xid",
@@ -847,6 +847,13 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "intl_markdown_syntax"
+version = "0.1.0"
+dependencies = [
+ "slice-dst",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 use super::element::*;
-use crate::syntax::TextPointer;
+use intl_markdown_syntax::TextPointer;
 pub trait VisitCompiled {
     fn visit_text_pointer(&mut self, text: &TextPointer) {
         text.visit_children_with(self);

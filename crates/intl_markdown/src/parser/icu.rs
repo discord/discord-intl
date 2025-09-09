@@ -1,6 +1,6 @@
 use crate::lexer::LexContext;
 use crate::parser::inline::parse_inline;
-use crate::syntax::SyntaxKind;
+use intl_markdown_syntax::SyntaxKind;
 
 use super::ICUMarkdownParser;
 

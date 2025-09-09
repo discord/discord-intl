@@ -1,6 +1,5 @@
+use intl_markdown_syntax::SyntaxKind;
 use std::collections::VecDeque;
-
-use super::syntax::SyntaxKind;
 
 /// An indicator of the start or end of a block, including the byte position in
 /// the source text where the bound occurs, and the syntax kind it represents.
@@ -666,7 +665,7 @@ fn create_lines(text: &str) -> VecDeque<Line> {
 #[cfg(test)]
 mod test {
     use super::{create_lines, BlockBound, BlockParser};
-    use crate::syntax::SyntaxKind;
+    use intl_markdown_syntax::SyntaxKind;
     use test_case::test_case;
 
     #[test]

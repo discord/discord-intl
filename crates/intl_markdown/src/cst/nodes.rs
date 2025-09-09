@@ -1,5 +1,5 @@
 use crate::cst::util::*;
-use crate::syntax::*;
+use intl_markdown_syntax::*;
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub enum AnyDocument {
     BlockDocument(BlockDocument),

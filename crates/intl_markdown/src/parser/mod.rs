@@ -6,7 +6,7 @@ use super::{
     AnyDocument,
 };
 use crate::lexer::{LexContext, LexerState};
-use crate::syntax::{
+use intl_markdown_syntax::{
     FromSyntaxElement, SourceText, SyntaxElement, SyntaxKind, SyntaxToken, TextPointer, TextSize,
     TreeBuilder, TreeMarker,
 };
@@ -596,8 +596,8 @@ impl ICUMarkdownParser {
 mod test {
     use super::ICUMarkdownParser;
     use crate::cst::AnyDocument;
-    use crate::syntax::{FromSyntax, SourceText};
     use crate::{compiler, format};
+    use intl_markdown_syntax::{FromSyntax, SourceText};
 
     #[test]
     fn test_debug() {

@@ -1,4 +1,4 @@
-use crate::syntax::{FromSyntax, PositionalIterator, SyntaxNodeChildren};
+use intl_markdown_syntax::{FromSyntax, PositionalIterator, SyntaxNodeChildren};
 use std::marker::PhantomData;
 
 pub struct TypedNodeChildren<'a, T: FromSyntax> {

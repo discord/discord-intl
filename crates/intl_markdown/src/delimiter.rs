@@ -1,4 +1,4 @@
-use super::syntax::{SyntaxKind, TreeMarker};
+use intl_markdown_syntax::{SyntaxKind, TreeMarker};
 
 pub(crate) trait Delimiter {
     fn syntax_kind(&self) -> SyntaxKind;

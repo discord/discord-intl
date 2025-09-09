@@ -1,6 +1,6 @@
 use crate::cst::*;
-use crate::syntax::Syntax;
 use crate::SyntaxKind;
+use intl_markdown_syntax::Syntax;
 
 impl AnyHeading {
     pub fn level(&self) -> u8 {

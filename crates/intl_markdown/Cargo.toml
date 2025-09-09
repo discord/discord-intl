@@ -19,11 +19,11 @@ debug-tracing = []
 [dependencies]
 intl_allocator = { workspace = true }
 intl_markdown_macros = { workspace = true }
+intl_markdown_syntax = { workspace = true }
 memchr = { workspace = true }
 pulldown-cmark = "0.11.0"
 serde = { workspace = true }
 serde_json = { workspace = true }
-slice-dst = "1.6.0"
 unicode-properties = "0.1.3"
 unicode-xid = { workspace = true }
 lazy_static = "1.5.0"

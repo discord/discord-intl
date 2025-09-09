@@ -5,7 +5,7 @@ use crate::delimiter::AnyDelimiter;
 use crate::delimiter::Delimiter;
 use crate::parser::marker::MarkerSpan;
 use crate::parser::strikethrough::match_strikethrough;
-use crate::syntax::SyntaxKind;
+use intl_markdown_syntax::SyntaxKind;
 
 /// Process the delimiter stack entries within the given `range`, matching
 /// emphasis nodes as much as possible.

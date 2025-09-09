@@ -1,5 +1,5 @@
 use crate::lexer::LexContext;
-use crate::syntax::SyntaxKind;
+use intl_markdown_syntax::SyntaxKind;
 
 use super::ICUMarkdownParser;
 

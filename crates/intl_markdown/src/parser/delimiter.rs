@@ -4,8 +4,8 @@ use super::ICUMarkdownParser;
 use crate::cjk::is_cjk_codepoint;
 use crate::delimiter::Delimiter;
 use crate::parser::emphasis::process_emphasis;
-use crate::syntax::{SyntaxKind, TextSpan};
 use crate::{cjk, delimiter::EmphasisDelimiter};
+use intl_markdown_syntax::{SyntaxKind, TextSpan};
 
 /// Returns the two chars preceding `first` and two chars following `last` in
 /// the source text. If the spans are at the bounds of the text, this will

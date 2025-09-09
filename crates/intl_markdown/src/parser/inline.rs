@@ -6,10 +6,11 @@ use super::{
     link::{parse_image_open, parse_link_like_close, parse_link_open},
     ICUMarkdownParser,
 };
+use crate::lexer::LexContext;
 use crate::parser::icu::parse_icu_pound;
 use crate::parser::link::parse_hook_open;
 use crate::parser::strikethrough::parse_strikethrough_delimiter_run;
-use crate::{lexer::LexContext, syntax::SyntaxKind};
+use intl_markdown_syntax::SyntaxKind;
 
 /// Parse any series of inline content. This function should _only_ be called from a block context
 /// or an ICU context, because it pushes a new delimiter context to use and processes it at the end

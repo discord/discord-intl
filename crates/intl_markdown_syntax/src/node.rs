@@ -1,5 +1,5 @@
-use crate::syntax::iterators::SyntaxNodeTokenIter;
-use crate::syntax::{SyntaxElement, SyntaxKind, TextSize};
+use crate::iterators::SyntaxNodeTokenIter;
+use crate::{SyntaxElement, SyntaxKind, TextSize};
 use slice_dst::SliceWithHeader;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Index, Range};

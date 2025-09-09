@@ -1,9 +1,9 @@
-use crate::html_entities::get_html_entity;
-use crate::syntax::{
+use crate::{AnyInlineNode, InlineContent, SyntaxKind, SyntaxToken, Visit, VisitWith};
+use intl_markdown_syntax::html_entities::get_html_entity;
+use intl_markdown_syntax::{
     MinimalTextIter, PositionalIterator, Syntax, SyntaxNodeTokenIter, TextPointer, TextSize,
     TokenTextIter, TokenTextIterOptions,
 };
-use crate::{AnyInlineNode, InlineContent, SyntaxKind, SyntaxToken, Visit, VisitWith};
 use memchr::Memchr;
 use std::sync::Arc;
 

@@ -1,5 +1,5 @@
-use super::SyntaxKind;
-use crate::syntax::text::TextPointer;
+use crate::text::TextPointer;
+use crate::SyntaxKind;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, Range};
 use std::sync::Arc;

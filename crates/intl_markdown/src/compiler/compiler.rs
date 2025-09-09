@@ -9,8 +9,9 @@ use crate::compiler::{
     ThematicBreakNode, TimeNode,
 };
 use crate::cst::*;
-use crate::syntax::{PositionalIterator, Syntax, TextPointer, TokenTextIterOptions, TrimKind};
-use crate::SyntaxKind;
+use intl_markdown_syntax::{
+    PositionalIterator, Syntax, SyntaxKind, TextPointer, TokenTextIterOptions, TrimKind,
+};
 
 #[derive(Default, Clone)]
 pub struct CompilerContext {

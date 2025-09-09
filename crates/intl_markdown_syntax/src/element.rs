@@ -1,5 +1,5 @@
-use crate::syntax::iterators::PositionalIterator;
-use crate::syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextSize};
+use crate::iterators::PositionalIterator;
+use crate::{SyntaxKind, SyntaxNode, SyntaxToken, TextSize};
 use std::fmt::{Debug, Formatter};
 
 #[derive(Eq, Clone, PartialEq, Hash)]

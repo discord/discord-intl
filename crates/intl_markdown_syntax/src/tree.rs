@@ -1,6 +1,5 @@
-use crate::syntax::token::SyntaxTokenData;
-use crate::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, TextPointer};
-use crate::SourceText;
+use crate::token::SyntaxTokenData;
+use crate::{SourceText, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, TextPointer};
 use std::fmt::Debug;
 use std::ptr;
 use std::sync::Arc;

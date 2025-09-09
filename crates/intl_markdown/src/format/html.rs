@@ -3,7 +3,7 @@ use crate::compiler::{
     CompiledElement, CompiledNode, IcuNode, LinkDestination, LinkKind, LinkNode, MarkdownNode,
     SelectableKind,
 };
-use crate::syntax::{PositionalIterator, TextPointer};
+use intl_markdown_syntax::{PositionalIterator, TextPointer};
 
 pub struct HtmlFormatter {
     result: String,

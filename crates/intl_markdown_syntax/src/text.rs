@@ -1,4 +1,4 @@
-use crate::syntax::TextSize;
+use crate::TextSize;
 use std::collections::Bound;
 use std::ops::{Deref, Range, RangeBounds};
 use std::sync::Arc;
@@ -226,6 +226,7 @@ impl TextPointer {
 
     /// Remove all size and position from this text pointer, but preserve the reference to the
     /// original text to ensure it can be reused without cloning.
+    #[allow(unused)]
     pub(super) fn clear(&mut self) {
         self.len = 0;
     }

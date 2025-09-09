@@ -44,7 +44,7 @@ pub fn syntax_from_compiled_grammar(grammar: &Grammar) -> Vec<CompiledGrammarNod
 
 fn generate_tree_from_grammar(grammar: &Vec<CompiledGrammarNode>) -> String {
     let mut result = quote! {
-        use crate::syntax::TextPointer;
+        use intl_markdown_syntax::TextPointer;
     };
     for node in grammar {
         let node_impl = match &node {
@@ -300,7 +300,7 @@ fn generate_visitor_from_grammar(nodes: &Vec<CompiledGrammarNode>) -> String {
 
     quote! {
         use super::element::*;
-        use crate::syntax::TextPointer;
+        use intl_markdown_syntax::TextPointer;
 
 
         pub trait VisitCompiled {

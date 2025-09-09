@@ -1,4 +1,4 @@
-use crate::syntax::TextPointer;
+use intl_markdown_syntax::TextPointer;
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum CompiledElement {
     BlockList(Box<[CompiledElement]>),

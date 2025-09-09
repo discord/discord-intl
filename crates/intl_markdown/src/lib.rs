@@ -2,14 +2,15 @@
 #![feature(iter_collect_into)]
 #![feature(substr_range)]
 extern crate core;
+extern crate intl_allocator;
 
 pub use cst::*;
+pub use intl_markdown_syntax::{
+    FromSyntax, SourceText, SyntaxKind, SyntaxNode, SyntaxToken, TextPointer,
+};
 pub use parser::ICUMarkdownParser;
 
 use crate::compiler::CompiledElement;
-use crate::syntax::TextPointer;
-pub use crate::syntax::{SourceText, SyntaxKind, SyntaxNode, SyntaxToken};
-use syntax::FromSyntax;
 
 mod block_parser;
 mod byte_lookup;
@@ -18,12 +19,8 @@ pub mod compiler;
 mod cst;
 mod delimiter;
 pub mod format;
-mod html_entities;
 mod lexer;
 mod parser;
-mod syntax;
-
-extern crate intl_allocator;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct MarkdownDocument {
