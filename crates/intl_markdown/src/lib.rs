@@ -45,7 +45,8 @@ pub fn parse_intl_message(content: &str, include_blocks: bool) -> MarkdownDocume
 pub fn raw_string_to_document(content: &str) -> MarkdownDocument {
     let cst = AnyDocument::from_syntax(SyntaxNode::new(
         SyntaxKind::INLINE_CONTENT,
-        [SyntaxToken::from_str(SyntaxKind::TEXT, content).into()].into_iter(),
+        0,
+        [SyntaxToken::from_str(SyntaxKind::TEXT, 0, content).into()].into_iter(),
     ));
     let compiled = CompiledElement::Literal(TextPointer::from_str(content));
     MarkdownDocument { cst, compiled }

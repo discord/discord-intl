@@ -90,6 +90,14 @@ impl SyntaxElement {
         }
     }
 
+    pub fn text_offset(&self) -> TextSize {
+        match self {
+            NodeOrToken::Node(node) => node.text_offset(),
+            NodeOrToken::Token(token) => token.text_offset(),
+            NodeOrToken::Empty => 0,
+        }
+    }
+
     pub fn text_len(&self) -> TextSize {
         match self {
             NodeOrToken::Node(node) => node.text_len(),

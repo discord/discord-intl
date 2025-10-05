@@ -353,6 +353,7 @@ impl ICUMarkdownParser {
         let trivia_span = self.lexer.current_byte_span();
         let token = SyntaxToken::from_raw_parts(
             SyntaxKind::TEXT,
+            trivia_span.start as TextSize,
             TextPointer::new(
                 self.source.clone(),
                 trivia_span.start as TextSize,

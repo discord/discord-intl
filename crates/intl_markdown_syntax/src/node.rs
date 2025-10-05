@@ -8,6 +8,9 @@ use std::sync::Arc;
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct SyntaxNodeHeader {
     pub kind: SyntaxKind,
+    /// Position of this node in the original source text.
+    pub text_offset: TextSize,
+    /// Byte length of all text contained by this node.
     pub text_len: TextSize,
 }
 
@@ -16,7 +19,7 @@ pub struct SyntaxNodeHeader {
 pub struct SyntaxNode(Arc<SliceWithHeader<SyntaxNodeHeader, SyntaxElement>>);
 
 impl SyntaxNode {
-    pub fn new<I>(kind: SyntaxKind, children: I) -> Self
+    pub fn new<I>(kind: SyntaxKind, text_offset: TextSize, children: I) -> Self
     where
         I: IntoIterator<Item = SyntaxElement>,
         I::IntoIter: ExactSizeIterator,
@@ -30,9 +33,13 @@ impl SyntaxNode {
         // can at least try to limit how much extra work is done, but _every_ inline content node
         // will have to go through this process to ensure the final node structure is valid.
         if kind.expects_inline_node_children() {
-            let (text_len, children) = fixup_inline_content_children(children);
+            let (text_len, children) = fixup_inline_content_children(text_offset, children);
             Self(SliceWithHeader::new(
-                SyntaxNodeHeader { kind, text_len },
+                SyntaxNodeHeader {
+                    kind,
+                    text_offset,
+                    text_len,
+                },
                 children,
             ))
         } else {
@@ -43,12 +50,22 @@ impl SyntaxNode {
             let children = children
                 .into_iter()
                 .inspect(|child| text_len += child.text_len());
-            let mut data =
-                SliceWithHeader::new::<Arc<_>, _>(SyntaxNodeHeader { kind, text_len: 0 }, children);
+            let mut data = SliceWithHeader::new::<Arc<_>, _>(
+                SyntaxNodeHeader {
+                    kind,
+                    text_offset,
+                    text_len: 0,
+                },
+                children,
+            );
             let header = &mut Arc::get_mut(&mut data).unwrap().header;
             header.text_len = text_len;
             Self(data)
         }
+    }
+
+    pub fn text_offset(&self) -> TextSize {
+        self.0.header.text_offset
     }
 
     pub fn text_len(&self) -> TextSize {
@@ -103,7 +120,10 @@ impl Index<Range<usize>> for SyntaxNode {
     }
 }
 
-fn fixup_inline_content_children<I>(children: I) -> (TextSize, Vec<SyntaxElement>)
+fn fixup_inline_content_children<I>(
+    initial_offset: TextSize,
+    children: I,
+) -> (TextSize, Vec<SyntaxElement>)
 where
     I: IntoIterator<Item = SyntaxElement>,
     I::IntoIter: ExactSizeIterator,
@@ -113,7 +133,7 @@ where
     let mut text_len = 0;
     let mut text_span_start_index: Option<usize> = None;
     for child in children {
-        text_len += child.text_len();
+        let child_len = child.text_len();
         match &child {
             SyntaxElement::Token(_) => {
                 // Store the index of this token in the children list.
@@ -122,18 +142,27 @@ where
             }
             _ => {
                 if let Some(span_start) = text_span_start_index.take() {
-                    let new_node =
-                        SyntaxNode::new(SyntaxKind::TEXT_SPAN, collected.drain(span_start..))
-                            .into();
+                    let new_node = SyntaxNode::new(
+                        SyntaxKind::TEXT_SPAN,
+                        initial_offset + text_len,
+                        collected.drain(span_start..),
+                    )
+                    .into();
                     collected.push(new_node);
                 }
                 collected.push(child)
             }
         }
+        text_len += child_len;
     }
 
     if let Some(span_start) = text_span_start_index.take() {
-        let new_node = SyntaxNode::new(SyntaxKind::TEXT_SPAN, collected.drain(span_start..)).into();
+        let new_node = SyntaxNode::new(
+            SyntaxKind::TEXT_SPAN,
+            initial_offset + text_len,
+            collected.drain(span_start..),
+        )
+        .into();
         collected.push(new_node);
     }
 

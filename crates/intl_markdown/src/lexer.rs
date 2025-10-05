@@ -1113,6 +1113,7 @@ impl Lexer {
     pub fn token_from_range(&self, kind: SyntaxKind, range: TextSpan) -> SyntaxToken {
         SyntaxToken::new(
             kind,
+            range.start as TextSize,
             TextPointer::new(
                 self.text.clone(),
                 range.start as TextSize,

@@ -1,5 +1,7 @@
 use crate::token::SyntaxTokenData;
-use crate::{SourceText, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, TextPointer};
+use crate::{
+    SourceText, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, TextPointer, TextSize,
+};
 use std::fmt::Debug;
 use std::ptr;
 use std::sync::Arc;
@@ -223,11 +225,24 @@ impl TreeBuilder {
     pub fn finish_node(&mut self) {
         let (kind, first_child) = self.parents.pop().unwrap();
 
+        // It's possible for `first_child` to actually be pointing _after_ the
+        // end of the children list, in cases where the child ends up having no
+        // content. This specifically can happen with empty ICU arms, like:
+        //     {days, plural, =0 {} 1 {one day left} other {# days left}}
+        // Where the `=0 {}` arm _must_ have an `INLINE_CONTENT` node within
+        // the body, but there's no actual content to place there. In this
+        // case, we can know confidently that the node is starting at the same
+        // point as the current cursor in the tree, so the start of the node is
+        // equivalent to the tree's currently-parsed `text_offset`.
+        let node_start = self
+            .children
+            .get(first_child)
+            .map_or(self.text_offset as TextSize, |child| child.text_offset());
         let children_iter = self.children.drain(first_child..);
         let node = if self.deferred_nodes.len() == 0 {
             // Most things won't have deferred nodes, so we can fast-path finishing the parent
             // directly from iterating the children.
-            SyntaxNode::new(kind, children_iter).into()
+            SyntaxNode::new(kind, node_start, children_iter).into()
         } else {
             // But if there are any deferred nodes, then we need to mutate the list accordingly,
             // which is most easily done by collecting them into a new vector and mutating that,
@@ -261,10 +276,15 @@ impl TreeBuilder {
                     );
                     end
                 };
-                let new_node = SyntaxNode::new(node.kind, self.scratch.drain(start..end)).into();
+                let new_node = SyntaxNode::new(
+                    node.kind,
+                    node.start.text_offset as TextSize,
+                    self.scratch.drain(start..end),
+                )
+                .into();
                 self.scratch.insert(start, new_node);
             }
-            SyntaxNode::new(kind, self.scratch.drain(..)).into()
+            SyntaxNode::new(kind, node_start, self.scratch.drain(..)).into()
         };
 
         self.children.push(node);

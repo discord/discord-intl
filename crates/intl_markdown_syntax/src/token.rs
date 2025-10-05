@@ -49,8 +49,18 @@ impl TrimKind {
 pub struct SyntaxTokenData {
     /// The kind of token present here.
     kind: SyntaxKind,
+    /// The offset of the text in the original source.
+    ///
+    /// This is unfortunately duplicated information from the [TextPointer] in
+    /// most cases, since original parsing will never cause a pointer to be
+    /// copied, leaving the original offset intact. For consistency and safety,
+    /// however, the value must be specified separately here, allowing for
+    /// mutable trees in the future.
+    text_offset: TextSize,
+    /// Pointer to the actual text contained by this token, including any
+    /// leading and trailing trivia.
     text: TextPointer,
-    /// The start position of the actual token text
+    /// The start position of the actual token text, after any leading trivia.
     text_start: TextSize,
     /// The start position of the trailing trivia attached to the token
     trailing_start: TextSize,
@@ -80,19 +90,21 @@ impl SyntaxTokenData {
 pub struct SyntaxToken(Arc<SyntaxTokenData>);
 
 impl SyntaxToken {
-    pub fn new(kind: SyntaxKind, text: TextPointer) -> Self {
+    pub fn new(kind: SyntaxKind, text_offset: TextSize, text: TextPointer) -> Self {
         let len = text.len_size();
         Self(Arc::new(SyntaxTokenData {
             kind,
+            text_offset,
             text,
             text_start: 0,
             trailing_start: len,
         }))
     }
 
-    pub fn from_str(kind: SyntaxKind, text: &str) -> Self {
+    pub fn from_str(kind: SyntaxKind, text_offset: TextSize, text: &str) -> Self {
         Self(Arc::new(SyntaxTokenData {
             kind,
+            text_offset,
             text: TextPointer::from_str(text),
             text_start: TextSize::default(),
             trailing_start: text.len() as TextSize,
@@ -105,24 +117,27 @@ impl SyntaxToken {
     /// not sufficient.
     pub fn from_raw_parts(
         kind: SyntaxKind,
+        text_offset: TextSize,
         text: TextPointer,
         text_start: TextSize,
         trailing_start: TextSize,
     ) -> Self {
         Self(Arc::new(SyntaxTokenData {
             kind,
+            text_offset,
             text,
             text_start,
             trailing_start,
         }))
     }
 
-    pub fn static_text(text: &str) -> Self {
+    pub fn static_text(text_offset: TextSize, text: &str) -> Self {
         // TODO: Optimize this to actually use static text pointers. This is intentionally
         // different from `from_str` in that it's meant to support string literals that are
         // commonly used and avoid allocating a new pointer for each one.
         Self(Arc::new(SyntaxTokenData {
             kind: SyntaxKind::TEXT,
+            text_offset,
             text: TextPointer::from_str(text),
             text_start: 0,
             trailing_start: text.len() as TextSize,
@@ -170,6 +185,7 @@ impl SyntaxToken {
     pub fn text_end(&self) -> TextSize {
         self.trailing_start
     }
+    
     /// Returns the starting character position of this token's leading trivia.
     pub fn leading_trivia_start(&self) -> TextSize {
         0
@@ -193,6 +209,12 @@ impl SyntaxToken {
     /// Returns the total length of this token, including trivia.
     pub fn len(&self) -> TextSize {
         self.text.len_size()
+    }
+
+    /// Returns the position of this token in the original source text,
+    /// inclusive of any leading trivia of the token.
+    pub fn text_offset(&self) -> TextSize {
+        self.text_offset
     }
 
     /// Returns the length of just this token's main text.
