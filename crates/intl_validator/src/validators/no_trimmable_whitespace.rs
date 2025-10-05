@@ -34,6 +34,8 @@ impl Validator for NoTrimmableWhitespace {
 
             diagnostics.push(ValueDiagnostic {
                 name: DiagnosticName::NoTrimmableWhitespace,
+                // Intentionally reporting no span, since this single diagnostic can apply to both
+                // the start and the end of the message.
                 span: None,
                 severity: DiagnosticSeverity::Warning,
                 description: "Avoid surrounding whitespace on messages".into(),

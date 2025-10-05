@@ -32,7 +32,7 @@ impl Visit for NoUnicodeVariableNames {
             let help_text = format!("\"{name}\" should be renamed to only use ASCII characters. If this is a translation, ensure the name matches the expected name in the source text");
             self.diagnostics.push(ValueDiagnostic {
                 name: DiagnosticName::NoUnicodeVariableNames,
-                span: None,
+                span: Some(ident.source_position()),
                 severity: DiagnosticSeverity::Error,
                 description: "Variable names should not contain unicode characters to avoid ambiguity during translation".into(),
                 help: Some(help_text),

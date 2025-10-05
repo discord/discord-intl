@@ -72,6 +72,12 @@ impl SyntaxNode {
         self.0.header.text_len
     }
 
+    pub fn source_position(&self) -> (usize, usize) {
+        let offset = self.text_offset() as usize;
+        let len = self.text_len() as usize;
+        (offset, offset + len)
+    }
+
     pub fn kind(&self) -> SyntaxKind {
         self.0.header.kind
     }
@@ -80,6 +86,7 @@ impl SyntaxNode {
         self.0.slice.as_ref()
     }
 
+    /// Returns the number of child elements contained by this node.
     pub fn len(&self) -> usize {
         self.0.slice.len()
     }

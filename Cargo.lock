@@ -895,6 +895,7 @@ version = "0.1.0"
 dependencies = [
  "intl_database_core",
  "intl_markdown",
+ "intl_markdown_syntax",
  "serde",
 ]
 

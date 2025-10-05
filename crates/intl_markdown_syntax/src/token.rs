@@ -185,7 +185,7 @@ impl SyntaxToken {
     pub fn text_end(&self) -> TextSize {
         self.trailing_start
     }
-    
+
     /// Returns the starting character position of this token's leading trivia.
     pub fn leading_trivia_start(&self) -> TextSize {
         0
@@ -230,6 +230,12 @@ impl SyntaxToken {
     /// Returns the length of just this token's trailing trivia.
     pub fn trailing_trivia_len(&self) -> TextSize {
         self.text.len() as u32 - self.trailing_start
+    }
+
+    pub fn source_position(&self) -> (usize, usize) {
+        let offset = self.text_offset() as usize;
+        let len = self.len() as usize;
+        (offset, offset + len)
     }
 
     pub fn text_pointer(&self) -> &TextPointer {
