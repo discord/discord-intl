@@ -1,5 +1,8 @@
 /** @typedef {import('eslint').Rule.RuleListener} RuleListener */
 /** @typedef {import('eslint').Rule.RuleContext} RuleContext */
+/** @typedef {import('eslint').Rule.ReportDescriptor} ReportDescriptor */
+/** @typedef {import('eslint').Rule.ReportDescriptorLocation} ReportDescriptorLocation */
+/** @typedef {import('eslint').AST.SourceLocation} SourceLocation */
 /** @typedef {import('eslint').SourceCode} SourceCode */
 /** @typedef {import("@discord/intl-loader-core/types").IntlDiagnostic} IntlDiagnostic */
 
@@ -63,10 +66,13 @@ function processAndValidateNative(sourceCode, fileName, content) {
         description: error.message,
         key: error.key ?? 'file',
         file: error.file ?? processingFileName,
-        line: error.line ?? 0,
-        col: error.col ?? 0,
+        messageLine: error.line ?? 0,
+        messageCol: error.col ?? 0,
+        start: 0,
+        end: content.length,
         locale: error.locale ?? 'definition',
         severity: 'error',
+        fixes: [],
       });
     }
   }
@@ -98,6 +104,24 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
     context.sourceCode.text,
   );
 
+  /**
+   * @param {IntlDiagnostic} diagnostic
+   * @returns {SourceLocation}
+   */
+  function reportedSpan(diagnostic) {
+    const messageOffset =
+      context.sourceCode.getIndexFromLoc({
+        line: diagnostic.messageLine,
+        column: diagnostic.messageCol,
+      }) + 1;
+
+    context.sourceCode.getNodeByRangeIndex(messageOffset);
+    return {
+      start: context.sourceCode.getLocFromIndex(messageOffset + diagnostic.start),
+      end: context.sourceCode.getLocFromIndex(messageOffset + diagnostic.end),
+    };
+  }
+
   return traverseMessageDefinitions(context, (_property, value, _definition, name) => {
     if (name == null) return;
     const diagnostics = validations[name];
@@ -106,10 +130,35 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
     for (const diagnostic of diagnostics) {
       if (!predicate(diagnostic)) continue;
 
-      context.report({
-        node: value,
+      /** @type {ReportDescriptor} */
+      const report = {
+        loc: reportedSpan(diagnostic),
         message: diagnostic.description,
-      });
+      };
+      if (diagnostic.fixes.length > 0 && value.range != null) {
+        const valueStart = value.range[0] + 1;
+        report.fix = (fixer) => {
+          return diagnostic.fixes.map((fix) =>
+            fixer.replaceTextRange([valueStart + fix.start, valueStart + fix.end], fix.replacement),
+          );
+        };
+
+        const suggestableFixes = diagnostic.fixes.filter((fix) => fix.message != null);
+        if (suggestableFixes.length > 0 && value.range != null) {
+          const valueStart = value.range[0] + 1;
+
+          report.suggest = suggestableFixes.map((fix) => ({
+            desc: /** @type {string} */ (fix.message),
+            fix: (fixer) =>
+              fixer.replaceTextRange(
+                [valueStart + fix.start, valueStart + fix.end],
+                fix.replacement,
+              ),
+          }));
+        }
+      }
+
+      context.report(report);
     }
   });
 }

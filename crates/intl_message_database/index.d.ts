@@ -50,12 +50,22 @@ export interface IntlDiagnostic {
   name: string
   key: string
   file: string
-  line: number
-  col: number
+  messageLine: number
+  messageCol: number
+  start: number
+  end: number
   locale: string
   severity: string
   description: string
   help?: string
+  fixes: Array<IntlDiagnosticFix>
+}
+
+export interface IntlDiagnosticFix {
+  message?: string
+  start: number
+  end: number
+  replacement: string
 }
 
 export interface IntlMessage {

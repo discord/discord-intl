@@ -1,9 +1,8 @@
-use intl_database_core::{key_symbol, KeySymbol, MessageValue};
-use intl_markdown::{IcuPlural, IcuPluralArm, IcuSelect, IcuVariable, Visit, VisitWith};
-
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
 use crate::DiagnosticSeverity;
+use intl_database_core::{key_symbol, KeySymbol, MessageValue};
+use intl_markdown::{IcuPlural, IcuPluralArm, IcuSelect, IcuVariable, Visit, VisitWith};
 
 pub struct NoRepeatedPluralNames {
     diagnostics: Vec<ValueDiagnostic>,
@@ -46,10 +45,11 @@ impl Visit for NoRepeatedPluralNames {
         if plural_name.eq(&node.ident_token().text()) {
             let diagnostic = ValueDiagnostic {
                 name: DiagnosticName::NoRepeatedPluralNames,
-                span: None,
+                span: Some(node.ident_token().source_position()),
                 severity: DiagnosticSeverity::Warning,
                 description: String::from("Plural variable names should use # instead of repeating the name of the variable"),
                 help: Some(String::from("Replace this variable name with #")),
+                fixes: vec![],
             };
 
             self.diagnostics.push(diagnostic);

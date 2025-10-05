@@ -1,7 +1,7 @@
 use crate::sources::{MessagesFileDescriptor, SourceFileInsertionData};
 use intl_database_core::{key_symbol, DatabaseError, DatabaseInsertStrategy};
 use intl_database_exporter::CompiledMessageFormat;
-use intl_validator::MessageDiagnostic;
+use intl_validator::{DiagnosticFix, MessageDiagnostic};
 use napi::{JsObject, JsString};
 use napi_derive::napi;
 use std::collections::HashMap;
@@ -29,16 +29,40 @@ impl Into<intl_database_exporter::IntlMessageBundlerOptions> for IntlMessageBund
 }
 
 #[napi(object)]
+pub struct IntlDiagnosticFix {
+    pub message: Option<String>,
+    pub start: u32,
+    pub end: u32,
+    pub replacement: String,
+}
+
+impl From<DiagnosticFix> for IntlDiagnosticFix {
+    fn from(fix: DiagnosticFix) -> Self {
+        Self {
+            message: fix.message,
+            start: fix.source_span.0 as u32,
+            end: fix.source_span.1 as u32,
+            replacement: fix.replacement,
+        }
+    }
+}
+
+#[napi(object)]
 pub struct IntlDiagnostic {
     pub name: String,
     pub key: String,
     pub file: String,
-    pub line: u32,
-    pub col: u32,
+    pub message_line: u32,
+    pub message_col: u32,
+    // JS Character index of the start of the diagnostic within the message.
+    pub start: u32,
+    // JS Character index of the end of the diagnostic within the message.
+    pub end: u32,
     pub locale: String,
     pub severity: String,
     pub description: String,
     pub help: Option<String>,
+    pub fixes: Vec<IntlDiagnosticFix>,
 }
 
 impl From<MessageDiagnostic> for IntlDiagnostic {
@@ -47,12 +71,15 @@ impl From<MessageDiagnostic> for IntlDiagnostic {
             name: value.name.to_string(),
             key: value.key.to_string(),
             file: value.file_position.file.to_string(),
-            line: value.file_position.line,
-            col: value.file_position.col,
+            message_line: value.file_position.line,
+            message_col: value.file_position.col,
+            start: value.span.map_or(0, |s| s.0 as u32),
+            end: value.span.map_or(1, |s| s.1 as u32),
             locale: value.locale.to_string(),
             severity: value.severity.to_string(),
             description: value.description,
             help: value.help,
+            fixes: value.fixes.into_iter().map(|fix| fix.into()).collect(),
         }
     }
 }

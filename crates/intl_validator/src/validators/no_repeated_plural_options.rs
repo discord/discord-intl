@@ -1,10 +1,10 @@
-use intl_database_core::MessageValue;
-use intl_markdown::{IcuPlural, Visit, VisitWith};
-use std::collections::HashSet;
-
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
 use crate::DiagnosticSeverity;
+use intl_database_core::MessageValue;
+use intl_markdown::{IcuPlural, IcuPluralArm, Visit, VisitWith};
+use intl_markdown_syntax::Syntax;
+use std::collections::HashSet;
 
 pub struct NoRepeatedPluralOptions {
     diagnostics: Vec<ValueDiagnostic>,
@@ -33,27 +33,33 @@ impl Visit for NoRepeatedPluralOptions {
         // Allotting enough capacity to handle basically every possible case. More than 4
         // repetitions is egregious and there will almost never be more than 1, but this just
         // ensures it's always consistent allocation.
-        let mut repeated_names: Vec<String> = Vec::with_capacity(4);
+        let mut repeated_names: Vec<IcuPluralArm> = Vec::with_capacity(4);
 
         for arm in node.arms().children() {
             let selector = arm.selector_token();
-            let name = selector.text().to_string();
-            if seen.contains(&name) {
-                repeated_names.push(name);
+            let name = selector.text();
+            if seen.contains(name) {
+                repeated_names.push(arm);
             } else {
-                seen.insert(name);
+                seen.insert(name.to_string());
             }
         }
 
-        for name in repeated_names {
+        for arm in repeated_names {
             let diagnostic = ValueDiagnostic {
                 name: DiagnosticName::NoRepeatedPluralOptions,
-                span: None,
+                span: Some(arm.syntax().source_position()),
                 severity: DiagnosticSeverity::Error,
                 description: String::from(
-                    "Plural options must be unique within the plural selector",
+                    "Plural options must not be repeated within the same plural selector",
                 ),
-                help: Some(format!("The option '{name}' is present more than once in the plural value '{plural_name}'. Remove or rename one of these options to fix it.")),
+                help: Some(
+                    format!(
+                        "The option '{name}' is present more than once in the plural value '{plural_name}'. Remove or rename one of these options to fix it.",
+                        name = arm.selector_token().text()
+                    )
+                ),
+                fixes: vec![],
             };
 
             self.diagnostics.push(diagnostic);
