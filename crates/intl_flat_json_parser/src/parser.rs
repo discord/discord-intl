@@ -1,5 +1,4 @@
 use crate::util::{char_length_from_byte, unescape_json_str};
-use std::borrow::Cow;
 use std::ops::Range;
 use std::rc::Rc;
 
@@ -12,17 +11,30 @@ pub struct JsonPosition {
 #[derive(Debug)]
 pub struct JsonMessage {
     pub key: Rc<str>,
+    pub raw: Rc<str>,
     pub value: Rc<str>,
     pub position: JsonPosition,
 }
 
 impl JsonMessage {
-    pub fn new(key: &str, value: Cow<str>, position: JsonPosition) -> Self {
-        Self {
+    pub fn try_new(
+        key: &str,
+        raw: &str,
+        has_escapes: bool,
+        position: JsonPosition,
+    ) -> Option<Self> {
+        let raw = Rc::from(raw);
+        let value = if has_escapes {
+            Rc::from(unescape_json_str(&raw).ok()?)
+        } else {
+            raw.clone()
+        };
+        Some(Self {
             key: Rc::from(key),
-            value: Rc::from(value),
+            raw,
+            value,
             position,
-        }
+        })
     }
 }
 
@@ -271,22 +283,18 @@ impl<'a> TranslationsJsonParser<'a> {
 
         let message_key = self.str_slice(key_start..key_end);
         let raw = self.str_slice(value_start..value_end - 1);
-        let value = if has_escapes {
-            unescape_json_str(raw).ok()?
-        } else {
-            Cow::from(raw)
-        };
 
-        Some(JsonMessage::new(
+        JsonMessage::try_new(
             message_key,
-            value,
+            raw,
+            has_escapes,
             JsonPosition {
                 line: value_line as u32,
                 // We make an assumption here that there is no unicode in the message key, meaning
                 // the column is just the number of bytes since the last newline.
                 col: value_column as u32,
             },
-        ))
+        )
     }
 }
 

@@ -1,7 +1,7 @@
 pub use database::message::Message;
 pub use database::source::{
     MessageDefinitionSource, MessageSourceError, MessageSourceResult, MessageTranslationSource,
-    RawMessage, RawMessageDefinition, RawMessageTranslation,
+    RawMessage, RawMessageDefinition, RawMessageTranslation, SourceOffsetList,
 };
 pub use database::symbol::{get_key_symbol, key_symbol, KeySymbol, KeySymbolMap, KeySymbolSet};
 pub use database::{DatabaseInsertStrategy, MessagesDatabase};

@@ -1,11 +1,45 @@
 use intl_database_core::{
     key_symbol, FilePosition, KeySymbol, MessageSourceResult, MessageTranslationSource,
-    RawMessageTranslation,
+    RawMessageTranslation, SourceOffsetList,
 };
-use intl_flat_json_parser::parse_flat_translation_json;
+use intl_flat_json_parser::{parse_flat_translation_json, JsonMessage};
 use std::path::Path;
 
 pub struct JsonMessageSource;
+
+fn make_source_offsets(message: &JsonMessage) -> SourceOffsetList {
+    if message.raw == message.value {
+        return SourceOffsetList::default();
+    }
+    let mut list: Vec<(u32, u32)> = vec![];
+
+    let bytes = message.raw.as_bytes();
+    let mut total_offset = 0;
+    let mut last_checked_byte = 0;
+    for idx in memchr::memchr_iter(b'\\', bytes) {
+        let Some(byte) = bytes.get(idx + 1) else {
+            continue;
+        };
+        if idx <= last_checked_byte {
+            continue;
+        }
+
+        // Section 9 of https://ecma-international.org/wp-content/uploads/ECMA-404.pdf defines
+        // valid escape sequences.
+        let added_offset = match byte {
+            b'b' | b'f' | b'n' | b'r' | b't' | b'\\' | b'/' | b'"' => 1,
+            b'u' => 4,
+            _ => 0,
+        };
+
+        last_checked_byte = idx + added_offset;
+        if added_offset > 0 {
+            total_offset += added_offset;
+            list.push((idx as u32, total_offset as u32));
+        }
+    }
+    SourceOffsetList::new(list)
+}
 
 impl MessageTranslationSource for JsonMessageSource {
     fn get_locale_from_file_name(&self, file_name: &str) -> KeySymbol {
@@ -24,10 +58,12 @@ impl MessageTranslationSource for JsonMessageSource {
     ) -> MessageSourceResult<impl Iterator<Item = RawMessageTranslation>> {
         let iter = parse_flat_translation_json(&content);
         Ok(iter.map(move |item| {
+            let source_offsets = make_source_offsets(&item);
             RawMessageTranslation::new(
                 key_symbol(&item.key),
                 FilePosition::new(file_name, item.position.line, item.position.col),
                 item.value,
+                source_offsets,
             )
         }))
     }

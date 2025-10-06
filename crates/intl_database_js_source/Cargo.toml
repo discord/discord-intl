@@ -12,4 +12,4 @@ swc_core = { workspace = true, features = [
     "ecma_ast",
     "ecma_visit",
 ] }
-unescape_zero_copy = { workspace = true }
+memchr = { workspace = true }

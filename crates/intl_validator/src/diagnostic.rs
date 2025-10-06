@@ -1,5 +1,5 @@
 use crate::DiagnosticSeverity;
-use intl_database_core::{FilePosition, KeySymbol, MessageValue};
+use intl_database_core::{FilePosition, KeySymbol, MessageValue, SourceOffsetList};
 use intl_markdown_syntax::SyntaxToken;
 use std::fmt::{Display, Formatter};
 
@@ -153,9 +153,13 @@ impl MessageDiagnosticsBuilder {
                     severity: diagnostic.severity,
                     description: diagnostic.description,
                     help: diagnostic.help,
-                    span: diagnostic
-                        .span
-                        .map(|span| convert_byte_span_to_character_span(&message.raw, span)),
+                    span: diagnostic.span.map(|span| {
+                        convert_byte_span_to_character_span(
+                            &message.raw,
+                            span,
+                            &message.source_offsets,
+                        )
+                    }),
                     fixes: diagnostic.fixes,
                 });
 
@@ -163,7 +167,11 @@ impl MessageDiagnosticsBuilder {
     }
 }
 
-fn convert_byte_span_to_character_span(source: &str, byte_span: (usize, usize)) -> (usize, usize) {
+fn convert_byte_span_to_character_span(
+    source: &str,
+    byte_span: (usize, usize),
+    source_offsets: &SourceOffsetList,
+) -> (usize, usize) {
     assert!(
         byte_span.0 <= byte_span.1,
         "convert_byte_span_to_character_span only accepts ordered spans (first <= second)"
@@ -172,16 +180,18 @@ fn convert_byte_span_to_character_span(source: &str, byte_span: (usize, usize)) 
     let mut char_count = 0usize;
     let mut char_span = (0usize, 0usize);
     let mut start_is_set = false;
+    let byte_start = source_offsets.adjust_byte_position(byte_span.0 as u32) as usize;
+    let byte_end = source_offsets.adjust_byte_position(byte_span.1 as u32) as usize;
     for c in source.chars() {
         // NOTE: This assumes byte-alignment in the given span. It should
         // always be `==`, but a manually-constructed span could end up inside
         // a multibyte character.
-        if byte_span.0 <= byte_count && !start_is_set {
+        if byte_start <= byte_count && !start_is_set {
             char_span.0 = char_count;
             start_is_set = true;
         }
         // Also assumes that span.0 <= span.1
-        if byte_span.1 <= byte_count {
+        if byte_end <= byte_count {
             char_span.1 = char_count;
             break;
         }

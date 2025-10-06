@@ -1,16 +1,18 @@
 use std::borrow::Borrow;
 use swc_common::source_map::SmallPos;
 use swc_common::sync::Lrc;
-use swc_common::{BytePos, FileName, SourceMap, Spanned};
+use swc_common::{BytePos, FileName, Loc, SourceMap, Spanned};
+use swc_core::atoms::Atom;
 use swc_core::ecma::ast::{
     ExportDecl, ExportDefaultExpr, Expr, Id, ImportDecl, ImportSpecifier, Lit, Module, ObjectLit,
+    PropName,
 };
 use swc_core::ecma::parser::{lexer::Lexer, PResult, Parser, StringInput, Syntax};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use intl_database_core::{
     key_symbol, FilePosition, KeySymbol, MessageMeta, MessageSourceError, MessageSourceResult,
-    RawMessageDefinition, SourceFileMeta,
+    RawMessageDefinition, SourceFileMeta, SourceOffsetList,
 };
 use intl_message_utils::RUNTIME_PACKAGE_NAME;
 
@@ -43,6 +45,77 @@ pub fn extract_message_definitions(
     extractor
 }
 
+struct MessageStringValue<'a> {
+    processed: &'a Atom,
+    raw: &'a Atom,
+    loc: Loc,
+}
+
+impl MessageStringValue<'_> {
+    /// SAFETY: This method assumes the input is a valid string in JavaScript's grammar.
+    fn make_source_offsets(&self) -> SourceOffsetList {
+        if self.raw == self.processed {
+            return SourceOffsetList::default();
+        }
+        let mut list: Vec<(u32, u32)> = vec![];
+
+        let bytes = self.raw.as_bytes();
+        let mut total_offset = 0;
+        let mut last_checked_byte = 0;
+        for idx in memchr::memchr_iter(b'\\', bytes) {
+            let Some(byte) = bytes.get(idx + 1) else {
+                continue;
+            };
+            if idx <= last_checked_byte {
+                continue;
+            }
+
+            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types#using_special_characters_in_strings
+            let added_offset = match byte {
+                b'0' | b'b' | b'f' | b'n' | b'r' | b't' | b'v' | b'\'' | b'"' | b'\\' => 1,
+                b'u' => {
+                    if matches!(
+                        bytes.get(idx + 2),
+                        Some(b'0'..b'9' | b'A'..b'F' | b'a'..b'f')
+                    ) {
+                        // \uHHHH, 4-digit hexadecimal encoding
+                        5
+                    } else {
+                        // \u{XXXXXX} codepoint escapes
+                        let count = bytes[idx + 3..=idx + 9]
+                            .iter()
+                            .position(|b| *b == b'}')
+                            .unwrap_or(0);
+                        // `count` is the number of hex digits, plus 3 for u{}
+                        count + 3
+                    }
+                }
+                // \xA9 hexadecimal escapes
+                b'x' => 3,
+                // \OOO octal escapes
+                b'0'..b'7' => {
+                    let mut octal_count = 1;
+                    for byte in &bytes[idx + 2..idx + 3] {
+                        if !matches!(byte, b'0'..b'7') {
+                            break;
+                        }
+                        octal_count += 1;
+                    }
+                    octal_count
+                }
+                _ => 0,
+            };
+
+            last_checked_byte = idx + added_offset;
+            if added_offset > 0 {
+                total_offset += added_offset;
+                list.push((idx as u32, total_offset as u32));
+            }
+        }
+        SourceOffsetList::new(list)
+    }
+}
+
 /// A Visitor to extract message definitions from a source AST.
 pub struct MessageDefinitionsExtractor {
     file_key: KeySymbol,
@@ -65,49 +138,40 @@ impl MessageDefinitionsExtractor {
         }
     }
 
+    fn raw_definition_from_value(
+        &self,
+        key: &str,
+        value: MessageStringValue,
+        meta: MessageMeta,
+    ) -> RawMessageDefinition {
+        RawMessageDefinition::new(
+            key.into(),
+            FilePosition::new(self.file_key, value.loc.line as u32, value.loc.col.to_u32()),
+            value.processed,
+            value.raw,
+            meta,
+            value.make_source_offsets(),
+        )
+    }
+
     /// Parses the given `object` into a set of MessageDefinitions, storing
     /// that result in `self.message_definitions`.
     fn parse_definitions_object(&mut self, object: &ObjectLit) {
         for property in object.props.iter() {
-            let Some(keyvalue) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
+            let Some(kv) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
                 continue;
             };
-            let name = if let Some(name) = keyvalue.key.as_ident() {
-                &name.sym
-            } else if let Some(name) = keyvalue.key.as_str() {
-                &name.value
-            } else {
-                continue;
+            let name = match &kv.key {
+                PropName::Ident(name) => &name.sym,
+                PropName::Str(name) => &name.value,
+                _ => continue,
             };
 
-            let parse_result = if let Some(object) = keyvalue.value.as_object() {
-                self.parse_complete_definition(&name, &object)
-            } else if let Some(lit @ Lit::Str(string)) = keyvalue.value.as_lit() {
-                self.parse_oneline_definition(&name, &string.value, lit.span_lo())
-            } else if let Some(template) = keyvalue.value.as_tpl() {
-                // With JS, you can write static strings as template strings to
-                // avoid needing to escape different quotes, like:
-                //     SOME_STRING: `"this" is valid, isn't it?`
-                // We want to support that syntax, but we can't allow templates
-                // that have embedded expressions or multiple elements.
-                let string_value = template.quasis.get(0).map(|expr| {
-                    // https://github.com/swc-project/swc/pull/10232#issuecomment-2739376647
-                    // I would think we want `raw` here, but it turns out that the template
-                    // literal represents escaped newlines as _double escaped_ text, meaning
-                    // `\n` turns into '\\n', but we don't want the extra escape, so we use
-                    // the cooked version instead.
-                    expr.cooked.as_ref().unwrap_or(&expr.raw)
-                });
-                let is_static = template.quasis.len() == 1 && template.exprs.len() == 0;
-
-                match string_value {
-                    Some(string) if is_static => self.parse_oneline_definition(&name, &string, template.span_lo()),
-                    _ => Err(MessageSourceError::DefinitionRestrictionViolated("Encountered non-static template string. Interpolations are currently invalid".into()))
-                }
-            } else {
-                Err(MessageSourceError::DefinitionRestrictionViolated(
-                    "Encountered an unknown message definition structure".into(),
-                ))
+            let parse_result = match &*kv.value {
+                Expr::Object(object) => self.parse_complete_definition(&name, &object),
+                expr => self.parse_message_value(expr, expr.span_lo()).map(|value| {
+                    self.raw_definition_from_value(name.as_str(), value, self.clone_meta())
+                }),
             };
 
             match parse_result {
@@ -124,27 +188,23 @@ impl MessageDefinitionsExtractor {
         key: &str,
         object: &ObjectLit,
     ) -> MessageSourceResult<RawMessageDefinition> {
-        let mut default_value: Option<String> = None;
+        let mut default_value: Option<MessageStringValue> = None;
         let mut local_meta = self.clone_meta();
-        let mut message_loc = BytePos::default();
 
         for property in object.props.iter() {
-            let Some(keyvalue) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
+            let Some(kv) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
                 continue;
             };
-            let Some(name) = keyvalue.key.as_ident() else {
+            let Some(name) = kv.key.as_ident() else {
                 continue;
             };
 
             match name.sym.as_str() {
                 "message" => {
-                    message_loc = keyvalue.value.span_lo();
-                    self.parse_string_value(keyvalue.value.borrow())
-                        .map(|value| default_value = Some(value));
+                    default_value =
+                        Some(self.parse_message_value(kv.value.borrow(), kv.value.span_lo())?)
                 }
-                name => {
-                    self.parse_message_meta_property(name, keyvalue.value.borrow(), &mut local_meta)
-                }
+                name => self.parse_message_meta_property(name, kv.value.borrow(), &mut local_meta),
             }
         }
 
@@ -154,30 +214,45 @@ impl MessageDefinitionsExtractor {
             return Err(MessageSourceError::NoMessageValue(key.into()));
         };
 
-        let loc = self.source_map.lookup_char_pos(message_loc);
-
-        Ok(RawMessageDefinition::new(
-            key.into(),
-            FilePosition::new(self.file_key, loc.line as u32, loc.col.to_u32()),
-            default_value,
-            local_meta,
-        ))
+        Ok(self.raw_definition_from_value(key.into(), default_value, local_meta))
     }
 
-    /// Parse a message definition using the shorthand `name: "value"`
-    fn parse_oneline_definition(
+    fn parse_message_value<'a>(
         &self,
-        key: &str,
-        value: &str,
+        value: &'a Expr,
         pos: BytePos,
-    ) -> MessageSourceResult<RawMessageDefinition> {
+    ) -> MessageSourceResult<MessageStringValue<'a>> {
         let loc = self.source_map.lookup_char_pos(pos);
-        Ok(RawMessageDefinition::new(
-            key.into(),
-            FilePosition::new(self.file_key, loc.line as u32, loc.col.to_u32()),
-            value,
-            self.clone_meta(),
-        ))
+        match value {
+            Expr::Lit(Lit::Str(string)) => Ok(MessageStringValue {
+                processed: &string.value,
+                // SAFETY: `raw` is always set by the parse and the Option is used for internal
+                // semantics.
+                raw: string.raw.as_ref().unwrap(),
+                loc,
+            }),
+            Expr::Tpl(template) => {
+                // With JS, you can write static strings as template strings to
+                // avoid needing to escape different quotes, like:
+                //     SOME_STRING: `"this" is valid, isn't it?`
+                // We want to support that syntax, but we can't allow templates
+                // that have embedded expressions or multiple elements.
+                if template.quasis.len() != 1 || template.exprs.len() != 0 {
+                    Err(MessageSourceError::DefinitionRestrictionViolated("Encountered non-static template string. Interpolations are currently invalid".into()))
+                } else {
+                    let expr = &template.quasis[0];
+                    Ok(MessageStringValue {
+                        // SAFETY: This should always be set for a single string literal
+                        processed: expr.cooked.as_ref().unwrap(),
+                        raw: &expr.raw,
+                        loc,
+                    })
+                }
+            }
+            _ => Err(MessageSourceError::DefinitionRestrictionViolated(format!(
+                "Encountered an unknown message value expression at {loc:?}"
+            ))),
+        }
     }
 
     /// Return a clone of the root meta, or a new object with the default
@@ -190,14 +265,14 @@ impl MessageDefinitionsExtractor {
     // in `self.root_meta`.
     fn parse_root_meta_initializer(&mut self, object: &ObjectLit) {
         for property in object.props.iter() {
-            let Some(keyvalue) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
+            let Some(kv) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
                 continue;
             };
-            let Some(name) = keyvalue.key.as_ident() else {
+            let Some(name) = kv.key.as_ident() else {
                 continue;
             };
 
-            self.parse_source_file_meta_property(&name.sym, keyvalue.value.borrow());
+            self.parse_source_file_meta_property(&name.sym, kv.value.borrow());
         }
     }
 

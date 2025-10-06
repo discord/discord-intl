@@ -776,9 +776,9 @@ version = "0.1.0"
 dependencies = [
  "intl_database_core",
  "intl_message_utils",
+ "memchr",
  "swc_common",
  "swc_core",
- "unescape_zero_copy",
 ]
 
 [[package]]
@@ -787,6 +787,7 @@ version = "0.1.0"
 dependencies = [
  "intl_database_core",
  "intl_flat_json_parser",
+ "memchr",
 ]
 
 [[package]]

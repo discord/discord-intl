@@ -1,11 +1,11 @@
 use serde::Serialize;
 
+use super::source_file::FilePosition;
+use super::variables::{collect_message_variables, MessageVariables};
+use crate::SourceOffsetList;
 use intl_markdown::compiler::CompiledElement;
 use intl_markdown::{parse_intl_message, AnyDocument};
 use intl_message_utils::message_may_have_blocks;
-
-use super::source_file::FilePosition;
-use super::variables::{collect_message_variables, MessageVariables};
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -16,12 +16,18 @@ pub struct MessageValue {
     pub file_position: FilePosition,
     #[serde(skip)]
     pub cst: AnyDocument,
+    #[serde(skip)]
+    pub source_offsets: SourceOffsetList,
 }
 
 impl MessageValue {
     /// Creates a new value including the original raw content as given and
     /// parsing the content to a compiled AST.
-    pub fn from_raw(content: &str, file_position: FilePosition) -> Self {
+    pub fn from_raw(
+        content: &str,
+        file_position: FilePosition,
+        source_offsets: SourceOffsetList,
+    ) -> Self {
         let document = parse_intl_message(&content, message_may_have_blocks(content));
 
         Self {
@@ -30,6 +36,7 @@ impl MessageValue {
             variables: collect_message_variables(&document.cst),
             file_position,
             cst: document.cst,
+            source_offsets,
         }
     }
 }
