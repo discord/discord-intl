@@ -9,3 +9,6 @@ intl_database_core = { workspace = true }
 intl_markdown = { workspace = true }
 intl_markdown_syntax = { workspace = true }
 serde = { workspace = true }
+
+[dev-dependencies]
+intl_database_json_source = { workspace = true }

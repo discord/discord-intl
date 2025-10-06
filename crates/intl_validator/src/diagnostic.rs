@@ -1,8 +1,9 @@
 use crate::DiagnosticSeverity;
 use intl_database_core::{FilePosition, KeySymbol, MessageValue};
+use intl_markdown_syntax::SyntaxToken;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[repr(u8)]
 pub enum DiagnosticName {
     NoExtraTranslationVariables,
@@ -11,6 +12,7 @@ pub enum DiagnosticName {
     NoRepeatedPluralOptions,
     NoTrimmableWhitespace,
     NoUnicodeVariableNames,
+    NoUnsafeVariableSyntax,
 }
 
 impl Display for DiagnosticName {
@@ -28,11 +30,12 @@ impl DiagnosticName {
             DiagnosticName::NoRepeatedPluralOptions => "NoRepeatedPluralOptions",
             DiagnosticName::NoTrimmableWhitespace => "NoTrimmableWhitespace",
             DiagnosticName::NoUnicodeVariableNames => "NoUnicodeVariableNames",
+            DiagnosticName::NoUnsafeVariableSyntax => "NoUnsafeVariableSyntax",
         }
     }
 }
 
-type TextRange = (usize, usize);
+pub type TextRange = (usize, usize);
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticFix {
@@ -63,6 +66,19 @@ impl DiagnosticFix {
             message: None,
             source_span: (start, start),
             replacement: new_text.into(),
+        }
+    }
+
+    /// Replaces the given `token`'s text with the `replacement`, preserving all leading and
+    /// trailing trivia on the token.
+    pub fn replace_token(token: &SyntaxToken, replacement: &str) -> Self {
+        let token_text_start = (token.text_offset() + token.text_start()) as usize;
+        let token_text_end = token_text_start + (token.text_len() as usize);
+
+        DiagnosticFix {
+            message: None,
+            source_span: (token_text_start, token_text_end),
+            replacement: replacement.into(),
         }
     }
 
@@ -155,12 +171,14 @@ fn convert_byte_span_to_character_span(source: &str, byte_span: (usize, usize)) 
     let mut byte_count = 0usize;
     let mut char_count = 0usize;
     let mut char_span = (0usize, 0usize);
+    let mut start_is_set = false;
     for c in source.chars() {
         // NOTE: This assumes byte-alignment in the given span. It should
         // always be `==`, but a manually-constructed span could end up inside
         // a multibyte character.
-        if byte_span.0 <= byte_count {
+        if byte_span.0 <= byte_count && !start_is_set {
             char_span.0 = char_count;
+            start_is_set = true;
         }
         // Also assumes that span.0 <= span.1
         if byte_span.1 <= byte_count {

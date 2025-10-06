@@ -1,29 +1,11 @@
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
-use crate::validators::validator::Validator;
+use crate::macros::cst_validation_rule;
 use crate::DiagnosticSeverity;
-use intl_database_core::MessageValue;
 use intl_markdown::{IcuPlural, IcuPluralArm, Visit, VisitWith};
 use intl_markdown_syntax::Syntax;
 use std::collections::HashSet;
 
-pub struct NoRepeatedPluralOptions {
-    diagnostics: Vec<ValueDiagnostic>,
-}
-
-impl NoRepeatedPluralOptions {
-    pub fn new() -> Self {
-        Self {
-            diagnostics: vec![],
-        }
-    }
-}
-
-impl Validator for NoRepeatedPluralOptions {
-    fn validate_ast(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
-        message.cst.visit_with(self);
-        Some(self.diagnostics.clone())
-    }
-}
+cst_validation_rule!(NoRepeatedPluralOptions);
 
 impl Visit for NoRepeatedPluralOptions {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {

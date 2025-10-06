@@ -1,14 +1,15 @@
 use intl_database_core::Message;
 
 pub use crate::content::validate_message_value;
-pub use crate::diagnostic::{DiagnosticFix, MessageDiagnostic};
-use crate::diagnostic::{DiagnosticName, MessageDiagnosticsBuilder};
+pub use crate::diagnostic::{DiagnosticFix, MessageDiagnostic, ValueDiagnostic};
+pub use crate::diagnostic::{DiagnosticName, MessageDiagnosticsBuilder, TextRange};
 pub use crate::severity::DiagnosticSeverity;
 
 mod content;
 mod diagnostic;
+mod macros;
 mod severity;
-mod validators;
+pub mod validators;
 
 /// Validate the content of a message across all of its translations, returning
 /// a full set of diagnostics with information about each one.

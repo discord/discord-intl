@@ -26,6 +26,7 @@
       <sourceFolder url="file://$MODULE_DIR$/codegen/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/xtask/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown_syntax/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/intl_validator/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/runtime-bench/data" />
       <excludeFolder url="file://$MODULE_DIR$/crates/intl_markdown/target" />

@@ -202,8 +202,7 @@ pub enum SyntaxKind {
     CLICK_HANDLER_LINK_DESTINATION,
 
     // ICU extension nodes
-    ICU,        // The overall container node for any ICU content.
-    ICU_UNSAFE, // An additional wrapping node for the `!!{...}!!` syntax.
+    ICU, // The overall container node for any ICU content.
     // ICU Nodes
     ICU_DATE,            // {var, date} or {var, date, format}
     ICU_TIME,            // {var, time} or {var, time, format}

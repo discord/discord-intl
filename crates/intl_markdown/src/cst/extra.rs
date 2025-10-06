@@ -72,3 +72,10 @@ impl Autolink {
         self.uri_token().kind() == SyntaxKind::EMAIL_ADDRESS
     }
 }
+
+impl Icu {
+    pub fn is_unsafe(&self) -> bool {
+        self.l_curly_token().kind() == SyntaxKind::UNSAFE_LCURLY
+            && self.r_curly_token().kind() == SyntaxKind::UNSAFE_RCURLY
+    }
+}

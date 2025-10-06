@@ -21,7 +21,7 @@ impl NoRepeatedPluralNames {
 }
 
 impl Validator for NoRepeatedPluralNames {
-    fn validate_ast(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
+    fn validate_cst(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
         message.cst.visit_with(self);
         Some(self.diagnostics.clone())
     }

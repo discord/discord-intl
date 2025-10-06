@@ -11,12 +11,13 @@ pub fn validate_message_value(message: &MessageValue) -> Vec<ValueDiagnostic> {
         Box::new(validators::NoRepeatedPluralNames::new()),
         Box::new(validators::NoRepeatedPluralOptions::new()),
         Box::new(validators::NoTrimmableWhitespace::new()),
+        Box::new(validators::NoUnsafeVariableSyntax::new()),
     ];
     for validator in validators.iter_mut() {
         if let Some(result) = validator.validate_raw(message) {
             diagnostics.extend(result);
         }
-        if let Some(result) = validator.validate_ast(message) {
+        if let Some(result) = validator.validate_cst(message) {
             diagnostics.extend(result);
         }
     }

@@ -1,0 +1,1 @@
+mod no_unsafe_variable_syntax;

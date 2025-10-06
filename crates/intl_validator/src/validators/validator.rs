@@ -7,7 +7,7 @@ pub trait Validator {
         None
     }
 
-    fn validate_ast(&mut self, _message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
+    fn validate_cst(&mut self, _message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
         None
     }
 }
