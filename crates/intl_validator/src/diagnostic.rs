@@ -142,26 +142,35 @@ impl MessageDiagnosticsBuilder {
         // positions, but the linter will see that as "x visible characters". So, this converts
         // between the two on the assumption that JS will want the character index, not the byte.
 
-        let converted_diagnostics =
-            value_diagnostics
+        let converted_diagnostics = value_diagnostics.into_iter().map(|diagnostic| {
+            // Ensure fixes have the correct span mapping as well.
+            let fixes = diagnostic
+                .fixes
                 .into_iter()
-                .map(|diagnostic| MessageDiagnostic {
-                    key: self.key,
-                    file_position: message.file_position,
-                    locale,
-                    name: diagnostic.name,
-                    severity: diagnostic.severity,
-                    description: diagnostic.description,
-                    help: diagnostic.help,
-                    span: diagnostic.span.map(|span| {
-                        convert_byte_span_to_character_span(
-                            &message.raw,
-                            span,
-                            &message.source_offsets,
-                        )
-                    }),
-                    fixes: diagnostic.fixes,
-                });
+                .map(|fix| DiagnosticFix {
+                    source_span: convert_byte_span_to_character_span(
+                        &message.raw,
+                        fix.source_span,
+                        &message.source_offsets,
+                    ),
+                    ..fix
+                })
+                .collect();
+
+            MessageDiagnostic {
+                key: self.key,
+                file_position: message.file_position,
+                locale,
+                name: diagnostic.name,
+                severity: diagnostic.severity,
+                description: diagnostic.description,
+                help: diagnostic.help,
+                span: diagnostic.span.map(|span| {
+                    convert_byte_span_to_character_span(&message.raw, span, &message.source_offsets)
+                }),
+                fixes,
+            }
+        });
 
         self.diagnostics.extend(converted_diagnostics);
     }
@@ -244,6 +253,18 @@ mod tests {
         let source = "ƒƒƒ baz";
         let baz_byte_position = (7, 10);
         let expected_char_position = (4, 7);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &Default::default());
+        assert_eq!(char_span, expected_char_position);
+    }
+
+    #[test]
+    fn three_byte_span_conversion() {
+        // ƒ is a 2-byte character, so the _character_ position of `baz` should
+        // be offset 3 less than the _byte_ position to align visually.
+        let source = "you’ll be included";
+        let baz_byte_position = (7, 10);
+        let expected_char_position = (5, 8);
         let char_span =
             convert_byte_span_to_character_span(source, baz_byte_position, &Default::default());
         assert_eq!(char_span, expected_char_position);
