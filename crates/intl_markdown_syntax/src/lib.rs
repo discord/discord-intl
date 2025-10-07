@@ -6,7 +6,6 @@ pub mod html_entities;
 mod iterators;
 mod kind;
 mod node;
-mod printer;
 pub mod support;
 mod text;
 mod token;

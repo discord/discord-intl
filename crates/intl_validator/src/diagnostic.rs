@@ -180,6 +180,7 @@ fn convert_byte_span_to_character_span(
     let mut char_count = 0usize;
     let mut char_span = (0usize, 0usize);
     let mut start_is_set = false;
+    let mut end_is_set = false;
     let byte_start = source_offsets.adjust_byte_position(byte_span.0 as u32) as usize;
     let byte_end = source_offsets.adjust_byte_position(byte_span.1 as u32) as usize;
     for c in source.chars() {
@@ -193,10 +194,101 @@ fn convert_byte_span_to_character_span(
         // Also assumes that span.0 <= span.1
         if byte_end <= byte_count {
             char_span.1 = char_count;
+            end_is_set = true;
             break;
         }
         byte_count += c.len_utf8();
         char_count += 1;
     }
+    if !start_is_set {
+        char_span.0 = char_count;
+    }
+    if !end_is_set {
+        char_span.1 = char_count;
+    }
+
     char_span
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn end_positions() {
+        // ƒ is a 2-byte character, so the _character_ position of `baz` should
+        // be offset 3 less than the _byte_ position to align visually.
+        let source = "baz";
+        let baz_byte_position = (0, 3);
+        let expected_char_position = (0, 3);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &Default::default());
+        assert_eq!(char_span, expected_char_position);
+    }
+
+    #[test]
+    fn out_of_range_positions() {
+        // Maybe this should panic? idk.
+        let source = "baz";
+        let baz_byte_position = (0, 5);
+        let expected_char_position = (0, 3);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &Default::default());
+        assert_eq!(char_span, expected_char_position);
+    }
+
+    #[test]
+    fn multibyte_character_span_conversion() {
+        // ƒ is a 2-byte character, so the _character_ position of `baz` should
+        // be offset 3 less than the _byte_ position to align visually.
+        let source = "ƒƒƒ baz";
+        let baz_byte_position = (7, 10);
+        let expected_char_position = (4, 7);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &Default::default());
+        assert_eq!(char_span, expected_char_position);
+    }
+
+    #[test]
+    fn multibyte_character_span_surrounded() {
+        let source = "bar ƒƒƒ baz";
+        let baz_byte_position = (1, 12);
+        let expected_char_position = (1, 9);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &Default::default());
+        assert_eq!(char_span, expected_char_position);
+    }
+
+    #[test]
+    fn escaped_character_span_conversion() {
+        let source = r#"\nbar \n baz"#;
+        let offset_list = SourceOffsetList::new(vec![(0, 1), (5, 2)]);
+        let baz_byte_position = (1, 10);
+        let expected_char_position = (2, 12);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &offset_list);
+        assert_eq!(char_span, expected_char_position);
+    }
+
+    #[test]
+    fn mixed_characters_after_position() {
+        let source = r#"bar baz\n\n"#;
+        let offset_list = SourceOffsetList::new(vec![(7, 1), (8, 2)]);
+        let baz_byte_position = (1, 4);
+        let expected_char_position = (1, 4);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &offset_list);
+        assert_eq!(char_span, expected_char_position);
+    }
+
+    #[test]
+    fn mixed_character_span_conversion() {
+        let source = r#"\n\nƒƒƒbarbaz"#;
+        let offset_list = SourceOffsetList::new(vec![(0, 1), (1, 2)]);
+        let baz_byte_position = (4, 13);
+        let expected_char_position = (5, 12);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &offset_list);
+        assert_eq!(char_span, expected_char_position);
+    }
 }

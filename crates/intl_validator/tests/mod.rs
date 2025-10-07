@@ -5,11 +5,7 @@ mod harness {
     use intl_validator::validators::validator::Validator;
     use intl_validator::{DiagnosticName, TextRange, ValueDiagnostic};
 
-    pub fn json_source_file(
-        file_name: &str,
-        locale: &str,
-        content: &str,
-    ) -> KeySymbolMap<MessageValue> {
+    pub fn json_source_file(file_name: &str, content: &str) -> KeySymbolMap<MessageValue> {
         let Ok(raw_messages) =
             JsonMessageSource.extract_translations(key_symbol(file_name), content)
         else {
@@ -26,7 +22,6 @@ mod harness {
     pub fn define_single_message(key: &str, content: &str) -> MessageValue {
         let mut messages = json_source_file(
             "single_message.json",
-            key,
             &format!(
                 r#"{{
                     "{key}": "{content}"
