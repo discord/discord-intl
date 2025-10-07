@@ -155,11 +155,11 @@ Strikethrough =
 
 Icu =
     '{'
-    value: AnyIcuPlaceholder
+    value: AnyIcuExpression
     '}'
 
-AnyIcuPlaceholder =
-      IcuVariable
+AnyIcuExpression =
+      IcuPlaceholder
     | IcuPlural
     | IcuSelectOrdinal
     | IcuSelect
@@ -167,26 +167,26 @@ AnyIcuPlaceholder =
     | IcuTime
     | IcuNumber
 
-IcuVariable =
+IcuPlaceholder =
     ident: 'icu_ident'
 
 IcuPlural =
-    variable: IcuVariable
-    variable_comma: ','
+    ident: 'icu_ident'
+    ident_comma: ','
     format: 'icu_plural_kw'
     format_comma: ','
     arms: IcuPluralArms
 
 IcuSelectOrdinal =
-    variable: IcuVariable
-    variable_comma: ','
+    ident: 'icu_ident'
+    ident_comma: ','
     format: 'icu_select_ordinal_kw'
     format_comma: ','
     arms: IcuPluralArms
 
 IcuSelect =
-    variable: IcuVariable
-    variable_comma: ','
+    ident: 'icu_ident'
+    ident_comma: ','
     format: 'icu_select_kw'
     format_comma: ','
     arms: IcuPluralArms
@@ -203,14 +203,14 @@ IcuPluralValue =
     content: InlineContent
 
 IcuDate =
-    variable: IcuVariable
-    variable_comma: ','
+    ident: 'icu_ident'
+    ident_comma: ','
     format: 'icu_date_kw'
     style: IcuDateTimeStyle?
 
 IcuTime =
-    variable: IcuVariable
-    variable_comma: ','
+    ident: 'icu_ident'
+    ident_comma: ','
     format: 'icu_time_kw'
     style: IcuDateTimeStyle?
 
@@ -219,8 +219,8 @@ IcuDateTimeStyle =
     style_text: 'icu_style_text'
 
 IcuNumber =
-    variable: IcuVariable
-    variable_comma: ','
+    ident: 'icu_ident'
+    ident_comma: ','
     format: 'icu_number_kw'
     style: IcuNumberStyle?
 

@@ -10,7 +10,8 @@ use crate::compiler::{
 };
 use crate::cst::*;
 use intl_markdown_syntax::{
-    PositionalIterator, Syntax, SyntaxKind, TextPointer, TokenTextIterOptions, TrimKind,
+    PositionalIterator, Syntax, SyntaxKind, SyntaxToken, TextPointer, TokenTextIterOptions,
+    TrimKind,
 };
 
 #[derive(Default, Clone)]
@@ -91,10 +92,8 @@ impl Compiler {
         Box::from_iter(self.children.drain(mark..))
     }
 
-    fn icu_variable_name(&self, variable: &IcuVariable) -> TextPointer {
-        variable
-            .ident_token()
-            .trimmed_text_pointer(TrimKind::TrimAll)
+    fn icu_variable_name(&self, variable: &SyntaxToken) -> TextPointer {
+        variable.trimmed_text_pointer(TrimKind::TrimAll)
     }
 }
 
@@ -354,93 +353,100 @@ impl Visit for Compiler {
         self.push_raw_text(text.into())
     }
 
-    // NOTE: Visit has to be done on the enum here, otherwise `IcuVariable` gets visited for every
-    // variable name, even inside other Icu elements. Check the CST structure in `markdown.ungram`
-    // to see the nesting that occurs.
-    fn visit_any_icu_placeholder(&mut self, node: &AnyIcuPlaceholder) {
-        match node {
-            AnyIcuPlaceholder::IcuVariable(variable) => self.children.push(
-                ArgumentNode {
-                    name: self.icu_variable_name(variable),
-                }
-                .into(),
-            ),
-            AnyIcuPlaceholder::IcuNumber(number) => self.children.push(
-                NumberNode {
-                    name: self.icu_variable_name(&number.variable()),
-                    style: number.style().map(|style| {
-                        style
-                            .style_text_token()
-                            .trimmed_text_pointer(TrimKind::TrimAll)
-                    }),
-                }
-                .into(),
-            ),
-            AnyIcuPlaceholder::IcuDate(date) => self.children.push(
-                DateNode {
-                    name: self.icu_variable_name(&date.variable()),
-                    style: date.style().map(|style| {
-                        style
-                            .style_text_token()
-                            .trimmed_text_pointer(TrimKind::TrimAll)
-                    }),
-                }
-                .into(),
-            ),
-            AnyIcuPlaceholder::IcuTime(time) => self.children.push(
-                TimeNode {
-                    name: self.icu_variable_name(&time.variable()),
-                    style: time.style().map(|style| {
-                        style
-                            .style_text_token()
-                            .trimmed_text_pointer(TrimKind::TrimAll)
-                    }),
-                }
-                .into(),
-            ),
-            AnyIcuPlaceholder::IcuSelect(select) => {
-                self.with_context(|context| context.trailing_trivia_allowed = true);
-                let options = self.collect_icu_options(&select.arms());
-                self.children.push(
-                    SelectableNode {
-                        kind: SelectableKind::Select,
-                        name: self.icu_variable_name(&select.variable()),
-                        // TODO: implement offsets
-                        offset: None,
-                        options,
-                    }
-                    .into(),
-                );
+    fn visit_icu_placeholder(&mut self, placeholder: &IcuPlaceholder) {
+        self.children.push(
+            ArgumentNode {
+                name: self.icu_variable_name(&placeholder.ident_token()),
             }
-            AnyIcuPlaceholder::IcuSelectOrdinal(select_ordinal) => {
-                self.with_context(|context| context.trailing_trivia_allowed = true);
-                let options = self.collect_icu_options(&select_ordinal.arms());
-                self.children.push(
-                    SelectableNode {
-                        kind: SelectableKind::SelectOrdinal,
-                        name: self.icu_variable_name(&select_ordinal.variable()),
-                        // TODO: implement offsets
-                        offset: None,
-                        options,
-                    }
-                    .into(),
-                );
+            .into(),
+        );
+    }
+
+    fn visit_icu_plural(&mut self, plural: &IcuPlural) {
+        self.with_context(|context| context.trailing_trivia_allowed = true);
+        let options = self.collect_icu_options(&plural.arms());
+        self.children.push(
+            SelectableNode {
+                kind: SelectableKind::Plural,
+                name: self.icu_variable_name(&plural.ident_token()),
+                // TODO: implement offsets
+                offset: None,
+                options,
             }
-            AnyIcuPlaceholder::IcuPlural(plural) => {
-                self.with_context(|context| context.trailing_trivia_allowed = true);
-                let options = self.collect_icu_options(&plural.arms());
-                self.children.push(
-                    SelectableNode {
-                        kind: SelectableKind::Plural,
-                        name: self.icu_variable_name(&plural.variable()),
-                        // TODO: implement offsets
-                        offset: None,
-                        options,
-                    }
-                    .into(),
-                );
+            .into(),
+        );
+    }
+
+    fn visit_icu_select_ordinal(&mut self, select_ordinal: &IcuSelectOrdinal) {
+        self.with_context(|context| context.trailing_trivia_allowed = true);
+        let options = self.collect_icu_options(&select_ordinal.arms());
+        self.children.push(
+            SelectableNode {
+                kind: SelectableKind::SelectOrdinal,
+                name: self.icu_variable_name(&select_ordinal.ident_token()),
+                // TODO: implement offsets
+                offset: None,
+                options,
             }
-        }
+            .into(),
+        );
+    }
+
+    fn visit_icu_select(&mut self, select: &IcuSelect) {
+        self.with_context(|context| context.trailing_trivia_allowed = true);
+        let options = self.collect_icu_options(&select.arms());
+        self.children.push(
+            SelectableNode {
+                kind: SelectableKind::Select,
+                name: self.icu_variable_name(&select.ident_token()),
+                // TODO: implement offsets
+                offset: None,
+                options,
+            }
+            .into(),
+        );
+    }
+
+    fn visit_icu_date(&mut self, date: &IcuDate) {
+        self.children.push(
+            DateNode {
+                name: self.icu_variable_name(&date.ident_token()),
+                style: date.style().map(|style| {
+                    style
+                        .style_text_token()
+                        .trimmed_text_pointer(TrimKind::TrimAll)
+                }),
+            }
+            .into(),
+        );
+    }
+
+    fn visit_icu_time(&mut self, time: &IcuTime) {
+        self.children.push(
+            TimeNode {
+                name: self.icu_variable_name(&time.ident_token()),
+                style: time.style().map(|style| {
+                    style
+                        .style_text_token()
+                        .trimmed_text_pointer(TrimKind::TrimAll)
+                }),
+            }
+            .into(),
+        )
+    }
+
+    fn visit_icu_number(&mut self, number: &IcuNumber) {
+        self.children.push(
+            NumberNode {
+                name: self.icu_variable_name(&number.ident_token()),
+                style: number.style().map(|style| {
+                    style
+                        .style_text_token()
+                        .trimmed_text_pointer(TrimKind::TrimAll)
+                }),
+            }
+            .into(),
+        );
     }
 }
 

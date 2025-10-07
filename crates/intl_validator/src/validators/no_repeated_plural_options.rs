@@ -9,7 +9,7 @@ cst_validation_rule!(NoRepeatedPluralOptions);
 
 impl Visit for NoRepeatedPluralOptions {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
-        let ident = node.variable().ident_token();
+        let ident = node.ident_token();
         let plural_name = ident.text();
         let mut seen = HashSet::new();
         // Allotting enough capacity to handle basically every possible case. More than 4

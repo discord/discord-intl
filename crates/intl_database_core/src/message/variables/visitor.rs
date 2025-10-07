@@ -3,7 +3,7 @@ use crate::database::symbol::key_symbol;
 use crate::KeySymbol;
 use intl_markdown::{
     AnyCodeBlock, AnyHeading, ClickHandlerLinkDestination, CodeSpan, Emphasis, Hook, IcuDate,
-    IcuNumber, IcuPlural, IcuPound, IcuSelect, IcuTime, IcuVariable, Link, Paragraph,
+    IcuNumber, IcuPlaceholder, IcuPlural, IcuPound, IcuSelect, IcuTime, Link, Paragraph,
     Strikethrough, Strong, SyntaxKind, TextSpan, ThematicBreak, Visit, VisitWith,
 };
 use intl_markdown_macros::header_tag_lookup_map;
@@ -172,19 +172,20 @@ impl Visit for MessageVariablesVisitor {
         );
     }
 
-    fn visit_icu_variable(&mut self, variable: &IcuVariable) {
+    fn visit_icu_placeholder(&mut self, placeholder: &IcuPlaceholder) {
+        let ident = placeholder.ident_token();
         self.variables.add_instance(
-            key_symbol(variable.ident_token().text()),
+            key_symbol(ident.text()),
             self.current_variable_type
                 .take()
                 .unwrap_or(MessageVariableType::Any),
             false,
-            None,
+            Some(ident.source_position().0),
         );
     }
 
     fn visit_icu_plural(&mut self, plural: &IcuPlural) {
-        let name_symbol = key_symbol(plural.variable().ident_token().text());
+        let name_symbol = key_symbol(plural.ident_token().text());
         self.current_plural_variable_name = Some(name_symbol);
         self.variables
             .add_instance(name_symbol, MessageVariableType::Plural, false, None);
@@ -192,7 +193,7 @@ impl Visit for MessageVariablesVisitor {
     }
 
     fn visit_icu_select(&mut self, select: &IcuSelect) {
-        let name_symbol = key_symbol(select.variable().ident_token().text());
+        let name_symbol = key_symbol(select.ident_token().text());
         self.current_plural_variable_name = Some(name_symbol);
         let arms = select.arms();
         let selectors = arms

@@ -40,27 +40,25 @@ fn parse_icu_inner(p: &mut ICUMarkdownParser) -> Option<()> {
     p.skip_icu_whitespace_as_trivia();
 
     let outer_mark = p.mark();
-    if p.at(SyntaxKind::ICU_IDENT) || p.current().is_icu_keyword() {
-        let var_start = p.mark();
-        p.bump_as(SyntaxKind::ICU_IDENT, LexContext::Icu);
-        var_start.complete(p, SyntaxKind::ICU_VARIABLE)?;
-    } else {
+    if !p.at(SyntaxKind::ICU_IDENT) && !p.current().is_icu_keyword() {
         return None;
     }
-
+    p.bump_as(SyntaxKind::ICU_IDENT, LexContext::Icu);
     p.skip_icu_whitespace_as_trivia();
     if p.at(SyntaxKind::COMMA) {
         p.bump_with_context(LexContext::Icu);
         p.skip_icu_whitespace_as_trivia();
-        let completed_kind = parse_complex_icu_placeholder(p)?;
+        let completed_kind = parse_complex_icu_expression(p)?;
         outer_mark.complete(p, completed_kind)?;
+    } else {
+        outer_mark.complete(p, SyntaxKind::ICU_PLACEHOLDER)?;
     }
 
     p.skip_icu_whitespace_as_trivia();
     Some(())
 }
 
-fn parse_complex_icu_placeholder(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
+fn parse_complex_icu_expression(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
     match p.current() {
         SyntaxKind::ICU_DATE_KW => parse_icu_date(p),
         SyntaxKind::ICU_TIME_KW => parse_icu_time(p),

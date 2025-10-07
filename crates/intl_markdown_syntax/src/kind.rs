@@ -213,7 +213,6 @@ pub enum SyntaxKind {
     ICU_PLURAL,          // {var, plural, ...}
     ICU_SELECT,          // {var, select, ...}
     ICU_SELECT_ORDINAL,  // {var, selectordinal, ...}
-    ICU_VARIABLE,        // `var` in `{var}` or `{var, plural}` and so on.
     ICU_PLURAL_ARMS,     // The list of arms in a plural or select node.
     ICU_PLURAL_ARM,      // The `one {inner}` in `{var, plural, one {inner}}`
     ICU_PLURAL_VALUE,    // The `inner` in `{var, plural, one {inner}}`

@@ -1149,7 +1149,7 @@ impl Icu {
     pub fn l_curly_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn value(&self) -> AnyIcuPlaceholder {
+    pub fn value(&self) -> AnyIcuExpression {
         support::required_node(&self.syntax, 1usize)
     }
     pub fn r_curly_token(&self) -> SyntaxToken {
@@ -1534,8 +1534,8 @@ impl std::fmt::Debug for HookName {
     }
 }
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub enum AnyIcuPlaceholder {
-    IcuVariable(IcuVariable),
+pub enum AnyIcuExpression {
+    IcuPlaceholder(IcuPlaceholder),
     IcuPlural(IcuPlural),
     IcuSelectOrdinal(IcuSelectOrdinal),
     IcuSelect(IcuSelect),
@@ -1543,10 +1543,10 @@ pub enum AnyIcuPlaceholder {
     IcuTime(IcuTime),
     IcuNumber(IcuNumber),
 }
-impl Syntax for AnyIcuPlaceholder {
+impl Syntax for AnyIcuExpression {
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::IcuVariable(node) => node.syntax(),
+            Self::IcuPlaceholder(node) => node.syntax(),
             Self::IcuPlural(node) => node.syntax(),
             Self::IcuSelectOrdinal(node) => node.syntax(),
             Self::IcuSelect(node) => node.syntax(),
@@ -1556,10 +1556,12 @@ impl Syntax for AnyIcuPlaceholder {
         }
     }
 }
-impl FromSyntax for AnyIcuPlaceholder {
+impl FromSyntax for AnyIcuExpression {
     fn from_syntax(syntax: SyntaxNode) -> Self {
         match syntax.kind() {
-            SyntaxKind::ICU_VARIABLE => Self::IcuVariable(IcuVariable::from_syntax(syntax)),
+            SyntaxKind::ICU_PLACEHOLDER => {
+                Self::IcuPlaceholder(IcuPlaceholder::from_syntax(syntax))
+            }
             SyntaxKind::ICU_PLURAL => Self::IcuPlural(IcuPlural::from_syntax(syntax)),
             SyntaxKind::ICU_SELECT_ORDINAL => {
                 Self::IcuSelectOrdinal(IcuSelectOrdinal::from_syntax(syntax))
@@ -1570,51 +1572,51 @@ impl FromSyntax for AnyIcuPlaceholder {
             SyntaxKind::ICU_NUMBER => Self::IcuNumber(IcuNumber::from_syntax(syntax)),
             kind => unreachable!(
                 "Invalid syntax kind {:?} encountered when constructing enum node {}",
-                kind, "AnyIcuPlaceholder"
+                kind, "AnyIcuExpression"
             ),
         }
     }
 }
-impl From<IcuVariable> for AnyIcuPlaceholder {
-    fn from(value: IcuVariable) -> Self {
-        Self::IcuVariable(value)
+impl From<IcuPlaceholder> for AnyIcuExpression {
+    fn from(value: IcuPlaceholder) -> Self {
+        Self::IcuPlaceholder(value)
     }
 }
-impl From<IcuPlural> for AnyIcuPlaceholder {
+impl From<IcuPlural> for AnyIcuExpression {
     fn from(value: IcuPlural) -> Self {
         Self::IcuPlural(value)
     }
 }
-impl From<IcuSelectOrdinal> for AnyIcuPlaceholder {
+impl From<IcuSelectOrdinal> for AnyIcuExpression {
     fn from(value: IcuSelectOrdinal) -> Self {
         Self::IcuSelectOrdinal(value)
     }
 }
-impl From<IcuSelect> for AnyIcuPlaceholder {
+impl From<IcuSelect> for AnyIcuExpression {
     fn from(value: IcuSelect) -> Self {
         Self::IcuSelect(value)
     }
 }
-impl From<IcuDate> for AnyIcuPlaceholder {
+impl From<IcuDate> for AnyIcuExpression {
     fn from(value: IcuDate) -> Self {
         Self::IcuDate(value)
     }
 }
-impl From<IcuTime> for AnyIcuPlaceholder {
+impl From<IcuTime> for AnyIcuExpression {
     fn from(value: IcuTime) -> Self {
         Self::IcuTime(value)
     }
 }
-impl From<IcuNumber> for AnyIcuPlaceholder {
+impl From<IcuNumber> for AnyIcuExpression {
     fn from(value: IcuNumber) -> Self {
         Self::IcuNumber(value)
     }
 }
-impl std::fmt::Debug for AnyIcuPlaceholder {
+impl std::fmt::Debug for AnyIcuExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut tuple = f.debug_tuple("AnyIcuPlaceholder");
+        let mut tuple = f.debug_tuple("AnyIcuExpression");
         match self {
-            Self::IcuVariable(node) => tuple.field(node),
+            Self::IcuPlaceholder(node) => tuple.field(node),
             Self::IcuPlural(node) => tuple.field(node),
             Self::IcuSelectOrdinal(node) => tuple.field(node),
             Self::IcuSelect(node) => tuple.field(node),
@@ -1627,27 +1629,27 @@ impl std::fmt::Debug for AnyIcuPlaceholder {
 }
 #[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
-pub struct IcuVariable {
+pub struct IcuPlaceholder {
     syntax: SyntaxNode,
 }
-impl Syntax for IcuVariable {
+impl Syntax for IcuPlaceholder {
     fn syntax(&self) -> &SyntaxNode {
         &self.syntax
     }
 }
-impl FromSyntax for IcuVariable {
+impl FromSyntax for IcuPlaceholder {
     fn from_syntax(syntax: SyntaxNode) -> Self {
         Self { syntax }
     }
 }
-impl IcuVariable {
+impl IcuPlaceholder {
     pub fn ident_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 0usize)
     }
 }
-impl std::fmt::Debug for IcuVariable {
+impl std::fmt::Debug for IcuPlaceholder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("IcuVariable")
+        f.debug_struct("IcuPlaceholder")
             .field("[0] ident_token", &self.ident_token())
             .finish()
     }
@@ -1668,10 +1670,10 @@ impl FromSyntax for IcuPlural {
     }
 }
 impl IcuPlural {
-    pub fn variable(&self) -> IcuVariable {
-        support::required_node(&self.syntax, 0usize)
+    pub fn ident_token(&self) -> SyntaxToken {
+        support::required_token(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token(&self) -> SyntaxToken {
+    pub fn ident_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn format_token(&self) -> SyntaxToken {
@@ -1687,8 +1689,8 @@ impl IcuPlural {
 impl std::fmt::Debug for IcuPlural {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuPlural")
-            .field("[0] variable", &self.variable())
-            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[0] ident_token", &self.ident_token())
+            .field("[1] ident_comma_token", &self.ident_comma_token())
             .field("[2] format_token", &self.format_token())
             .field("[3] format_comma_token", &self.format_comma_token())
             .field("[4] arms", &self.arms())
@@ -1711,10 +1713,10 @@ impl FromSyntax for IcuSelectOrdinal {
     }
 }
 impl IcuSelectOrdinal {
-    pub fn variable(&self) -> IcuVariable {
-        support::required_node(&self.syntax, 0usize)
+    pub fn ident_token(&self) -> SyntaxToken {
+        support::required_token(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token(&self) -> SyntaxToken {
+    pub fn ident_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn format_token(&self) -> SyntaxToken {
@@ -1730,8 +1732,8 @@ impl IcuSelectOrdinal {
 impl std::fmt::Debug for IcuSelectOrdinal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuSelectOrdinal")
-            .field("[0] variable", &self.variable())
-            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[0] ident_token", &self.ident_token())
+            .field("[1] ident_comma_token", &self.ident_comma_token())
             .field("[2] format_token", &self.format_token())
             .field("[3] format_comma_token", &self.format_comma_token())
             .field("[4] arms", &self.arms())
@@ -1754,10 +1756,10 @@ impl FromSyntax for IcuSelect {
     }
 }
 impl IcuSelect {
-    pub fn variable(&self) -> IcuVariable {
-        support::required_node(&self.syntax, 0usize)
+    pub fn ident_token(&self) -> SyntaxToken {
+        support::required_token(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token(&self) -> SyntaxToken {
+    pub fn ident_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn format_token(&self) -> SyntaxToken {
@@ -1773,8 +1775,8 @@ impl IcuSelect {
 impl std::fmt::Debug for IcuSelect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuSelect")
-            .field("[0] variable", &self.variable())
-            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[0] ident_token", &self.ident_token())
+            .field("[1] ident_comma_token", &self.ident_comma_token())
             .field("[2] format_token", &self.format_token())
             .field("[3] format_comma_token", &self.format_comma_token())
             .field("[4] arms", &self.arms())
@@ -1797,10 +1799,10 @@ impl FromSyntax for IcuDate {
     }
 }
 impl IcuDate {
-    pub fn variable(&self) -> IcuVariable {
-        support::required_node(&self.syntax, 0usize)
+    pub fn ident_token(&self) -> SyntaxToken {
+        support::required_token(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token(&self) -> SyntaxToken {
+    pub fn ident_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn format_token(&self) -> SyntaxToken {
@@ -1813,8 +1815,8 @@ impl IcuDate {
 impl std::fmt::Debug for IcuDate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuDate")
-            .field("[0] variable", &self.variable())
-            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[0] ident_token", &self.ident_token())
+            .field("[1] ident_comma_token", &self.ident_comma_token())
             .field("[2] format_token", &self.format_token())
             .field("[3] style?", &self.style())
             .finish()
@@ -1836,10 +1838,10 @@ impl FromSyntax for IcuTime {
     }
 }
 impl IcuTime {
-    pub fn variable(&self) -> IcuVariable {
-        support::required_node(&self.syntax, 0usize)
+    pub fn ident_token(&self) -> SyntaxToken {
+        support::required_token(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token(&self) -> SyntaxToken {
+    pub fn ident_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn format_token(&self) -> SyntaxToken {
@@ -1852,8 +1854,8 @@ impl IcuTime {
 impl std::fmt::Debug for IcuTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuTime")
-            .field("[0] variable", &self.variable())
-            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[0] ident_token", &self.ident_token())
+            .field("[1] ident_comma_token", &self.ident_comma_token())
             .field("[2] format_token", &self.format_token())
             .field("[3] style?", &self.style())
             .finish()
@@ -1875,10 +1877,10 @@ impl FromSyntax for IcuNumber {
     }
 }
 impl IcuNumber {
-    pub fn variable(&self) -> IcuVariable {
-        support::required_node(&self.syntax, 0usize)
+    pub fn ident_token(&self) -> SyntaxToken {
+        support::required_token(&self.syntax, 0usize)
     }
-    pub fn variable_comma_token(&self) -> SyntaxToken {
+    pub fn ident_comma_token(&self) -> SyntaxToken {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn format_token(&self) -> SyntaxToken {
@@ -1891,8 +1893,8 @@ impl IcuNumber {
 impl std::fmt::Debug for IcuNumber {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IcuNumber")
-            .field("[0] variable", &self.variable())
-            .field("[1] variable_comma_token", &self.variable_comma_token())
+            .field("[0] ident_token", &self.ident_token())
+            .field("[1] ident_comma_token", &self.ident_comma_token())
             .field("[2] format_token", &self.format_token())
             .field("[3] style?", &self.style())
             .finish()

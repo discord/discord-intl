@@ -111,10 +111,10 @@ pub trait Visit {
     fn visit_hook_name(&mut self, node: &HookName) {
         node.visit_children_with(self);
     }
-    fn visit_any_icu_placeholder(&mut self, node: &AnyIcuPlaceholder) {
+    fn visit_any_icu_expression(&mut self, node: &AnyIcuExpression) {
         node.visit_children_with(self);
     }
-    fn visit_icu_variable(&mut self, node: &IcuVariable) {
+    fn visit_icu_placeholder(&mut self, node: &IcuPlaceholder) {
         node.visit_children_with(self);
     }
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
@@ -201,8 +201,8 @@ pub trait Fold {
     fn fold_link_title_content(&mut self, node: LinkTitleContent) -> LinkTitleContent;
     fn fold_code_span_content(&mut self, node: CodeSpanContent) -> CodeSpanContent;
     fn fold_hook_name(&mut self, node: HookName) -> HookName;
-    fn fold_any_icu_placeholder(&mut self, node: AnyIcuPlaceholder) -> AnyIcuPlaceholder;
-    fn fold_icu_variable(&mut self, node: IcuVariable) -> IcuVariable;
+    fn fold_any_icu_expression(&mut self, node: AnyIcuExpression) -> AnyIcuExpression;
+    fn fold_icu_placeholder(&mut self, node: IcuPlaceholder) -> IcuPlaceholder;
     fn fold_icu_plural(&mut self, node: IcuPlural) -> IcuPlural;
     fn fold_icu_select_ordinal(&mut self, node: IcuSelectOrdinal) -> IcuSelectOrdinal;
     fn fold_icu_select(&mut self, node: IcuSelect) -> IcuSelect;
@@ -564,13 +564,13 @@ impl<V: ?Sized + Visit> VisitWith<V> for HookName {
         let _ = visitor;
     }
 }
-impl<V: ?Sized + Visit> VisitWith<V> for AnyIcuPlaceholder {
+impl<V: ?Sized + Visit> VisitWith<V> for AnyIcuExpression {
     fn visit_with(&self, visitor: &mut V) {
-        visitor.visit_any_icu_placeholder(self);
+        visitor.visit_any_icu_expression(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
         match self {
-            Self::IcuVariable(node) => node.visit_with(visitor),
+            Self::IcuPlaceholder(node) => node.visit_with(visitor),
             Self::IcuPlural(node) => node.visit_with(visitor),
             Self::IcuSelectOrdinal(node) => node.visit_with(visitor),
             Self::IcuSelect(node) => node.visit_with(visitor),
@@ -580,9 +580,9 @@ impl<V: ?Sized + Visit> VisitWith<V> for AnyIcuPlaceholder {
         }
     }
 }
-impl<V: ?Sized + Visit> VisitWith<V> for IcuVariable {
+impl<V: ?Sized + Visit> VisitWith<V> for IcuPlaceholder {
     fn visit_with(&self, visitor: &mut V) {
-        visitor.visit_icu_variable(self);
+        visitor.visit_icu_placeholder(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
         let _ = visitor;
@@ -593,7 +593,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for IcuPlural {
         visitor.visit_icu_plural(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
-        self.variable().visit_with(visitor);
         self.arms().visit_with(visitor);
     }
 }
@@ -602,7 +601,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for IcuSelectOrdinal {
         visitor.visit_icu_select_ordinal(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
-        self.variable().visit_with(visitor);
         self.arms().visit_with(visitor);
     }
 }
@@ -611,7 +609,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for IcuSelect {
         visitor.visit_icu_select(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
-        self.variable().visit_with(visitor);
         self.arms().visit_with(visitor);
     }
 }
@@ -620,7 +617,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for IcuDate {
         visitor.visit_icu_date(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
-        self.variable().visit_with(visitor);
         self.style().visit_with(visitor);
     }
 }
@@ -629,7 +625,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for IcuTime {
         visitor.visit_icu_time(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
-        self.variable().visit_with(visitor);
         self.style().visit_with(visitor);
     }
 }
@@ -638,7 +633,6 @@ impl<V: ?Sized + Visit> VisitWith<V> for IcuNumber {
         visitor.visit_icu_number(self);
     }
     fn visit_children_with(&self, visitor: &mut V) {
-        self.variable().visit_with(visitor);
         self.style().visit_with(visitor);
     }
 }

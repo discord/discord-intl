@@ -1,6 +1,6 @@
 use crate::cst::*;
 use crate::SyntaxKind;
-use intl_markdown_syntax::Syntax;
+use intl_markdown_syntax::{Syntax, SyntaxToken};
 
 impl AnyHeading {
     pub fn level(&self) -> u8 {
@@ -74,8 +74,26 @@ impl Autolink {
 }
 
 impl Icu {
+    pub fn ident_token(&self) -> SyntaxToken {
+        self.value().ident_token()
+    }
+
     pub fn is_unsafe(&self) -> bool {
         self.l_curly_token().kind() == SyntaxKind::UNSAFE_LCURLY
             && self.r_curly_token().kind() == SyntaxKind::UNSAFE_RCURLY
+    }
+}
+
+impl AnyIcuExpression {
+    pub fn ident_token(&self) -> SyntaxToken {
+        match self {
+            AnyIcuExpression::IcuPlaceholder(placeholder) => placeholder.ident_token(),
+            AnyIcuExpression::IcuPlural(plural) => plural.ident_token(),
+            AnyIcuExpression::IcuSelectOrdinal(ordinal) => ordinal.ident_token(),
+            AnyIcuExpression::IcuSelect(select) => select.ident_token(),
+            AnyIcuExpression::IcuDate(date) => date.ident_token(),
+            AnyIcuExpression::IcuTime(time) => time.ident_token(),
+            AnyIcuExpression::IcuNumber(number) => number.ident_token(),
+        }
     }
 }
