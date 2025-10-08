@@ -51,7 +51,7 @@ bench('export translations', () => {
 bench('validate', () => {
   const validations = database.validateMessages();
   const errors = validations.filter((d) => d.severity === 'error');
-  console.log(errors.length, ' error diagnostics');
+  console.log(errors.length, ' error diagnostics of ', validations.length, ' total');
   // console.log(util.inspect(errors, { depth: null }));
 });
 

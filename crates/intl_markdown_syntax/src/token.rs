@@ -234,8 +234,10 @@ impl SyntaxToken {
 
     pub fn source_position(&self) -> (usize, usize) {
         let offset = self.text_offset() as usize;
-        let len = self.len() as usize;
-        (offset, offset + len)
+        (
+            offset + self.text_start as usize,
+            offset + self.trailing_start as usize,
+        )
     }
 
     pub fn text_pointer(&self) -> &TextPointer {

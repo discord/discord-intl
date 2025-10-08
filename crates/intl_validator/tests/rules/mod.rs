@@ -1,2 +1,3 @@
 mod no_repeated_plural_names;
 mod no_unsafe_variable_syntax;
+mod no_avoidable_exact_plurals;
