@@ -2,6 +2,8 @@ use crate::macros::cst_validation_rule;
 use crate::{DiagnosticFix, DiagnosticName, DiagnosticSeverity, TextRange, ValueDiagnostic};
 use intl_markdown::{Icu, IcuPlural, IcuPluralArm, IcuPluralValue, IcuPound, Visit, VisitWith};
 use intl_markdown_syntax::{Syntax, SyntaxNode, SyntaxToken};
+use once_cell::sync::Lazy;
+use regex::Regex;
 
 cst_validation_rule!(NoAvoidableExactPlurals);
 
@@ -179,6 +181,8 @@ struct PluralArmLiteralScan {
     is_simply_non_numeric: bool,
 }
 
+static NUMERIC_CONTENT_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\b(\d+|one)\b"#).unwrap());
+
 /// This visit implementation is _only_ valid for starting from an `IcuPluralArm`. It will not
 /// detect or traverse content to discover other plural arms for checking.
 impl Visit for PluralArmLiteralScan {
@@ -193,15 +197,15 @@ impl Visit for PluralArmLiteralScan {
     }
 
     fn visit_icu_plural_arm(&mut self, arm: &IcuPluralArm) {
-        let selector = arm.selector_token();
-        match selector.text() {
+        let selector_token = arm.selector_token();
+        match selector_token.text() {
             "=0" | "=1" | "one" | "zero" => {
-                let value = RelevantPluralSelector::from_str(selector.text());
+                let selector = RelevantPluralSelector::from_str(selector_token.text());
                 self.replaceable_literal_number = find_literal_number_at_start_of_content(
                     arm.value().content().syntax(),
-                    value.to_value(),
+                    selector.to_value(),
                 );
-                self.selector_value = Some(value);
+                self.selector_value = Some(selector);
             }
             _ => {}
         };
@@ -217,8 +221,7 @@ impl Visit for PluralArmLiteralScan {
         let mut tokens = content.syntax().iter_tokens();
         match tokens.next() {
             Some(token) if tokens.next().is_none() => {
-                let has_numeric_reference =
-                    token.text().contains("1") || token.text().contains("one");
+                let has_numeric_reference = NUMERIC_CONTENT_REGEX.is_match(token.text());
                 self.is_simply_non_numeric = !has_numeric_reference;
             }
             _ => {}

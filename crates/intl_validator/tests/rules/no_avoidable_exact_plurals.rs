@@ -44,7 +44,6 @@ fn select_is_not_plural() {
 #[test]
 fn valid_exact_zero() {
     let diagnostics = validate("{count, plural, =0 {No items} other {# items}}");
-    println!("{diagnostics:?}");
     assert_eq!(diagnostics.len(), 0);
 }
 
