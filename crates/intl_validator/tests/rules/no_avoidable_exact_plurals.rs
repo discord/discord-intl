@@ -29,11 +29,23 @@ fn valid_plural() {
 }
 
 #[test]
+fn selectordinal() {
+    // Ordinals are not used for the same kind of pluralization, so it's not checked.
+    let diagnostics = validate("{count, selectordinal, =1 {1st} other {{count}nd}}");
+    assert_eq!(diagnostics.len(), 0);
+}
+
+#[test]
+fn select_is_not_plural() {
+    let diagnostics = validate("{count, select, =1 {1 item}}");
+    assert_eq!(diagnostics.len(), 0);
+}
+
+#[test]
 fn valid_exact_zero() {
-    assert_eq!(
-        validate("{count, plural, =0 {No items} other {# items}}").len(),
-        0
-    );
+    let diagnostics = validate("{count, plural, =0 {No items} other {# items}}");
+    println!("{diagnostics:?}");
+    assert_eq!(diagnostics.len(), 0);
 }
 
 #[test]
@@ -107,14 +119,22 @@ fn higher_selector() {
 }
 
 #[test]
-fn selectordinal() {
-    // Ordinals are not used for the same kind of pluralization, so it's not checked.
-    let diagnostics = validate("{count, selectordinal, =1 {1st} other {{count}nd}}");
-    assert_eq!(diagnostics.len(), 0);
+fn pound_in_exact_zero() {
+    let diagnostics = validate("{count, plural, =0 { # item} other {some items}}");
+    assert_eq!(diagnostics.len(), 1);
+    assert_has_diagnostic!(diagnostics, (16, 18));
 }
 
 #[test]
-fn select_is_not_plural() {
-    let diagnostics = validate("{count, select, =1 {1 item}}");
-    assert_eq!(diagnostics.len(), 0);
+fn pound_in_exact_one() {
+    let diagnostics = validate("{count, plural, =1 { # item} other {some items}}");
+    assert_eq!(diagnostics.len(), 1);
+    assert_has_diagnostic!(diagnostics, (16, 18));
+}
+
+#[test]
+fn exact_one_with_no_literal() {
+    let diagnostics = validate("{count, plural, =1 {an item} other {some items}}");
+    assert_eq!(diagnostics.len(), 1);
+    assert_has_diagnostic!(diagnostics, (16, 18));
 }

@@ -62,9 +62,6 @@ impl<'a> Iterator for SyntaxNodeTokenIter<'a> {
     }
 }
 
-impl ExactSizeIterator for SyntaxNodeTokenIter<'_> {}
-impl PositionalIterator for SyntaxNodeTokenIter<'_> {}
-
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct TokenTextIterOptions {
     /// When true, the first encountered token will have its leading trivia trimmed.

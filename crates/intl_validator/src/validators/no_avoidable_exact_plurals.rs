@@ -1,6 +1,6 @@
 use crate::macros::cst_validation_rule;
 use crate::{DiagnosticFix, DiagnosticName, DiagnosticSeverity, TextRange, ValueDiagnostic};
-use intl_markdown::{IcuPlural, Visit, VisitWith};
+use intl_markdown::{Icu, IcuPlural, IcuPluralArm, IcuPluralValue, IcuPound, Visit, VisitWith};
 use intl_markdown_syntax::{Syntax, SyntaxNode, SyntaxToken};
 
 cst_validation_rule!(NoAvoidableExactPlurals);
@@ -39,30 +39,35 @@ impl NoAvoidableExactPlurals {
     fn report_avoidable_exact_plural(
         &mut self,
         selector: &SyntaxToken,
-        literal_range: TextRange,
+        literal_replacement_range: Option<TextRange>,
         replacement_selector: &str,
     ) {
         let selector_text = selector.text();
         let selector_position = selector.source_position();
+        let mut fixes = vec![DiagnosticFix::replace_text(
+            selector_position,
+            replacement_selector,
+        )];
+        if let Some(range) = literal_replacement_range {
+            fixes.push(DiagnosticFix::replace_text(range, "#"));
+        }
+
         self.diagnostics.push(ValueDiagnostic {
             name: DiagnosticName::NoAvoidableExactPlurals,
             span: Some(selector_position),
             severity: DiagnosticSeverity::Warning,
             description: format!("Exact selector {selector_text} should be written as '{replacement_selector}' and use `#` as the value inside"),
             help: None,
-            fixes: vec![
-                DiagnosticFix::replace_text(selector_position, replacement_selector),
-                DiagnosticFix::replace_text(literal_range, "#")
-            ],
+            fixes,
         });
     }
 
-    fn report_literal_in_value(&mut self, literal_range: TextRange, found: &str, selector: &str) {
+    fn report_literal_in_value(&mut self, literal_range: TextRange, selector: &str) {
         self.diagnostics.push(ValueDiagnostic {
             name: DiagnosticName::NoAvoidableExactPlurals,
             span: Some(literal_range),
             severity: DiagnosticSeverity::Warning,
-            description: format!("Literal value {found} will not always align with selector {selector} in all locales. Use # to represent the value instead"),
+            description: format!("Literal value will not always align with selector {selector} in all locales. Use # to represent the value instead"),
             help: None,
             fixes: vec![DiagnosticFix::replace_text(literal_range, "#")],
         });
@@ -72,37 +77,151 @@ impl NoAvoidableExactPlurals {
 impl Visit for NoAvoidableExactPlurals {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
         for arm in node.arms().children() {
-            let selector = arm.selector_token();
-            let content = arm.value().content();
-            let value = content.syntax();
-            match selector.text() {
-                "=0" => {
-                    if let Some(number_range) = find_literal_number_at_start_of_content(value, "0")
-                    {
-                        self.report_avoidable_exact_plural(&selector, number_range, "zero");
-                    }
-                }
-                "=1" => {
-                    if let Some(number_range) = find_literal_number_at_start_of_content(value, "1")
-                    {
-                        self.report_avoidable_exact_plural(&selector, number_range, "one");
-                    }
-                }
-                "zero" => {
-                    if let Some(number_range) = find_literal_number_at_start_of_content(value, "0")
-                    {
-                        self.report_literal_in_value(number_range, "0", "zero");
-                    }
-                }
-                "one" => {
-                    if let Some(number_range) = find_literal_number_at_start_of_content(value, "1")
-                    {
-                        self.report_literal_in_value(number_range, "1", "one");
-                    }
-                }
-                _ => (),
+            arm.visit_children_with(self);
+
+            let mut scan = PluralArmLiteralScan::default();
+            arm.visit_with(&mut scan);
+            let Some(exact_selector) = scan.selector_value else {
+                continue;
             };
-            arm.visit_with(self);
+
+            // An exact selector with no exact number within it does not necessitate the exact
+            // selector, so it should be replaced with a category selector instead. Or, if a number
+            // in the value is considered "replaceable" (meaning only grammatically significant and
+            // not semantically significant), then the selector and value should be replaced, too.
+            if exact_selector.is_exact() {
+                // Non-numerics only apply to non-zero selectors since a zero value could be
+                // "they're all gone" rather than "0 remain", for example.
+                if (scan.is_simply_non_numeric && !exact_selector.is_zero())
+                    // NOTE: Having a pound does not preclude having a numeric literal, so this can
+                    // be inaccurate, though it's very unlikely.
+                    || scan.pound.is_some()
+                    || scan.replaceable_literal_number.is_some()
+                {
+                    self.report_avoidable_exact_plural(
+                        &arm.selector_token(),
+                        scan.replaceable_literal_number,
+                        exact_selector.to_category(),
+                    )
+                }
+            } else {
+                // For category selectors, a literal number inside the value is tangibly incorrect,
+                // and should always be replaced by a pound.
+                if let Some(literal_range) = scan.replaceable_literal_number {
+                    self.report_literal_in_value(literal_range, "#");
+                }
+            }
+        }
+    }
+}
+
+enum RelevantPluralSelector {
+    Zero,
+    One,
+    ExactZero,
+    ExactOne,
+}
+
+impl RelevantPluralSelector {
+    fn from_str(value: &str) -> Self {
+        match value {
+            "=0" => RelevantPluralSelector::ExactZero,
+            "=1" => RelevantPluralSelector::ExactOne,
+            "zero" => RelevantPluralSelector::Zero,
+            "one" => RelevantPluralSelector::One,
+            _ => unreachable!("Don't call from_str with a non-relevant plural selector"),
+        }
+    }
+
+    fn to_value(&self) -> &'static str {
+        match self {
+            RelevantPluralSelector::Zero | RelevantPluralSelector::ExactZero => "0",
+            RelevantPluralSelector::One | RelevantPluralSelector::ExactOne => "1",
+        }
+    }
+
+    fn to_category(&self) -> &'static str {
+        match self {
+            RelevantPluralSelector::Zero | RelevantPluralSelector::ExactZero => "zero",
+            RelevantPluralSelector::One | RelevantPluralSelector::ExactOne => "one",
+        }
+    }
+
+    fn is_exact(&self) -> bool {
+        matches!(
+            self,
+            RelevantPluralSelector::ExactZero | RelevantPluralSelector::ExactOne
+        )
+    }
+
+    fn is_zero(&self) -> bool {
+        matches!(
+            self,
+            RelevantPluralSelector::Zero | RelevantPluralSelector::ExactZero
+        )
+    }
+}
+
+#[derive(Default)]
+struct PluralArmLiteralScan {
+    /// If the selector for this arm is an exact selector, extract the numeric value of it.
+    selector_value: Option<RelevantPluralSelector>,
+    /// Location of a literal number that should be replaced with `#` in the plural content.
+    replaceable_literal_number: Option<TextRange>,
+    /// Location of a pound node within the plural content, indicating a dynamic number that does
+    /// not depend on an exact selector.
+    pound: Option<TextRange>,
+    /// True when there is no reference to a numeric value within the plural content at all,
+    /// meaning an exact `=1` selector likely has no effect and should be replaced by a generic
+    /// `one` instead. This only applies to `=1` and not `=0` because `=0` can say something like
+    /// "Sorry, they're gone." instead of "None left" or "zero remaining", so there's too much
+    /// ambiguity to confidently mark it as incorrect.
+    is_simply_non_numeric: bool,
+}
+
+/// This visit implementation is _only_ valid for starting from an `IcuPluralArm`. It will not
+/// detect or traverse content to discover other plural arms for checking.
+impl Visit for PluralArmLiteralScan {
+    // Nested ICU "resets" the plural context, so no need to investigate further. This override
+    // will prevent the visitor from recursing through these children.
+    fn visit_icu(&mut self, _: &Icu) {
+        ()
+    }
+
+    fn visit_icu_pound(&mut self, node: &IcuPound) {
+        self.pound = Some(node.hash_token().source_position())
+    }
+
+    fn visit_icu_plural_arm(&mut self, arm: &IcuPluralArm) {
+        let selector = arm.selector_token();
+        match selector.text() {
+            "=0" | "=1" | "one" | "zero" => {
+                let value = RelevantPluralSelector::from_str(selector.text());
+                self.replaceable_literal_number = find_literal_number_at_start_of_content(
+                    arm.value().content().syntax(),
+                    value.to_value(),
+                );
+                self.selector_value = Some(value);
+            }
+            _ => {}
+        };
+
+        arm.value().visit_with(self);
+    }
+
+    fn visit_icu_plural_value(&mut self, node: &IcuPluralValue) {
+        node.visit_children_with(self);
+        // TODO: This is a relatively naive check and doesn't account for simple Markdown within
+        // the node, which may still be "simply non-numeric" and worth preventing.
+        let content = node.content();
+        let mut tokens = content.syntax().iter_tokens();
+        match tokens.next() {
+            Some(token) if tokens.next().is_none() => {
+                let has_numeric_reference =
+                    token.text().contains("1") || token.text().contains("one");
+                self.is_simply_non_numeric = !has_numeric_reference;
+            }
+            _ => {}
         }
     }
 }
