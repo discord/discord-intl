@@ -1,6 +1,6 @@
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::macros::cst_validation_rule;
-use crate::DiagnosticSeverity;
+use crate::DiagnosticCategory;
 use intl_markdown::{IcuPlural, IcuPluralArm, Visit, VisitWith};
 use intl_markdown_syntax::Syntax;
 use std::collections::HashSet;
@@ -31,7 +31,7 @@ impl Visit for NoRepeatedPluralOptions {
             let diagnostic = ValueDiagnostic {
                 name: DiagnosticName::NoRepeatedPluralOptions,
                 span: Some(arm.syntax().source_position()),
-                severity: DiagnosticSeverity::Error,
+                category: DiagnosticCategory::Correctness,
                 description: String::from(
                     "Plural options must not be repeated within the same plural selector",
                 ),

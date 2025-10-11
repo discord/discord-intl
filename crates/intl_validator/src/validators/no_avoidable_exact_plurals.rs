@@ -1,5 +1,5 @@
 use crate::macros::cst_validation_rule;
-use crate::{DiagnosticFix, DiagnosticName, DiagnosticSeverity, TextRange, ValueDiagnostic};
+use crate::{DiagnosticCategory, DiagnosticFix, DiagnosticName, TextRange, ValueDiagnostic};
 use intl_markdown::{Icu, IcuPlural, IcuPluralArm, IcuPluralValue, IcuPound, Visit, VisitWith};
 use intl_markdown_syntax::{Syntax, SyntaxNode, SyntaxToken};
 use once_cell::sync::Lazy;
@@ -57,7 +57,7 @@ impl NoAvoidableExactPlurals {
         self.diagnostics.push(ValueDiagnostic {
             name: DiagnosticName::NoAvoidableExactPlurals,
             span: Some(selector_position),
-            severity: DiagnosticSeverity::Warning,
+            category: DiagnosticCategory::Correctness,
             description: format!("Exact selector {selector_text} should be written as '{replacement_selector}' and use `#` as the value inside"),
             help: None,
             fixes,
@@ -68,7 +68,7 @@ impl NoAvoidableExactPlurals {
         self.diagnostics.push(ValueDiagnostic {
             name: DiagnosticName::NoAvoidableExactPlurals,
             span: Some(literal_range),
-            severity: DiagnosticSeverity::Warning,
+            category: DiagnosticCategory::Correctness,
             description: format!("Literal value will not always align with selector {selector} in all locales. Use # to represent the value instead"),
             help: None,
             fixes: vec![DiagnosticFix::replace_text(literal_range, "#")],

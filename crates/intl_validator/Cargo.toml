@@ -13,4 +13,5 @@ serde = { workspace = true }
 regex = { workspace = true }
 
 [dev-dependencies]
+intl_database_js_source = { workspace = true }
 intl_database_json_source = { workspace = true }

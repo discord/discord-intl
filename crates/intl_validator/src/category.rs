@@ -3,23 +3,27 @@ use std::fmt::Formatter;
 use serde::{Serialize, Serializer};
 
 #[derive(Debug, Clone, Copy)]
-pub enum DiagnosticSeverity {
+pub enum DiagnosticCategory {
     Info,
-    Warning,
-    Error,
+    Style,
+    Correctness,
+    Complexity,
+    Suspicious,
 }
 
-impl DiagnosticSeverity {
+impl DiagnosticCategory {
     pub fn as_str(&self) -> &str {
         match self {
             Self::Info => "info",
-            Self::Warning => "warning",
-            Self::Error => "error",
+            Self::Style => "style",
+            Self::Correctness => "correctness",
+            Self::Complexity => "complexity",
+            Self::Suspicious => "suspicious",
         }
     }
 }
 
-impl Serialize for DiagnosticSeverity {
+impl Serialize for DiagnosticCategory {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -28,7 +32,7 @@ impl Serialize for DiagnosticSeverity {
     }
 }
 
-impl std::fmt::Display for DiagnosticSeverity {
+impl std::fmt::Display for DiagnosticCategory {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
     }

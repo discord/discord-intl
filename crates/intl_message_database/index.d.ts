@@ -62,7 +62,7 @@ export interface IntlDiagnostic {
   start: number
   end: number
   locale: string
-  severity: string
+  category: string
   description: string
   help?: string
   fixes: Array<IntlDiagnosticFix>

@@ -2,7 +2,7 @@ use intl_markdown::{IcuPlaceholder, Visit, VisitWith};
 
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::macros::cst_validation_rule;
-use crate::DiagnosticSeverity;
+use crate::DiagnosticCategory;
 
 cst_validation_rule!(NoUnicodeVariableNames);
 
@@ -15,7 +15,7 @@ impl Visit for NoUnicodeVariableNames {
             self.diagnostics.push(ValueDiagnostic {
                 name: DiagnosticName::NoUnicodeVariableNames,
                 span: Some(ident.source_position()),
-                severity: DiagnosticSeverity::Error,
+                category: DiagnosticCategory::Suspicious,
                 description: "Variable names should not contain unicode characters to avoid ambiguity during translation".into(),
                 help: Some(help_text),
                 fixes: vec![]

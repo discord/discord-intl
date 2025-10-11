@@ -59,7 +59,7 @@ pub struct IntlDiagnostic {
     // JS Character index of the end of the diagnostic within the message.
     pub end: u32,
     pub locale: String,
-    pub severity: String,
+    pub category: String,
     pub description: String,
     pub help: Option<String>,
     pub fixes: Vec<IntlDiagnosticFix>,
@@ -76,7 +76,7 @@ impl From<MessageDiagnostic> for IntlDiagnostic {
             start: value.span.map_or(0, |s| s.0 as u32),
             end: value.span.map_or(1, |s| s.1 as u32),
             locale: value.locale.to_string(),
-            severity: value.severity.to_string(),
+            category: value.category.to_string(),
             description: value.description,
             help: value.help,
             fixes: value.fixes.into_iter().map(|fix| fix.into()).collect(),

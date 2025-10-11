@@ -1,6 +1,6 @@
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
-use crate::{DiagnosticFix, DiagnosticSeverity};
+use crate::{DiagnosticCategory, DiagnosticFix};
 use intl_database_core::MessageValue;
 use intl_markdown::{
     AnyIcuExpression, Icu, IcuPlural, IcuPluralArm, IcuSelectOrdinal, Visit, VisitWith,
@@ -39,7 +39,7 @@ impl NoRepeatedPluralNames {
         let diagnostic = ValueDiagnostic {
             name: DiagnosticName::NoRepeatedPluralNames,
             span: Some(node_span),
-            severity: DiagnosticSeverity::Warning,
+            category: DiagnosticCategory::Suspicious,
             description: String::from(
                 "Plural variables should use # inside each arm instead of repeating the variable name",
             ),

@@ -1,4 +1,4 @@
-use crate::DiagnosticSeverity;
+use crate::DiagnosticCategory;
 use intl_database_core::{FilePosition, KeySymbol, MessageValue, SourceOffsetList};
 use intl_markdown_syntax::SyntaxToken;
 use std::fmt::{Display, Formatter};
@@ -97,7 +97,7 @@ pub struct MessageDiagnostic {
     pub file_position: FilePosition,
     pub locale: KeySymbol,
     pub name: DiagnosticName,
-    pub severity: DiagnosticSeverity,
+    pub category: DiagnosticCategory,
     pub description: String,
     pub help: Option<String>,
     /// Position _within the message_ of the diagnostic
@@ -109,7 +109,7 @@ pub struct MessageDiagnostic {
 pub struct ValueDiagnostic {
     pub name: DiagnosticName,
     pub span: Option<(usize, usize)>,
-    pub severity: DiagnosticSeverity,
+    pub category: DiagnosticCategory,
     pub description: String,
     pub help: Option<String>,
     pub fixes: Vec<DiagnosticFix>,
@@ -164,7 +164,7 @@ impl MessageDiagnosticsBuilder {
                 file_position: message.file_position,
                 locale,
                 name: diagnostic.name,
-                severity: diagnostic.severity,
+                category: diagnostic.category,
                 description: diagnostic.description,
                 help: diagnostic.help,
                 span: diagnostic.span.map(|span| {

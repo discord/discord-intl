@@ -1,6 +1,6 @@
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::macros::cst_validation_rule;
-use crate::{DiagnosticFix, DiagnosticSeverity};
+use crate::{DiagnosticCategory, DiagnosticFix};
 use intl_markdown::{Icu, Visit, VisitWith};
 use intl_markdown_syntax::Syntax;
 
@@ -12,7 +12,7 @@ impl Visit for NoUnsafeVariableSyntax {
             self.diagnostics.push(ValueDiagnostic {
                 name: DiagnosticName::NoUnsafeVariableSyntax,
                 span: Some(node.syntax().source_position()),
-                severity: DiagnosticSeverity::Error,
+                category: DiagnosticCategory::Complexity,
                 description: String::from(
                     "Unsafe syntax `!!{}!!` has no effect in discord-intl and should be removed.",
                 ),

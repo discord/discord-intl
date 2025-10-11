@@ -1,6 +1,6 @@
 use crate::diagnostic::{DiagnosticFix, DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
-use crate::DiagnosticSeverity;
+use crate::DiagnosticCategory;
 use intl_database_core::MessageValue;
 
 pub struct NoTrimmableWhitespace;
@@ -37,7 +37,7 @@ impl Validator for NoTrimmableWhitespace {
                 // Intentionally reporting no span, since this single diagnostic can apply to both
                 // the start and the end of the message.
                 span: None,
-                severity: DiagnosticSeverity::Warning,
+                category: DiagnosticCategory::Suspicious,
                 description: "Avoid surrounding whitespace on messages".into(),
                 help: Some("Leading and trailing whitespace are visually ambiguous when translating and leads to inconsistency".into()),
                 fixes
