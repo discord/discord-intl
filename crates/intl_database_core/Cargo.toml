@@ -7,6 +7,7 @@ publish = false
 
 [dependencies]
 intl_markdown = { workspace = true }
+intl_markdown_syntax = { workspace = true }
 intl_markdown_macros = { workspace = true }
 intl_message_utils = { workspace = true }
 path-absolutize = "3.1.1"

@@ -1,6 +1,6 @@
-use crate::diagnostic::{DiagnosticFix, DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
 use crate::DiagnosticCategory;
+use crate::{DiagnosticFix, DiagnosticName, ValueDiagnostic};
 use intl_database_core::MessageValue;
 
 pub struct NoTrimmableWhitespace;

@@ -2,12 +2,15 @@ use intl_database_core::Message;
 
 pub use crate::category::DiagnosticCategory;
 pub use crate::content::validate_message_value;
-pub use crate::diagnostic::{DiagnosticFix, MessageDiagnostic, ValueDiagnostic};
-pub use crate::diagnostic::{DiagnosticName, MessageDiagnosticsBuilder, TextRange};
+pub use crate::diagnostic::{
+    DiagnosticName, MessageDiagnostic, MessageDiagnosticsBuilder, TextRange, ValueDiagnostic,
+};
+pub use crate::fix::DiagnosticFix;
 
 mod category;
 mod content;
 mod diagnostic;
+mod fix;
 mod macros;
 pub mod validators;
 
@@ -50,7 +53,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
                 file_position: translation.file_position,
                 locale: locale.clone(),
                 name: DiagnosticName::NoExtraTranslationVariables,
-                category: DiagnosticCategory::Correctness,
+                category: DiagnosticCategory::Suspicious,
                 description: "Translation includes variables, but the source message does not"
                     .into(),
                 help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into()),
@@ -65,7 +68,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
                 file_position: translation.file_position,
                 locale: locale.clone(),
                 name: DiagnosticName::NoMissingSourceVariables,
-                category: DiagnosticCategory::Correctness,
+                category: DiagnosticCategory::Suspicious,
                 description: "Source message includes variables, but this translation has none.".into(),
                 help: Some("This is okay, but likely unintentional. Check that the source message is defined as expected.".into()),
                 span: None,

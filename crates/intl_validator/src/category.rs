@@ -4,21 +4,24 @@ use serde::{Serialize, Serializer};
 
 #[derive(Debug, Clone, Copy)]
 pub enum DiagnosticCategory {
-    Info,
-    Style,
+    /// Diagnostics that indicate source content that will not function as intended in all cases,
+    /// such as behavior across different language plural rules, or duplicated syntax that is
+    /// allowed but overrides other parts of content unintentionally.
     Correctness,
-    Complexity,
+    /// Diagnostics that indicate ambiguity or situations that are likely unintentional and should
+    /// be reviewed for correctness.
     Suspicious,
+    /// Diagnostics that refer to best practices or readability of the source text, generally
+    /// without any effect on the rendered content.
+    Style,
 }
 
 impl DiagnosticCategory {
     pub fn as_str(&self) -> &str {
         match self {
-            Self::Info => "info",
-            Self::Style => "style",
             Self::Correctness => "correctness",
-            Self::Complexity => "complexity",
             Self::Suspicious => "suspicious",
+            Self::Style => "style",
         }
     }
 }

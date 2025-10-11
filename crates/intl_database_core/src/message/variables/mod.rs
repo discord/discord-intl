@@ -1,8 +1,10 @@
 use std::ops::Deref;
 
 use crate::database::symbol::{KeySymbol, KeySymbolMap};
+use crate::key_symbol;
 use crate::message::variables::visitor::MessageVariablesVisitor;
 use intl_markdown::{AnyDocument, VisitWith};
+use intl_markdown_syntax::TextSpan;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 
@@ -49,8 +51,7 @@ pub struct MessageVariableInstance {
     /// The location in the message where this variable is used. Each instance
     /// of a variable in a string has its own struct, so each stores its own
     /// span as well.
-    /// TODO: Add this back
-    pub span: Option<usize>,
+    pub span: Option<TextSpan>,
     /// `true` if this variable is a system-defined variable, typically for
     /// rich text formatting tags like `$b` and `$link`, which are almost never
     /// intended for a user to provide and/or only represent formatting points,
@@ -79,10 +80,10 @@ impl MessageVariables {
     /// instances for that name.
     pub fn add_instance(
         &mut self,
-        name: KeySymbol,
+        name: &str,
         kind: MessageVariableType,
         is_builtin: bool,
-        span: Option<usize>,
+        span: Option<TextSpan>,
     ) {
         let instance = MessageVariableInstance {
             kind,
@@ -90,7 +91,7 @@ impl MessageVariables {
             span,
         };
         self.variables
-            .entry(name)
+            .entry(key_symbol(name))
             .or_insert_with(|| vec![])
             .push(instance);
     }
@@ -108,6 +109,11 @@ impl MessageVariables {
     /// Returns a HashSet of the names of all variables in this message.
     pub fn get_keys(&self) -> FxHashSet<&KeySymbol> {
         self.variables.keys().collect::<FxHashSet<&KeySymbol>>()
+    }
+
+    /// Returns true if this variable set contains the given variable name
+    pub fn has_key(&self, name: &KeySymbol) -> bool {
+        self.variables.contains_key(name)
     }
 
     /// Returns the count of _uniquely-named_ variables found in the message

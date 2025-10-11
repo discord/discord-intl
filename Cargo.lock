@@ -748,6 +748,7 @@ version = "0.1.0"
 dependencies = [
  "intl_markdown",
  "intl_markdown_macros",
+ "intl_markdown_syntax",
  "intl_message_utils",
  "path-absolutize",
  "rustc-hash 2.0.0",

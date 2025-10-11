@@ -12,7 +12,7 @@ impl Visit for NoUnsafeVariableSyntax {
             self.diagnostics.push(ValueDiagnostic {
                 name: DiagnosticName::NoUnsafeVariableSyntax,
                 span: Some(node.syntax().source_position()),
-                category: DiagnosticCategory::Complexity,
+                category: DiagnosticCategory::Style,
                 description: String::from(
                     "Unsafe syntax `!!{}!!` has no effect in discord-intl and should be removed.",
                 ),
