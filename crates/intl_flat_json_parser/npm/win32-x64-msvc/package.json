@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-flat-json-parser-win32-x64-msvc",
-  "version": "0.26.0-rc.2",
+  "version": "0.26.0-rc.3",
   "os": [
     "win32"
   ],
