@@ -46,7 +46,7 @@ impl DiagnosticFix {
         }
     }
 
-    pub fn with_message(mut self, message: &str) -> Self {
+    pub fn with_suggestion(mut self, message: &str) -> Self {
         self.message = Some(message.into());
         self
     }

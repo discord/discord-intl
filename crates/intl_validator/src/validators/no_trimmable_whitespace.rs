@@ -22,13 +22,13 @@ impl Validator for NoTrimmableWhitespace {
             if start_trimmed != content {
                 fixes.push(
                     DiagnosticFix::remove_text((0, content.len() - start_trimmed.len()))
-                        .with_message("Remove whitespace at the start of the message"),
+                        .with_suggestion("Remove whitespace at the start of the message"),
                 );
             }
             if end_trimmed != content {
                 fixes.push(
                     DiagnosticFix::remove_text((end_trimmed.len(), content.len()))
-                        .with_message("Remove whitespace at the end of the message"),
+                        .with_suggestion("Remove whitespace at the end of the message"),
                 );
             }
 
