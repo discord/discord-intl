@@ -602,7 +602,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "__Nitro__로 이런 사용자 지정 프로필을 만들어 보세요";
+        let content = "Some $[settings](openSettingsHook) are managed elsewhere";
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         #[cfg(feature = "debug-tracing")]
         println!("Blocks: {:?}\n", parser.lexer_block_bounds());
