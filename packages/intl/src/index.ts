@@ -4,6 +4,7 @@ export { FormatBuilder, FormatBuilderConstructor, bindFormatValues } from './for
 export * from './formatters';
 export { runtimeHashMessageKey } from './hash';
 export { IntlManager, DEFAULT_LOCALE, type FormatFunction } from './intl-manager';
+export { InternalIntlMessage } from './message';
 export {
   createLoader,
   loadAllMessagesInLocale,
@@ -25,4 +26,5 @@ export { chainMessagesObjects, makeMessagesProxy } from './runtime-utils';
  * structures passed around for custom rendering functions to use.
  */
 import { type RichTextNode } from './formatters';
+
 export type IntlMessageAst = RichTextNode;
