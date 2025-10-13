@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-flat-json-parser",
-  "version": "0.26.0-rc.3",
+  "version": "0.26.0",
   "license": "MIT",
   "description": "Rust-based JSON parser with location information for flat objects.",
   "author": "Jon Egeland",
