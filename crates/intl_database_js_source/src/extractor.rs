@@ -48,7 +48,7 @@ pub fn extract_message_definitions(
 struct MessageStringValue<'a> {
     processed: &'a Atom,
     raw: &'a Atom,
-    loc: Loc,
+    position: FilePosition,
 }
 
 impl MessageStringValue<'_> {
@@ -146,7 +146,7 @@ impl MessageDefinitionsExtractor {
     ) -> RawMessageDefinition {
         RawMessageDefinition::new(
             key.into(),
-            FilePosition::new(self.file_key, value.loc.line as u32, value.loc.col.to_u32()),
+            value.position,
             value.processed,
             value.raw,
             meta,
@@ -229,7 +229,7 @@ impl MessageDefinitionsExtractor {
                 // SAFETY: `raw` is always set by the parse and the Option is used for internal
                 // semantics.
                 raw: string.raw.as_ref().unwrap(),
-                loc,
+                position: self.adjust_position_from_quote(loc, 1),
             }),
             Expr::Tpl(template) => {
                 // With JS, you can write static strings as template strings to
@@ -245,7 +245,7 @@ impl MessageDefinitionsExtractor {
                         // SAFETY: This should always be set for a single string literal
                         processed: expr.cooked.as_ref().unwrap(),
                         raw: &expr.raw,
-                        loc,
+                        position: self.adjust_position_from_quote(loc, 1),
                     })
                 }
             }
@@ -336,6 +336,14 @@ impl MessageDefinitionsExtractor {
         match expr.as_lit() {
             Some(Lit::Str(string)) => Some(string.value.to_string()),
             _ => None,
+        }
+    }
+
+    fn adjust_position_from_quote(&self, loc: Loc, offset: u32) -> FilePosition {
+        FilePosition {
+            file: self.file_key,
+            line: loc.line as u32,
+            col: loc.col.to_u32() + offset,
         }
     }
 }

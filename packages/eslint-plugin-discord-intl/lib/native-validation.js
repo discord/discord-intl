@@ -71,7 +71,7 @@ function processAndValidateNative(sourceCode, fileName, content) {
         start: 0,
         end: content.length,
         locale: error.locale ?? 'definition',
-        severity: 'error',
+        category: 'correctness',
         fixes: [],
       });
     }
@@ -109,11 +109,10 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
    * @returns {SourceLocation}
    */
   function reportedSpan(diagnostic) {
-    const messageOffset =
-      context.sourceCode.getIndexFromLoc({
-        line: diagnostic.messageLine,
-        column: diagnostic.messageCol,
-      }) + 1;
+    const messageOffset = context.sourceCode.getIndexFromLoc({
+      line: diagnostic.messageLine,
+      column: diagnostic.messageCol,
+    });
 
     context.sourceCode.getNodeByRangeIndex(messageOffset);
     return {
@@ -136,6 +135,7 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
         message: diagnostic.description,
       };
       if (diagnostic.fixes.length > 0 && value.range != null) {
+        // Add 1 because ESLint 8 works on 1-based column indices.
         const valueStart = value.range[0] + 1;
         report.fix = (fixer) => {
           return diagnostic.fixes.map((fix) =>
@@ -145,7 +145,7 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
 
         const suggestableFixes = diagnostic.fixes.filter((fix) => fix.message != null);
         if (suggestableFixes.length > 0 && value.range != null) {
-          const valueStart = value.range[0] + 1;
+          const valueStart = value.range[0];
 
           report.suggest = suggestableFixes.map((fix) => ({
             desc: /** @type {string} */ (fix.message),
