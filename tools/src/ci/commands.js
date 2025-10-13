@@ -6,7 +6,7 @@
  * These commands rely on the `gh` CLI being installed and authenticated already.
  */
 import { Argument, Command } from 'commander';
-import { checkbox } from '@inquirer/prompts';
+import { checkbox, confirm } from '@inquirer/prompts';
 
 import { gh } from '../util/gh.js';
 import { git } from '../util/git.js';
@@ -75,6 +75,25 @@ export default async function () {
     .action(async ({ dryRun, tag, failFast }) => {
       await git.rejectIfHasChanges(true);
 
+      const packages = await pnpm.getPublicPackages();
+      const expectedVersion = packages[0].version;
+      for (const pack of packages) {
+        if (pack.version !== expectedVersion) {
+          return Promise.reject(
+            `Not all packages have matching versions. ${pack.name} is ${pack.version} instead of expected ${expectedVersion}`,
+          );
+        }
+      }
+
+      const confirmed = await confirm({
+        message: `Publish version ${expectedVersion}`,
+        default: false,
+      });
+      if (!confirmed) {
+        console.log(`Chose not to continue publishing ${expectedVersion}`);
+        process.exit(0);
+      }
+
       const options = {
         publish: dryRun ? 'false' : 'true',
         'fail-fast': failFast ? 'true' : 'false',
@@ -82,7 +101,6 @@ export default async function () {
       };
 
       const run = await gh.runWorkflow('release.yaml', git.currentBranch(), options);
-
       logWorkflowRunResponseOrExit(run);
     });
 

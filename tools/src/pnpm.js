@@ -39,6 +39,11 @@ export async function getWorkspacePackages({ cacheOk = true } = {}) {
   return WORKSPACE_PACKAGES_CACHE;
 }
 
+/**
+ * Return all publishable packages in the workspace.
+ *
+ * @returns {Promise<PnpmPackage[]>}
+ */
 export async function getPublicPackages() {
   const workspace = Object.values(await getWorkspacePackages());
   return workspace.filter((pack) => pack.private === false);
