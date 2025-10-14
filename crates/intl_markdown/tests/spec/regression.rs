@@ -59,3 +59,22 @@ fn regression_2() {
     let expected = r#"<p>hello!<a href="./bar">foo</a></p>"#;
     assert_eq!(expected, harness::parse(input));
 }
+
+#[test]
+fn regression_3() {
+    // The classic shrug, ¯\_(ツ)_/¯, is a pain to process with Markdown for two reasons: First, the
+    // `\_` at the front can be considered an escaped `_` character, so the input needs to prepare
+    // for that by escaping the backslash itself, leading to `\\` as the _raw_ input of the message,
+    // with further escapes sometimes being necessary depending on the source language (in JS, for
+    // example, the string is written as `"¯\\\\_(ツ)_/¯"` to be interpreted down to `\\_`).
+    //
+    // Second, the `_(ツ)_` segment can also be considered an Emphasis marker, meaning the `_`
+    // characters would be removed from the text and leave only `¯\\(ツ)/¯`, which is also wrong.
+    // It's up to the parser itself to understand this situation and prevent the underscore from
+    // being handled. There may be other cases that this affects downstream, but by treating `\` as
+    // a _non-punctuation_ character, the CommonMark rules for emphasis delimiters can still be
+    // applied as normal (including CJK rules) to yield the correct result.
+    let input = r#"¯\\_(ツ)_/¯"#;
+    let expected = r#"<p>¯\_(ツ)_/¯</p>"#;
+    assert_eq!(expected, harness::parse(input));
+}

@@ -602,7 +602,7 @@ mod test {
 
     #[test]
     fn test_debug() {
-        let content = "Some $[settings](openSettingsHook) are managed elsewhere";
+        let content = "Appends ¯\\\\_(ツ)_/¯ to your message.";
         let mut parser = ICUMarkdownParser::new(SourceText::from(content), true);
         #[cfg(feature = "debug-tracing")]
         println!("Blocks: {:?}\n", parser.lexer_block_bounds());

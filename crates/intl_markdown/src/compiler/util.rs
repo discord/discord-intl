@@ -141,8 +141,24 @@ impl<'a> Iterator for UnescapedChunksIterator<'a> {
             // according to the Markdown rules.
             let next = self.text.as_bytes()[self.cursor + 1];
             match next {
-                // ASCII punctuation is allowed to be escaped, so if we reach that, return the
-                // chunk up to that point (not including the slash).
+                // If the next character is also a slash, it's like a normal escaped character, but
+                // the `slash_iter` will also yield that escaped slash in the next iteration. To
+                // avoid incidentally removing both slashes, the next entry from the iterator is
+                // discarded before continuing, allowing every even-numbered slash to pass through.
+                //
+                // For example, `\\\\foo\\` _should_ yield "\\foo\", but without discarding the
+                // iterator entries would remove all slashes and become just "foo".
+                //
+                // See `tests::spec_regression::regression_3` for an example.
+                b'\\' => {
+                    let text = self.text.substr(chunk_start..self.cursor);
+                    // Intentionally unused to discard the second slash in the escape.
+                    self.slash_iter.next();
+                    self.cursor += 1;
+                    return Some(text);
+                }
+                // Other ASCII punctuation is allowed to be escaped, so if we reach that, return
+                // the chunk up to that point (not including the slash).
                 c if c.is_ascii_punctuation() => {
                     let text = self.text.substr(chunk_start..self.cursor);
                     self.cursor += 1;
