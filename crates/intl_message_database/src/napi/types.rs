@@ -28,6 +28,7 @@ impl Into<intl_database_exporter::IntlMessageBundlerOptions> for IntlMessageBund
     }
 }
 
+#[derive(Debug)]
 #[napi(object)]
 pub struct IntlDiagnosticFix {
     pub message: Option<String>,
@@ -47,6 +48,7 @@ impl From<DiagnosticFix> for IntlDiagnosticFix {
     }
 }
 
+#[derive(Debug)]
 #[napi(object)]
 pub struct IntlDiagnostic {
     pub name: String,

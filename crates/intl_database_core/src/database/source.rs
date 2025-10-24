@@ -46,7 +46,7 @@ impl SourceOffsetList {
 
     /// Return the true source position that `pos` maps to based on this
     /// offset list for a source string.
-    pub fn adjust_byte_position(&self, pos: u32) -> u32 {
+    pub fn adjust_position(&self, pos: u32) -> u32 {
         for (bound, offset) in self.0.iter().rev() {
             if *bound <= pos {
                 return pos + offset;

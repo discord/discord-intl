@@ -20,7 +20,7 @@ fn make_source_offsets(message: &JsonMessage) -> SourceOffsetList {
         let Some(byte) = bytes.get(idx + 1) else {
             continue;
         };
-        if idx <= last_checked_byte {
+        if idx < last_checked_byte {
             continue;
         }
 
@@ -34,8 +34,9 @@ fn make_source_offsets(message: &JsonMessage) -> SourceOffsetList {
 
         last_checked_byte = idx + added_offset;
         if added_offset > 0 {
+            let this_offset = idx - total_offset;
             total_offset += added_offset;
-            list.push((idx as u32, total_offset as u32));
+            list.push((this_offset as u32, total_offset as u32));
         }
     }
     SourceOffsetList::new(list)

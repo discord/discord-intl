@@ -4,7 +4,7 @@ use intl_validator::{DiagnosticName, ValueDiagnostic};
 
 fn validate(content: &str) -> Vec<ValueDiagnostic> {
     let message = harness::define_single_message("MESSAGE_KEY", content);
-    harness::validate_with(message, NoUnsafeVariableSyntax::new()).unwrap_or(vec![])
+    harness::validate_with(&message, NoUnsafeVariableSyntax::new()).unwrap_or(vec![])
 }
 
 macro_rules! assert_has_diagnostic {

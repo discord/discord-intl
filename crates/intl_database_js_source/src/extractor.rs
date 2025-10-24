@@ -66,7 +66,7 @@ impl MessageStringValue<'_> {
             let Some(byte) = bytes.get(idx + 1) else {
                 continue;
             };
-            if idx <= last_checked_byte {
+            if idx < last_checked_byte {
                 continue;
             }
 
@@ -108,8 +108,9 @@ impl MessageStringValue<'_> {
 
             last_checked_byte = idx + added_offset;
             if added_offset > 0 {
+                let this_offset = idx - total_offset;
                 total_offset += added_offset;
-                list.push((idx as u32, total_offset as u32));
+                list.push((this_offset as u32, total_offset as u32));
             }
         }
         SourceOffsetList::new(list)
@@ -427,11 +428,8 @@ impl Visit for MessageDefinitionsExtractor {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use intl_database_core::MessageSourceError;
-
-    use super::{
-        extract_message_definitions, parse_message_definitions_file, MessageDefinitionsExtractor,
-    };
 
     fn extract_test_messages(source: &str) -> MessageDefinitionsExtractor {
         let (map, module) = parse_message_definitions_file(
@@ -507,7 +505,7 @@ mod tests {
     #[test]
     fn test_template_literal_escapes() {
         // SWC Issue: https://github.com/swc-project/swc/issues/637
-        // Depsite being "fixed" the behavior doesn't seem to actually be
+        // Despite being "fixed" the behavior doesn't seem to actually be
         // correct (`\n` still creates '\\n' when parsed).
         let extractor = extract_test_messages(
             r#"
@@ -586,5 +584,21 @@ mod tests {
             vec![MessageSourceError::InvalidSourceFileMeta,],
             extractor.failed_definitions
         );
+    }
+
+    #[test]
+    fn test_offsets() {
+        let value = MessageStringValue {
+            processed: &Atom::new("\nfoo\nbar"),
+            raw: &Atom::new(r#"\nfoo\nbar"#),
+            position: FilePosition {
+                file: Default::default(),
+                line: 0,
+                col: 1,
+            },
+        };
+
+        let offsets = value.make_source_offsets();
+        println!("{:?}", offsets);
     }
 }

@@ -9,7 +9,7 @@ use napi::JsUnknown;
 use napi_derive::napi;
 use std::collections::HashMap;
 
-use crate::napi::types::{
+pub use crate::napi::types::{
     IntlDatabaseInsertStrategy, IntlDiagnostic, IntlMessageBundlerOptions,
     IntlMessagesFileDescriptor, IntlSourceFileInsertionData,
 };

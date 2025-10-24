@@ -141,18 +141,16 @@ fn convert_byte_span_to_character_span(
     let mut char_span = (0usize, 0usize);
     let mut start_is_set = false;
     let mut end_is_set = false;
-    let byte_start = source_offsets.adjust_byte_position(byte_span.0 as u32) as usize;
-    let byte_end = source_offsets.adjust_byte_position(byte_span.1 as u32) as usize;
     for c in source.chars() {
         // NOTE: This assumes byte-alignment in the given span. It should
         // always be `==`, but a manually-constructed span could end up inside
         // a multibyte character.
-        if byte_start <= byte_count && !start_is_set {
+        if byte_span.0 <= byte_count && !start_is_set {
             char_span.0 = char_count;
             start_is_set = true;
         }
         // Also assumes that span.0 <= span.1
-        if byte_end <= byte_count {
+        if byte_span.1 <= byte_count {
             char_span.1 = char_count;
             end_is_set = true;
             break;
@@ -167,7 +165,10 @@ fn convert_byte_span_to_character_span(
         char_span.1 = char_count;
     }
 
-    char_span
+    (
+        source_offsets.adjust_position(char_span.0 as u32) as usize,
+        source_offsets.adjust_position(char_span.1 as u32) as usize,
+    )
 }
 
 #[cfg(test)]
@@ -237,6 +238,16 @@ mod tests {
         let offset_list = SourceOffsetList::new(vec![(0, 1), (5, 2)]);
         let baz_byte_position = (1, 10);
         let expected_char_position = (2, 12);
+        let char_span =
+            convert_byte_span_to_character_span(source, baz_byte_position, &offset_list);
+        assert_eq!(char_span, expected_char_position);
+    }
+    #[test]
+    fn escaped_character_at_end_span_conversion() {
+        let source = r#"\n\n\n!!{foo}!! !!{user1}!!"#;
+        let offset_list = SourceOffsetList::new(vec![(0, 1), (1, 2), (2, 3)]);
+        let baz_byte_position = (13, 24);
+        let expected_char_position = (16, 27);
         let char_span =
             convert_byte_span_to_character_span(source, baz_byte_position, &offset_list);
         assert_eq!(char_span, expected_char_position);

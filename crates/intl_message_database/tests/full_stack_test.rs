@@ -2,14 +2,15 @@ use intl_database_core::{
     key_symbol, DatabaseInsertStrategy, FilePosition, MessageValue, MessagesDatabase,
     SourceOffsetList,
 };
+use intl_validator::validate_message;
 
 #[test]
 fn full_stack_test() {
     let mut db = MessagesDatabase::new();
     let value = MessageValue::from_raw(
-        "Some $[settings](openSettingsHook) are managed by your guardian. Check in with them to make changes.",
+        "\n\n\n!!{foo}!! !!{user1}!!",
         FilePosition::new(key_symbol("test-file.messages.js"), 1, 1),
-        SourceOffsetList::default(),
+        SourceOffsetList::new(vec![(0, 1), (1, 2), (2, 3)]),
     );
 
     let message = db
@@ -22,5 +23,13 @@ fn full_stack_test() {
         )
         .expect("Failed to insert definition");
 
-    println!("{:#?}", message.source_variables());
+    println!(
+        "{:?}",
+        message.get_source_translation().unwrap().source_offsets
+    );
+
+    let diagnostics = validate_message(message);
+    for diagnostic in diagnostics {
+        println!("{:?}\n-----------", &diagnostic,);
+    }
 }

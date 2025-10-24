@@ -43,11 +43,12 @@ mod harness {
     }
 
     pub fn validate_with(
-        message: MessageValue,
+        message: &MessageValue,
         mut validator: impl Validator,
     ) -> Option<Vec<ValueDiagnostic>> {
         validator.validate_cst(&message)
     }
 }
 
+mod offsets;
 mod rules;
