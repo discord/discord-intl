@@ -59,7 +59,7 @@ impl MessageStringValue<'_> {
         }
         let mut list: Vec<(u32, u32)> = vec![];
 
-        let bytes = self.raw.as_bytes();
+        let bytes = &self.raw.as_bytes()[1..self.raw.as_bytes().len() - 1];
         let mut total_offset = 0;
         let mut last_checked_byte = 0;
         for idx in memchr::memchr_iter(b'\\', bytes) {

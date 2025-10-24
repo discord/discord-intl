@@ -44,15 +44,12 @@ impl SourceOffsetList {
         Self(list)
     }
 
-    /// Return the true source position that `pos` maps to based on this
-    /// offset list for a source string.
-    pub fn adjust_position(&self, pos: u32) -> u32 {
-        for (bound, offset) in self.0.iter().rev() {
-            if *bound <= pos {
-                return pos + offset;
-            }
-        }
-        pos
+    pub fn total_offset_at(&self, pos: usize) -> u32 {
+        let pos = pos as u32;
+        self.0
+            .iter()
+            .rfind(|(bound, _)| *bound < pos)
+            .map_or(0, |(_, offset)| *offset)
     }
 }
 

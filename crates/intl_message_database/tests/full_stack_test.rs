@@ -8,9 +8,9 @@ use intl_validator::validate_message;
 fn full_stack_test() {
     let mut db = MessagesDatabase::new();
     let value = MessageValue::from_raw(
-        "\n\n\n!!{foo}!! !!{user1}!!",
+        r#"!!{username}!!: @everyone \"!!{topic}!!\" beginnt. Komm vorbei!"#,
         FilePosition::new(key_symbol("test-file.messages.js"), 1, 1),
-        SourceOffsetList::new(vec![(0, 1), (1, 2), (2, 3)]),
+        SourceOffsetList::default(),
     );
 
     let message = db

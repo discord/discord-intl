@@ -114,7 +114,6 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
       column: diagnostic.messageCol,
     });
 
-    context.sourceCode.getNodeByRangeIndex(messageOffset);
     return {
       start: context.sourceCode.getLocFromIndex(messageOffset + diagnostic.start),
       end: context.sourceCode.getLocFromIndex(messageOffset + diagnostic.end),

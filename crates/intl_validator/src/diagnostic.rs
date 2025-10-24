@@ -127,6 +127,9 @@ impl MessageDiagnosticsBuilder {
     }
 }
 
+/// TODO(faulty): This is very JS-specific and encodes JS's UTF-16 handling of surrogate pairs
+/// into the offset calculation. This should really be done on the consuming side instead, but it's
+/// massively slower.
 fn convert_byte_span_to_character_span(
     source: &str,
     byte_span: (usize, usize),
@@ -141,33 +144,38 @@ fn convert_byte_span_to_character_span(
     let mut char_span = (0usize, 0usize);
     let mut start_is_set = false;
     let mut end_is_set = false;
+    let mut utf16_offset = 0usize;
     for c in source.chars() {
         // NOTE: This assumes byte-alignment in the given span. It should
         // always be `==`, but a manually-constructed span could end up inside
         // a multibyte character.
         if byte_span.0 <= byte_count && !start_is_set {
-            char_span.0 = char_count;
+            char_span.0 = char_count + utf16_offset;
             start_is_set = true;
         }
         // Also assumes that span.0 <= span.1
         if byte_span.1 <= byte_count {
-            char_span.1 = char_count;
+            char_span.1 = char_count + utf16_offset;
             end_is_set = true;
             break;
         }
         byte_count += c.len_utf8();
         char_count += 1;
+        // Generally UTF-8 and UTF-16 align on bytes, but some things like
+        // emoji take up 2 UTF-16 codepoints, and in JS will be `.length === 2`
+        // rather than 1. This offset tracks that additional position to allow
+        utf16_offset += c.len_utf16() - 1;
     }
     if !start_is_set {
-        char_span.0 = char_count;
+        char_span.0 = char_count + utf16_offset;
     }
     if !end_is_set {
-        char_span.1 = char_count;
+        char_span.1 = char_count + utf16_offset;
     }
 
     (
-        source_offsets.adjust_position(char_span.0 as u32) as usize,
-        source_offsets.adjust_position(char_span.1 as u32) as usize,
+        char_span.0 + source_offsets.total_offset_at(byte_span.0) as usize,
+        char_span.1 + source_offsets.total_offset_at(byte_span.1) as usize,
     )
 }
 
