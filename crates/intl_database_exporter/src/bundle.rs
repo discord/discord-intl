@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use intl_database_core::{KeySymbol, Message, MessageValue, MessagesDatabase};
 use intl_database_service::IntlDatabaseService;
-use intl_markdown::compiler::CompiledElement;
+use intl_markdown::compiler::{compile_document, CompiledElement};
 use intl_markdown::raw_string_to_document;
 
 #[derive(Debug, Error)]
@@ -141,11 +141,11 @@ impl<'a, W: std::io::Write> IntlMessageBundler<'a, W> {
     /// content of the message, to obfuscate the value irreversibly and prevent leaking secrets.
     fn serialize_value(&mut self, message: &Message, value: &MessageValue) -> anyhow::Result<()> {
         let document = if self.should_obfuscate(message) {
-            &raw_string_to_document(message.hashed_key()).compiled
+            &raw_string_to_document(message.hashed_key()).cst
         } else {
             &value.parsed
         };
-        self.serialize_document(document)
+        self.serialize_document(&compile_document(document))
     }
 }
 

@@ -3,19 +3,25 @@ use serde::Serialize;
 use super::source_file::FilePosition;
 use super::variables::{collect_message_variables, MessageVariables};
 use crate::SourceOffsetList;
-use intl_markdown::compiler::CompiledElement;
+use intl_markdown::compiler::compile_document;
 use intl_markdown::{parse_intl_message, AnyDocument};
 use intl_message_utils::message_may_have_blocks;
+
+fn serialize_message_for_serde<S>(message: &AnyDocument, s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    compile_document(message).serialize(s)
+}
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageValue {
     pub raw: String,
-    pub parsed: CompiledElement,
+    #[serde(serialize_with = "serialize_message_for_serde")]
+    pub parsed: AnyDocument,
     pub variables: MessageVariables,
     pub file_position: FilePosition,
-    #[serde(skip)]
-    pub cst: AnyDocument,
     #[serde(skip)]
     pub source_offsets: SourceOffsetList,
 }
@@ -32,10 +38,9 @@ impl MessageValue {
 
         Self {
             raw: content.into(),
-            parsed: document.compiled,
             variables: collect_message_variables(&document.cst),
             file_position,
-            cst: document.cst,
+            parsed: document.cst,
             source_offsets,
         }
     }

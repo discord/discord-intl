@@ -19,7 +19,7 @@ macro_rules! cst_validation_rule {
                 &mut self,
                 message: &intl_database_core::MessageValue,
             ) -> Option<Vec<crate::diagnostic::ValueDiagnostic>> {
-                message.cst.visit_with(self);
+                message.parsed.visit_with(self);
                 Some(self.diagnostics.clone())
             }
         }

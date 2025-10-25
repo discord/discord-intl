@@ -59,7 +59,7 @@ impl NoRepeatedPluralNames {
 
 impl Validator for NoRepeatedPluralNames {
     fn validate_cst(&mut self, message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
-        message.cst.visit_with(self);
+        message.parsed.visit_with(self);
         Some(self.diagnostics.clone())
     }
 }
