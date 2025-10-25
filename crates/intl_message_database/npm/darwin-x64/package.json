@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-message-database-darwin-x64",
-  "version": "0.26.2",
+  "version": "0.26.3",
   "license": "MIT",
   "os": [
     "darwin"
