@@ -9,19 +9,24 @@ pub(super) fn is_at_normal_icu(p: &mut ICUMarkdownParser) -> bool {
 }
 
 pub(super) fn parse_icu(p: &mut ICUMarkdownParser) -> Option<()> {
-    let end_kind = match p.current() {
-        SyntaxKind::LCURLY => SyntaxKind::RCURLY,
-        SyntaxKind::UNSAFE_LCURLY => SyntaxKind::UNSAFE_RCURLY,
+    let is_unsafe = match p.current() {
+        SyntaxKind::LCURLY => false,
+        SyntaxKind::UNSAFE_LCURLY => true,
         _ => return None,
     };
 
     let checkpoint = p.checkpoint();
     let icu_mark = p.mark();
-    p.bump();
+    let lex_context = LexContext::Icu { is_unsafe };
+    p.bump_with_context(lex_context);
 
-    parse_icu_inner(p)
+    parse_icu_inner(p, lex_context)
         .and_then(|_| {
-            p.expect(end_kind)?;
+            p.expect(if is_unsafe {
+                SyntaxKind::UNSAFE_RCURLY
+            } else {
+                SyntaxKind::RCURLY
+            })?;
             icu_mark.complete(p, SyntaxKind::ICU)
         })
         .or_else(|| {
@@ -35,67 +40,76 @@ pub(super) fn parse_icu(p: &mut ICUMarkdownParser) -> Option<()> {
         })
 }
 
-fn parse_icu_inner(p: &mut ICUMarkdownParser) -> Option<()> {
-    p.relex_with_context(LexContext::Icu);
-    p.skip_icu_whitespace_as_trivia();
+fn parse_icu_inner(p: &mut ICUMarkdownParser, lex_context: LexContext) -> Option<()> {
+    p.skip_icu_whitespace_as_trivia(lex_context);
 
     let outer_mark = p.mark();
     if !p.at(SyntaxKind::ICU_IDENT) && !p.current().is_icu_keyword() {
         return None;
     }
-    p.bump_as(SyntaxKind::ICU_IDENT, LexContext::Icu);
-    p.skip_icu_whitespace_as_trivia();
+    p.bump_as(SyntaxKind::ICU_IDENT, lex_context);
+    p.skip_icu_whitespace_as_trivia(lex_context);
     if p.at(SyntaxKind::COMMA) {
-        p.bump_with_context(LexContext::Icu);
-        p.skip_icu_whitespace_as_trivia();
-        let completed_kind = parse_complex_icu_expression(p)?;
+        p.bump_with_context(lex_context);
+        p.skip_icu_whitespace_as_trivia(lex_context);
+        let completed_kind = parse_complex_icu_expression(p, lex_context)?;
         outer_mark.complete(p, completed_kind)?;
     } else {
         outer_mark.complete(p, SyntaxKind::ICU_PLACEHOLDER)?;
     }
 
-    p.skip_icu_whitespace_as_trivia();
+    p.skip_icu_whitespace_as_trivia(lex_context);
     Some(())
 }
 
-fn parse_complex_icu_expression(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
+fn parse_complex_icu_expression(
+    p: &mut ICUMarkdownParser,
+    lex_context: LexContext,
+) -> Option<SyntaxKind> {
     match p.current() {
-        SyntaxKind::ICU_DATE_KW => parse_icu_date(p),
-        SyntaxKind::ICU_TIME_KW => parse_icu_time(p),
-        SyntaxKind::ICU_NUMBER_KW => parse_icu_number(p),
-        SyntaxKind::ICU_PLURAL_KW => {
-            parse_icu_plural(p, SyntaxKind::ICU_PLURAL_KW, SyntaxKind::ICU_PLURAL)
-        }
-        SyntaxKind::ICU_SELECT_KW => {
-            parse_icu_plural(p, SyntaxKind::ICU_SELECT_KW, SyntaxKind::ICU_SELECT)
-        }
+        SyntaxKind::ICU_DATE_KW => parse_icu_date(p, lex_context),
+        SyntaxKind::ICU_TIME_KW => parse_icu_time(p, lex_context),
+        SyntaxKind::ICU_NUMBER_KW => parse_icu_number(p, lex_context),
+        SyntaxKind::ICU_PLURAL_KW => parse_icu_plural(
+            p,
+            SyntaxKind::ICU_PLURAL_KW,
+            SyntaxKind::ICU_PLURAL,
+            lex_context,
+        ),
+        SyntaxKind::ICU_SELECT_KW => parse_icu_plural(
+            p,
+            SyntaxKind::ICU_SELECT_KW,
+            SyntaxKind::ICU_SELECT,
+            lex_context,
+        ),
         SyntaxKind::ICU_SELECT_ORDINAL_KW => parse_icu_plural(
             p,
             SyntaxKind::ICU_SELECT_ORDINAL_KW,
             SyntaxKind::ICU_SELECT_ORDINAL,
+            lex_context,
         ),
         _ => None,
     }
 }
 
-fn parse_icu_date(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
-    p.expect_with_context(SyntaxKind::ICU_DATE_KW, LexContext::Icu)?;
-    p.skip_icu_whitespace_as_trivia();
-    parse_optional_icu_style_argument(p, SyntaxKind::ICU_DATE);
+fn parse_icu_date(p: &mut ICUMarkdownParser, lex_context: LexContext) -> Option<SyntaxKind> {
+    p.expect_with_context(SyntaxKind::ICU_DATE_KW, lex_context)?;
+    p.skip_icu_whitespace_as_trivia(lex_context);
+    parse_optional_icu_style_argument(p, SyntaxKind::ICU_DATE, lex_context);
     Some(SyntaxKind::ICU_DATE)
 }
 
-fn parse_icu_time(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
-    p.expect_with_context(SyntaxKind::ICU_TIME_KW, LexContext::Icu)?;
-    p.skip_icu_whitespace_as_trivia();
-    parse_optional_icu_style_argument(p, SyntaxKind::ICU_TIME);
+fn parse_icu_time(p: &mut ICUMarkdownParser, lex_context: LexContext) -> Option<SyntaxKind> {
+    p.expect_with_context(SyntaxKind::ICU_TIME_KW, lex_context)?;
+    p.skip_icu_whitespace_as_trivia(lex_context);
+    parse_optional_icu_style_argument(p, SyntaxKind::ICU_TIME, lex_context);
     Some(SyntaxKind::ICU_TIME)
 }
 
-fn parse_icu_number(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
-    p.expect_with_context(SyntaxKind::ICU_NUMBER_KW, LexContext::Icu)?;
-    p.skip_icu_whitespace_as_trivia();
-    parse_optional_icu_style_argument(p, SyntaxKind::ICU_NUMBER);
+fn parse_icu_number(p: &mut ICUMarkdownParser, lex_context: LexContext) -> Option<SyntaxKind> {
+    p.expect_with_context(SyntaxKind::ICU_NUMBER_KW, lex_context)?;
+    p.skip_icu_whitespace_as_trivia(lex_context);
+    parse_optional_icu_style_argument(p, SyntaxKind::ICU_NUMBER, lex_context);
     Some(SyntaxKind::ICU_NUMBER)
 }
 
@@ -113,20 +127,21 @@ fn parse_icu_number(p: &mut ICUMarkdownParser) -> Option<SyntaxKind> {
 fn parse_optional_icu_style_argument(
     p: &mut ICUMarkdownParser,
     parent_kind: SyntaxKind,
+    lex_context: LexContext,
 ) -> Option<()> {
     // If there's no comma, then there's no style arg and this can just return immediately.
     p.optional(p.at(SyntaxKind::COMMA), |p| {
         // Otherwise, open the style marker and consume that comma.
         let style_mark = p.mark();
-        p.bump_with_context(LexContext::Icu);
-        p.skip_icu_whitespace_as_trivia();
+        p.bump_with_context(lex_context);
+        p.skip_icu_whitespace_as_trivia(lex_context);
         // This relex happens first so that any potentially-significant token that may be at the
         // current position is un-lexed and treated as plain text instead. It has to happen as a relex
         // because the IcuStyle context doesn't understand whitespace and wouldn't be able to skip
-        // trivia as expected if it was used in `skip_icu_whitespace_as_trivia().
+        // trivia as expected if it was used in `skip_icu_whitespace_as_trivia(lex_context).
         p.relex_with_context(LexContext::IcuStyle);
 
-        p.expect_with_context(SyntaxKind::ICU_STYLE_TEXT, LexContext::Icu)?;
+        p.expect_with_context(SyntaxKind::ICU_STYLE_TEXT, lex_context)?;
         let completed_kind = match parent_kind {
             SyntaxKind::ICU_DATE | SyntaxKind::ICU_TIME => SyntaxKind::ICU_DATE_TIME_STYLE,
             SyntaxKind::ICU_NUMBER => SyntaxKind::ICU_NUMBER_STYLE,
@@ -140,11 +155,12 @@ fn parse_icu_plural(
     p: &mut ICUMarkdownParser,
     keyword_kind: SyntaxKind,
     kind: SyntaxKind,
+    lex_context: LexContext,
 ) -> Option<SyntaxKind> {
-    p.expect_with_context(keyword_kind, LexContext::Icu)?;
-    p.skip_icu_whitespace_as_trivia();
-    p.expect_with_context(SyntaxKind::COMMA, LexContext::Icu)?;
-    p.skip_icu_whitespace_as_trivia();
+    p.expect_with_context(keyword_kind, lex_context)?;
+    p.skip_icu_whitespace_as_trivia(lex_context);
+    p.expect_with_context(SyntaxKind::COMMA, lex_context)?;
+    p.skip_icu_whitespace_as_trivia(lex_context);
 
     let arms_mark = p.mark();
     loop {
@@ -153,8 +169,8 @@ fn parse_icu_plural(
         }
 
         let arm_mark = p.mark();
-        p.bump_with_context(LexContext::Icu);
-        p.skip_icu_whitespace_as_trivia();
+        p.bump_with_context(lex_context);
+        p.skip_icu_whitespace_as_trivia(lex_context);
         // Using Regular context here because we're entering a value section where the content
         // is expected to be regular Markdown.
         p.expect(SyntaxKind::LCURLY)?;
@@ -163,9 +179,9 @@ fn parse_icu_plural(
         value_mark.complete(p, SyntaxKind::ICU_PLURAL_VALUE)?;
         // The closing curly needs to be lexed in the Icu context, though, since we're now back in
         // the ICU control section.
-        p.expect_with_context(SyntaxKind::RCURLY, LexContext::Icu)?;
+        p.expect_with_context(SyntaxKind::RCURLY, lex_context)?;
 
-        p.skip_icu_whitespace_as_trivia();
+        p.skip_icu_whitespace_as_trivia(lex_context);
         arm_mark.complete(p, SyntaxKind::ICU_PLURAL_ARM)?;
     }
     arms_mark.complete(p, SyntaxKind::ICU_PLURAL_ARMS)?;

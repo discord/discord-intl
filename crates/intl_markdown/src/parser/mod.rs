@@ -526,12 +526,12 @@ impl ICUMarkdownParser {
     /// as trivia and can be skipped (versus Markdown, which does special processing on newline
     /// characters and requires treating them as real tokens). This method treats _all_ whitespace
     /// as trailing trivia, no matter the position, since it will all be removed either way.
-    pub(super) fn skip_icu_whitespace_as_trivia(&mut self) {
+    pub(super) fn skip_icu_whitespace_as_trivia(&mut self, lex_context: LexContext) {
         let start = self.lexer.current_byte_span().start;
         let mut end = start;
         while self.current().is_icu_trivia() {
             end = self.lexer.position();
-            self.skip_with_context(LexContext::Icu);
+            self.skip_with_context(lex_context);
         }
         self.builder
             .append_trailing_trivia(self.lexer.text(start..end));

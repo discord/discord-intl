@@ -58,8 +58,8 @@ pub enum LexContext {
     /// Autolinks only allow email address or URI tokens.
     Autolink,
     /// ICU semantic blocks (e.g., within `{}` segments) ignore Markdown syntax and only lex out
-    /// ICU MessageFormat syntax
-    Icu,
+    /// ICU MessageFormat syntax.
+    Icu { is_unsafe: bool },
     /// ICU Style arguments are effectively treated as a single plain text string. The additional
     /// lexing context here lets the lexer just read until the definite end of the argument without
     /// risk of interpreting keywords or other tokens (e.g., a style arg value like
@@ -196,7 +196,7 @@ impl Lexer {
             LexContext::CodeBlock => self.next_code_block_token(),
             LexContext::LinkDestination => self.next_regular_token(false),
             LexContext::Autolink => self.next_autolink_token(),
-            LexContext::Icu => self.next_icu_token(),
+            LexContext::Icu { is_unsafe } => self.next_icu_token(is_unsafe),
             LexContext::IcuStyle => self.next_icu_style_token(),
         };
 
@@ -228,7 +228,7 @@ impl Lexer {
             b'\'' => self.consume_byte(SyntaxKind::QUOTE),
             b'"' => self.consume_byte(SyntaxKind::DOUBLE_QUOTE),
             b'&' => self.consume_char_reference(),
-            b'}' => self.consume_maybe_icu_unsafe_rcurly(),
+            b'}' => self.consume_maybe_icu_unsafe_rcurly(false),
             b'!' => self.consume_maybe_icu_unsafe_lcurly(),
             b'*' | b'_' | b'~' => self.consume_delimiter(),
             _ => self.consume_plain_text(merge_whitespace_in_text),
@@ -314,7 +314,7 @@ impl Lexer {
             }
         }
         // ICU doesn't care about any particular kind of whitespace.
-        if matches!(context, LexContext::Icu) {
+        if matches!(context, LexContext::Icu { .. }) {
             return default_kind;
         }
 
@@ -815,7 +815,7 @@ impl Lexer {
 
     //#region ICU Elements
 
-    fn next_icu_token(&mut self) -> SyntaxKind {
+    fn next_icu_token(&mut self, is_unsafe: bool) -> SyntaxKind {
         match self.current() {
             b'\r' | b'\n' => self.consume_line_ending(),
             b'{' => self.consume_byte(SyntaxKind::LCURLY),
@@ -825,11 +825,11 @@ impl Lexer {
                 self.consume_byte(SyntaxKind::ICU_DOUBLE_COLON)
             }
             b'=' => self.consume_icu_plural_exact(),
-            b'}' => self.consume_maybe_icu_unsafe_rcurly(),
+            b'}' => self.consume_maybe_icu_unsafe_rcurly(is_unsafe),
             c => {
                 // Whitespace is insignificant when inside an ICU block.
                 if c.is_ascii_whitespace() {
-                    self.consume_whitespace(LexContext::Icu)
+                    self.consume_whitespace(LexContext::Icu { is_unsafe })
                 } else {
                     self.consume_icu_keyword_or_ident()
                 }
@@ -928,8 +928,8 @@ impl Lexer {
             self.consume_byte(SyntaxKind::EXCLAIM)
         }
     }
-    fn consume_maybe_icu_unsafe_rcurly(&mut self) -> SyntaxKind {
-        if self.remaining_text().starts_with(b"}!!") {
+    fn consume_maybe_icu_unsafe_rcurly(&mut self, is_unsafe: bool) -> SyntaxKind {
+        if is_unsafe && self.remaining_text().starts_with(b"}!!") {
             self.advance_n_bytes(3);
             SyntaxKind::UNSAFE_RCURLY
         } else {
