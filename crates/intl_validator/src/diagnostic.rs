@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn escaped_character_span_conversion() {
-        let source = r#"\nbar \n baz"#;
+        let source = "\nbar \n baz";
         let offset_list = SourceOffsetList::new(vec![(0, 1), (5, 2)]);
         let baz_byte_position = (1, 10);
         let expected_char_position = (2, 12);
@@ -252,7 +252,7 @@ mod tests {
     }
     #[test]
     fn escaped_character_at_end_span_conversion() {
-        let source = r#"\n\n\n!!{foo}!! !!{user1}!!"#;
+        let source = "\n\n\n!!{foo}!! !!{user1}!!";
         let offset_list = SourceOffsetList::new(vec![(0, 1), (1, 2), (2, 3)]);
         let baz_byte_position = (13, 24);
         let expected_char_position = (16, 27);
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn mixed_characters_after_position() {
-        let source = r#"bar baz\n\n"#;
+        let source = "bar baz\n\n";
         let offset_list = SourceOffsetList::new(vec![(7, 1), (8, 2)]);
         let baz_byte_position = (1, 4);
         let expected_char_position = (1, 4);
@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn mixed_character_span_conversion() {
-        let source = r#"\n\nƒƒƒbarbaz"#;
+        let source = "\n\nƒƒƒbarbaz";
         let offset_list = SourceOffsetList::new(vec![(0, 1), (1, 2)]);
         let baz_byte_position = (4, 13);
         let expected_char_position = (5, 12);

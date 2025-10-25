@@ -169,11 +169,3 @@ impl From<&SourceFileMeta> for MessageMeta {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn get_translations_path_returns_canonical_path() {}
-}

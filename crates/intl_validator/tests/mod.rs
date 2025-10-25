@@ -21,8 +21,10 @@ mod harness {
         }
         messages
     }
+
+    #[allow(unused)]
     pub fn js_source_file(file_name: &str, content: &str) -> KeySymbolMap<MessageValue> {
-        let Ok((meta, raw_messages)) =
+        let Ok((_, raw_messages)) =
             JsMessageSource.extract_definitions(key_symbol(file_name), content)
         else {
             panic!("Unparseable JSON messages content");
@@ -66,5 +68,4 @@ mod harness {
     }
 }
 
-mod offsets;
 mod rules;

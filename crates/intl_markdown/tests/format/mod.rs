@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod harness {
     use intl_markdown::compiler::CompiledElement;
-    use intl_markdown::{compiler, format, ICUMarkdownParser, SourceText};
+    use intl_markdown::{compiler, ICUMarkdownParser, SourceText};
 
     pub fn parse_and_compile(input: &str, include_blocks: bool) -> CompiledElement {
         let mut parser = ICUMarkdownParser::new(SourceText::from(input), include_blocks);
@@ -20,14 +20,6 @@ mod harness {
         println!("Compiled:\n---------\n{:#?}\n", compiled);
         println!("Input:\n------\n{}\n", input);
         compiled
-    }
-
-    pub fn assert_html(expected: &str, element: &CompiledElement) {
-        assert_eq!(
-            expected,
-            format::to_html(element),
-            "Formatted HTML (right) did not match expected result (left)"
-        );
     }
 
     pub fn assert_ast(expected: &str, element: &CompiledElement) {
