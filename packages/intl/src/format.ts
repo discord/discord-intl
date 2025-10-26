@@ -20,7 +20,7 @@
 import {
   parseDateTimeSkeleton,
   parseNumberSkeleton,
-  parseNumberSkeletonFromString,
+  parseNumberSkeletonFromString
 } from '@formatjs/icu-skeleton-parser';
 
 import { AstNode, AstNodeIndices, FormatJsNodeType } from '@discord/intl-ast';
@@ -36,12 +36,21 @@ function isRichTextTag(name: string) {
   return name[0] === '$';
 }
 
+export interface BuilderContext {
+  keyPrefix: string;
+}
+
 export abstract class FormatBuilder<Result, ObjectType = Result extends object ? Result : never> {
+  constructor(public context: BuilderContext) {}
   abstract pushRichTextTag(tag: RichTextTagNames, children: Result[], control: Result[]): void;
   abstract pushLiteralText(text: string): void;
   abstract pushObject(value: ObjectType): void;
   abstract finish(): Result[];
 }
+
+export type FormatBuilderConstructor<Result> = new (
+  context: BuilderContext,
+) => FormatBuilder<Result>;
 
 class MissingValueError extends Error {
   constructor(
@@ -55,31 +64,56 @@ class MissingValueError extends Error {
   }
 }
 
-export type FormatBuilderConstructor<Result> = new () => FormatBuilder<Result>;
+export interface BindFormatValuesBase<FormatConfig extends FormatConfigType> {
+  originalMessage?: string;
+  nodes: string | AstNode[];
+  locales: string | string[];
+  dataFormatters: DataFormatters<FormatConfig>;
+  formatConfig: FormatConfig;
+  values: Record<string, string | object>;
+  currentPluralValue?: number;
+  keyPrefix: string;
+}
+
+export interface BindFormatValuesParams<Result, FormatConfig extends FormatConfigType>
+  extends BindFormatValuesBase<FormatConfig> {
+  Builder: FormatBuilderConstructor<Result>;
+}
+
+export interface BindFormatValuesWithBuilderParams<
+  T,
+  ObjectType,
+  Builder extends FormatBuilder<T, ObjectType>,
+  FormatConfig extends FormatConfigType,
+> extends BindFormatValuesBase<FormatConfig> {
+  builder: Builder;
+}
 
 export function bindFormatValuesWithBuilder<
   T,
   ObjectType,
   Builder extends FormatBuilder<T, ObjectType>,
   FormatConfig extends FormatConfigType,
->(
-  builder: Builder,
-  nodes: AstNode[],
-  locales: string | string[],
-  formatters: DataFormatters<FormatConfig>,
-  formatConfig: FormatConfig,
-  values: Record<string, string | object> = {},
-  currentPluralValue?: number,
-  originalMessage?: string,
-) {
+>(params: BindFormatValuesWithBuilderParams<T, ObjectType, Builder, FormatConfig>) {
+  const {
+    builder,
+    originalMessage,
+    nodes,
+    locales,
+    values,
+    dataFormatters,
+    formatConfig,
+    currentPluralValue,
+    keyPrefix,
+  } = params;
   // Hot path for static messages that are just parsed as a single string element.
   if (nodes.length === 1 && typeof nodes[0] === 'string') {
     builder.pushLiteralText(nodes[0]);
     return;
   }
 
-  let keyIndex = 0;
-  for (const node of nodes) {
+  for (let keyIndex = 0; keyIndex < nodes.length; keyIndex++) {
+    const node = nodes[keyIndex];
     if (typeof node === 'string') {
       builder.pushLiteralText(node);
       continue;
@@ -91,7 +125,7 @@ export function bindFormatValuesWithBuilder<
         // numeric values are replaced, otherwise the value is completed ignored?
         // Behavior copied from FormatJS directly.
         if (typeof currentPluralValue === 'number') {
-          const value = formatters.formatNumber(currentPluralValue);
+          const value = dataFormatters.formatNumber(currentPluralValue);
           builder.pushLiteralText(value);
         }
         continue;
@@ -132,7 +166,7 @@ export function bindFormatValuesWithBuilder<
             : nodeStyle != null
               ? parseDateTimeSkeleton(nodeStyle)
               : undefined;
-        builder.pushLiteralText(formatters.formatDate(value as number | Date, style));
+        builder.pushLiteralText(dataFormatters.formatDate(value as number | Date, style));
         break;
       }
       case FormatJsNodeType.Time: {
@@ -145,7 +179,7 @@ export function bindFormatValuesWithBuilder<
             : nodeStyle != null
               ? parseDateTimeSkeleton(nodeStyle)
               : undefined;
-        builder.pushLiteralText(formatters.formatTime(value as number | Date, style));
+        builder.pushLiteralText(dataFormatters.formatTime(value as number | Date, style));
         break;
       }
       case FormatJsNodeType.Number: {
@@ -163,33 +197,35 @@ export function bindFormatValuesWithBuilder<
         const scaledValue =
           // @ts-expect-error This is a weird cast that's not accurate, but works in the short term.
           typeof value !== 'number' ? (value as number) : (value as number) * (style?.scale ?? 1);
-        builder.pushLiteralText(formatters.formatNumber(scaledValue, style));
+        builder.pushLiteralText(dataFormatters.formatNumber(scaledValue, style));
         break;
       }
 
       case FormatJsNodeType.Tag: {
         const children = node[AstNodeIndices.Children];
         const control = node[AstNodeIndices.Control];
-        const appliedChildren = bindFormatValues(
-          builder.constructor as FormatBuilderConstructor<T>,
-          children,
+        const appliedChildren = bindFormatValues({
+          Builder: builder.constructor as FormatBuilderConstructor<T>,
+          nodes: children,
           locales,
-          formatters,
+          dataFormatters: dataFormatters,
           formatConfig,
           values,
           currentPluralValue,
-        );
+          keyPrefix: `${keyPrefix}.${keyIndex}`,
+        });
         const appliedControl =
           control != null
-            ? bindFormatValues(
-                builder.constructor as FormatBuilderConstructor<T>,
-                control,
+            ? bindFormatValues({
+                Builder: builder.constructor as FormatBuilderConstructor<T>,
+                nodes: control,
                 locales,
-                formatters,
+                dataFormatters: dataFormatters,
                 formatConfig,
                 values,
                 currentPluralValue,
-              )
+                keyPrefix: `${keyPrefix}.${keyIndex}-control`,
+              })
             : [];
         if (isRichTextTag(variableName)) {
           builder.pushRichTextTag(
@@ -201,7 +237,7 @@ export function bindFormatValuesWithBuilder<
           if (typeof value !== 'function') {
             throw `expected a function type for a Tag formatting value, ${variableName}. got ${typeof value}: ${value}`;
           }
-          let chunks = value(appliedChildren, `${keyIndex++}`);
+          let chunks = value(appliedChildren, `${keyPrefix}.${keyIndex}`);
           chunks = Array.isArray(chunks) ? chunks : [chunks];
           for (const chunk of chunks) {
             if (typeof chunk === 'string') {
@@ -221,7 +257,15 @@ export function bindFormatValuesWithBuilder<
         if (option == null) {
           throw `${requestedOption} is not a known option for select value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
         }
-        bindFormatValuesWithBuilder(builder, option, locales, formatters, formatConfig, values);
+        bindFormatValuesWithBuilder({
+          builder,
+          nodes: option,
+          locales,
+          dataFormatters,
+          formatConfig,
+          values,
+          keyPrefix: `${keyPrefix}.${keyIndex}`,
+        });
         break;
       }
 
@@ -233,7 +277,7 @@ export function bindFormatValuesWithBuilder<
           const exactSelector = `=${value}`;
           if (exactSelector in options) return options[exactSelector];
 
-          const rule = formatters.getPluralRules({ type: pluralType }).select(
+          const rule = dataFormatters.getPluralRules({ type: pluralType }).select(
             // @ts-expect-error Assert this `as number` properly.
             (value as number) - (offset ?? 0),
           );
@@ -244,16 +288,18 @@ export function bindFormatValuesWithBuilder<
           throw `${value} is not a known option for plural value ${variableName}. Valid options are ${Object.keys(options).join(', ')}`;
         }
 
-        bindFormatValuesWithBuilder(
+        bindFormatValuesWithBuilder({
           builder,
-          option,
+          nodes: option,
           locales,
-          formatters,
+          dataFormatters,
           formatConfig,
           values,
           // @ts-expect-error assert this `as number` properly
-          (value as number) - (offset ?? 0),
-        );
+          currentPluralValue: (value as number) - (offset ?? 0),
+          keyPrefix: `${keyPrefix}.${keyIndex}`,
+        });
+
         break;
       }
     }
@@ -261,28 +307,35 @@ export function bindFormatValuesWithBuilder<
 }
 
 export function bindFormatValues<Result, FormatConfig extends FormatConfigType>(
-  Builder: FormatBuilderConstructor<Result>,
-  nodes: string | AstNode[],
-  locales: string | string[],
-  dataFormatters: DataFormatters<FormatConfig>,
-  formatConfig: FormatConfig,
-  values: Record<string, string | object> = {},
-  currentPluralValue?: number,
+  params: BindFormatValuesParams<Result, FormatConfig>,
 ): Result[] {
-  const builder = new Builder();
+  const {
+    Builder,
+    originalMessage,
+    nodes,
+    locales,
+    dataFormatters,
+    formatConfig,
+    values,
+    currentPluralValue,
+    keyPrefix,
+  } = params;
+  const builder = new Builder({ keyPrefix });
   if (typeof nodes === 'string') {
     builder.pushLiteralText(nodes);
     return builder.finish();
   } else {
-    bindFormatValuesWithBuilder(
+    bindFormatValuesWithBuilder({
       builder,
+      originalMessage,
       nodes,
       locales,
       dataFormatters,
       formatConfig,
       values,
       currentPluralValue,
-    );
+      keyPrefix,
+    });
     return builder.finish();
   }
 }

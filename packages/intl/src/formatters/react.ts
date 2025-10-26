@@ -8,11 +8,11 @@ import type {
   FormatterImplementation,
   FunctionTypes,
   RichTextFormattingMap,
-  RichTextTagNames,
+  RichTextTagNames
 } from '../types';
 import * as React from 'react';
 import { IntlManager } from '../intl-manager';
-import { FormatBuilder, FormatBuilderConstructor } from '../format';
+import { BuilderContext, FormatBuilder, FormatBuilderConstructor } from '../format';
 
 export type ReactHandlerEvent = React.MouseEvent | React.KeyboardEvent;
 export type ReactClickHandler = (e: ReactHandlerEvent) => void;
@@ -35,6 +35,10 @@ export const DEFAULT_REACT_RICH_TEXT_ELEMENTS: RichTextFormattingMap<ReactFuncti
   $p: (content, key) => h('p', { key }, content),
 };
 
+export type ReactBuilder = {
+  new (context: BuilderContext): FormatBuilder<React.ReactNode>;
+};
+
 /**
  * Creates a new `FormatBuilder` class that constructs a React element tree
  * from the message using the given `richTextElements` to apply formatting.
@@ -42,9 +46,9 @@ export const DEFAULT_REACT_RICH_TEXT_ELEMENTS: RichTextFormattingMap<ReactFuncti
  * overrides for rendering elements like links, paragraphs, and code blocks.
  * @param richTextElements
  */
-function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctionTypes['hook']>): {
-  new (): FormatBuilder<React.ReactNode>;
-} {
+function createReactBuilder(
+  richTextElements: RichTextFormattingMap<ReactFunctionTypes['hook']>,
+): ReactBuilder {
   return class extends FormatBuilder<React.ReactNode> {
     _nodeKey: number = 0;
     result: React.ReactNode[] = [];
@@ -54,7 +58,13 @@ function createReactBuilder(richTextElements: RichTextFormattingMap<ReactFunctio
       children: React.ReactNode[],
       control: React.ReactNode[],
     ) {
-      this.result.push(richTextElements[tag](children, `${this._nodeKey++}`, control));
+      this.result.push(
+        richTextElements[tag](
+          children,
+          `${this.context.keyPrefix}.tag-${this._nodeKey++}`,
+          control,
+        ),
+      );
     }
 
     pushLiteralText(text: string) {

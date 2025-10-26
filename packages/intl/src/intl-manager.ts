@@ -1,11 +1,6 @@
 import { DEFAULT_FORMAT_CONFIG, type FormatConfigType } from './data-formatters/config';
 import { bindFormatValues, FormatBuilderConstructor } from './format';
-import type {
-  FormatterImplementation,
-  IntlMessageGetter,
-  RequiredFormatValues,
-  TypedIntlMessageGetter,
-} from './types';
+import type { FormatterImplementation, IntlMessageGetter, RequiredFormatValues, TypedIntlMessageGetter } from './types';
 import { InternalIntlMessage } from './message';
 import { DataFormatters, makeDataFormatters } from './data-formatters';
 
@@ -193,13 +188,14 @@ export class IntlManager<
     message: InternalIntlMessage,
     values: Record<string, any>,
   ): T[] {
-    return bindFormatValues(
+    return bindFormatValues({
       Builder,
-      message.ast,
-      [this.currentLocale, this.defaultLocale],
-      this.data,
-      this.formatConfig,
+      nodes: message.ast,
+      locales: [this.currentLocale, this.defaultLocale],
+      dataFormatters: this.data,
+      formatConfig: this.formatConfig,
       values,
-    );
+      keyPrefix: '',
+    });
   }
 }
