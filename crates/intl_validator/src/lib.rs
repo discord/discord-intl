@@ -12,6 +12,7 @@ mod content;
 mod diagnostic;
 mod fix;
 mod macros;
+mod util;
 pub mod validators;
 
 /// Validate the content of a message across all of its translations, returning
@@ -35,7 +36,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
 
     for (locale, translation) in message.translations() {
         diagnostics.extend_from_value_diagnostics(
-            validate_message_value(translation),
+            validate_message_value(translation, *locale),
             translation,
             *locale,
         );

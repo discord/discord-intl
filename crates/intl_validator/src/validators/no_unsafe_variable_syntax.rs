@@ -9,7 +9,7 @@ cst_validation_rule!(NoUnsafeVariableSyntax);
 impl Visit for NoUnsafeVariableSyntax {
     fn visit_icu(&mut self, node: &Icu) {
         if node.is_unsafe() {
-            self.diagnostics.push(ValueDiagnostic {
+            self.context.report(ValueDiagnostic {
                 name: DiagnosticName::NoUnsafeVariableSyntax,
                 span: Some(node.syntax().source_position()),
                 category: DiagnosticCategory::Style,

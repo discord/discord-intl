@@ -900,6 +900,7 @@ dependencies = [
  "intl_database_json_source",
  "intl_markdown",
  "intl_markdown_syntax",
+ "lazy_static",
  "once_cell",
  "regex",
  "serde",
@@ -1686,6 +1687,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-xml-rs"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53630160a98edebde0123eb4dfd0fce6adff091b2305db3154a9e920206eb510"
+dependencies = [
+ "log",
+ "serde",
+ "thiserror 1.0.64",
+ "xml-rs",
 ]
 
 [[package]]
@@ -2846,6 +2859,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "xml-rs"
+version = "0.8.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
+
+[[package]]
 name = "xshell"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2869,6 +2888,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
+ "serde-xml-rs",
  "serde_json",
  "ungrammar",
  "xshell",

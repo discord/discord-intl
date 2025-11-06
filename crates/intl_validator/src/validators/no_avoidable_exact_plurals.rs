@@ -1,5 +1,5 @@
 use crate::macros::cst_validation_rule;
-use crate::{DiagnosticCategory, DiagnosticFix, DiagnosticName, TextRange, ValueDiagnostic};
+use crate::{util, DiagnosticCategory, DiagnosticFix, DiagnosticName, TextRange, ValueDiagnostic};
 use intl_markdown::{Icu, IcuPlural, IcuPluralArm, IcuPluralValue, IcuPound, Visit, VisitWith};
 use intl_markdown_syntax::{Syntax, SyntaxNode, SyntaxToken};
 use once_cell::sync::Lazy;
@@ -18,9 +18,9 @@ cst_validation_rule!(NoAvoidableExactPlurals);
 // mistranslations between languages with different plural rules, this validator reports whenever a
 // message uses an exact plural where it is not necessary. Exceptions that _are_ considered
 // necessary include:
-// - `=0` when the value of the arm contains no literal 0 (e.g., `{count, plural, =0 {no items}}`,
-//   rather than `{count, plural, =0 {0 items}}` which could be replaced).
-// - `=1` when
+// - `=0`/`=1` when the value of the arm contains no literal 0 or 1 (e.g.,
+//  `{count, plural, =0 {no items}}`, rather than `{count, plural, =0 {0 items}}` which could be
+//   replaced).
 // - `=2` or any other value above 1, where there is no exact matching LDML plural rule to replace
 //   the selector with.
 // - `=-1` or any other negative number, since these are typically used as controls rather than
@@ -30,9 +30,16 @@ cst_validation_rule!(NoAvoidableExactPlurals);
 // Additionally, this rule will detect the inverse problem, where the `zero` or `one` selector is
 // used but the value contains a literal `1`, which can result in tangibly-incorrect content being
 // shown to users in other languages if they fall back to a default translation (e.g.,
-// `{count, plural, one {1 item}, other {# items}}` rendered in Russian would show "1 item" even if
+// `{count, plural, one {1 item} other {# items}}` rendered in Russian would show "1 item" even if
 // `count == 21`). These cases should always prefer using a `#` to get both localized number
 // formatting _and_ accurate rendering in other locales.
+//
+// Finally, this rule also detects cases of a plural containing _only_ exact selectors and should
+// be replaced with a `select`, like `{days, plural, =1 {first} =2 {second} =3 {third}} day`, which
+// is better written `{days, select, 1 {first} 2 {second} 3 {third}} day`. The difference here is
+// that `plural` will allow _any_ number as an input, but contains no `other` clause to capture
+// values other than what's specified (which could lead to a runtime crash), while `select` can be
+// explicitly typed to only allow the given values.
 //
 // A full list of rules as defined by Unicode LDML and used by most localization implementations is
 // available at: https://www.unicode.org/cldr/charts/43/supplemental/language_plural_rules.html.
@@ -54,7 +61,7 @@ impl NoAvoidableExactPlurals {
             fixes.push(DiagnosticFix::replace_text(range, "#"));
         }
 
-        self.diagnostics.push(ValueDiagnostic {
+        self.context.report(ValueDiagnostic {
             name: DiagnosticName::NoAvoidableExactPlurals,
             span: Some(selector_position),
             category: DiagnosticCategory::Correctness,
@@ -65,7 +72,7 @@ impl NoAvoidableExactPlurals {
     }
 
     fn report_literal_in_value(&mut self, literal_range: TextRange, selector: &str) {
-        self.diagnostics.push(ValueDiagnostic {
+        self.context.report(ValueDiagnostic {
             name: DiagnosticName::NoAvoidableExactPlurals,
             span: Some(literal_range),
             category: DiagnosticCategory::Correctness,
@@ -83,7 +90,7 @@ impl Visit for NoAvoidableExactPlurals {
 
             let mut scan = PluralArmLiteralScan::default();
             arm.visit_with(&mut scan);
-            let Some(exact_selector) = scan.selector_value else {
+            let Some(selector) = scan.selector_value else {
                 continue;
             };
 
@@ -91,20 +98,26 @@ impl Visit for NoAvoidableExactPlurals {
             // selector, so it should be replaced with a category selector instead. Or, if a number
             // in the value is considered "replaceable" (meaning only grammatically significant and
             // not semantically significant), then the selector and value should be replaced, too.
-            if exact_selector.is_exact() {
+            if selector.is_exact() {
                 // Non-numerics only apply to non-zero selectors since a zero value could be
                 // "they're all gone" rather than "0 remain", for example.
-                if (scan.is_simply_non_numeric && !exact_selector.is_zero())
+                if (scan.is_simply_non_numeric && !selector.is_zero())
                     // NOTE: Having a pound does not preclude having a numeric literal, so this can
                     // be inaccurate, though it's very unlikely.
                     || scan.pound.is_some()
                     || scan.replaceable_literal_number.is_some()
                 {
-                    self.report_avoidable_exact_plural(
-                        &arm.selector_token(),
-                        scan.replaceable_literal_number,
-                        exact_selector.to_category(),
-                    )
+                    let category_selector = selector.to_category();
+                    if util::plural_rules::is_valid_cardinal_selector(
+                        category_selector,
+                        &self.context.locale,
+                    ) {
+                        self.report_avoidable_exact_plural(
+                            &arm.selector_token(),
+                            scan.replaceable_literal_number,
+                            category_selector,
+                        )
+                    }
                 }
             } else {
                 // For category selectors, a literal number inside the value is tangibly incorrect,

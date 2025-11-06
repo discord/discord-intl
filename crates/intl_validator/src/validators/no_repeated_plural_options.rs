@@ -44,7 +44,7 @@ impl Visit for NoRepeatedPluralOptions {
                 fixes: vec![],
             };
 
-            self.diagnostics.push(diagnostic);
+            self.context.report(diagnostic);
         }
     }
 }

@@ -1,11 +1,11 @@
 use crate::validators::validator::Validator;
 use crate::DiagnosticCategory;
 use crate::{DiagnosticFix, DiagnosticName, ValueDiagnostic};
-use intl_database_core::MessageValue;
+use intl_database_core::{KeySymbol, MessageValue};
 
 pub struct NoTrimmableWhitespace;
 impl NoTrimmableWhitespace {
-    pub fn new() -> Self {
+    pub fn new(_locale: KeySymbol) -> Self {
         Self
     }
 }

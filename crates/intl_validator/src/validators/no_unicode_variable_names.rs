@@ -12,7 +12,7 @@ impl Visit for NoUnicodeVariableNames {
         let name = ident.text();
         if !name.is_ascii() {
             let help_text = format!("\"{name}\" should be renamed to only use ASCII characters. If this is a translation, ensure the name matches the expected name in the source text");
-            self.diagnostics.push(ValueDiagnostic {
+            self.context.report(ValueDiagnostic {
                 name: DiagnosticName::NoUnicodeVariableNames,
                 span: Some(ident.source_position()),
                 category: DiagnosticCategory::Suspicious,

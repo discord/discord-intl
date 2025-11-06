@@ -3,13 +3,13 @@
 macro_rules! cst_validation_rule {
     ($name:ident) => {
         pub struct $name {
-            diagnostics: Vec<crate::diagnostic::ValueDiagnostic>,
+            context: crate::validators::validator::ValidatorContext,
         }
 
         impl $name {
-            pub fn new() -> Self {
+            pub fn new(locale: intl_database_core::KeySymbol) -> Self {
                 Self {
-                    diagnostics: vec![],
+                    context: crate::validators::validator::ValidatorContext::new(locale),
                 }
             }
         }
@@ -20,7 +20,7 @@ macro_rules! cst_validation_rule {
                 message: &intl_database_core::MessageValue,
             ) -> Option<Vec<crate::diagnostic::ValueDiagnostic>> {
                 message.parsed.visit_with(self);
-                Some(self.diagnostics.clone())
+                Some(self.context.diagnostics.clone())
             }
         }
     };

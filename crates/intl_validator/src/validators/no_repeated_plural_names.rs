@@ -1,7 +1,7 @@
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::validators::validator::Validator;
 use crate::{DiagnosticCategory, DiagnosticFix};
-use intl_database_core::MessageValue;
+use intl_database_core::{KeySymbol, MessageValue};
 use intl_markdown::{
     AnyIcuExpression, Icu, IcuPlural, IcuPluralArm, IcuSelectOrdinal, Visit, VisitWith,
 };
@@ -14,7 +14,7 @@ pub struct NoRepeatedPluralNames {
 }
 
 impl NoRepeatedPluralNames {
-    pub fn new() -> Self {
+    pub fn new(_locale: KeySymbol) -> Self {
         Self {
             diagnostics: vec![],
             current_plural_name_stack: vec![],
