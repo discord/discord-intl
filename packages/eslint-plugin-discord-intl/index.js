@@ -1,12 +1,13 @@
+const NativeRules = require('./rules/native-rules');
 module.exports = {
   rules: {
-    'no-avoidable-exact-plurals': require('./rules/native/no-avoidable-exact-plurals'),
-    'no-repeated-plural-names': require('./rules/native/no-repeated-plural-names'),
-    'no-repeated-plural-options': require('./rules/native/no-repeated-plural-options'),
-    'no-trimmable-whitespace': require('./rules/native/no-trimmable-whitespace'),
-    'no-unicode-variable-names': require('./rules/native/no-unicode-variable-names'),
-    'no-duplicate-message-keys': require('./rules/native/no-duplicate-message-keys'),
-    'no-unsafe-variable-syntax': require('./rules/native/no-unsafe-variable-syntax'),
+    'no-avoidable-exact-plurals': NativeRules.NoAvoidableExactPlurals,
+    'no-repeated-plural-names': NativeRules.NoRepeatedPluralNames,
+    'no-repeated-plural-options': NativeRules.NoRepeatedPluralOptions,
+    'no-trimmable-whitespace': NativeRules.NoTrimmableWhitespace,
+    'no-unicode-variable-names': NativeRules.NoUnicodeVariableNames,
+    'no-duplicate-message-keys': NativeRules.NoDuplicateMessageKeys,
+    'no-unsafe-variable-syntax': NativeRules.NoUnsafeVariableSyntax,
 
     'use-static-access': require('./rules/use-static-access'),
     'no-opaque-messages-objects': require('./rules/no-opaque-messages-objects'),

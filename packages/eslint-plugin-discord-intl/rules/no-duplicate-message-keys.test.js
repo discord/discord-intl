@@ -1,17 +1,17 @@
 const { RuleTester } = require('eslint');
-const noDuplicateMessageKeys = require('./no-duplicate-message-keys');
+const { NoDuplicateMessageKeys } = require('./native-rules');
 
-const typescriptParser = require.resolve('@typescript-eslint/parser');
 const ruleTester = new RuleTester({
   // Must use at least ecmaVersion 2015 because
   // that's when `const` variables were introduced.
   parserOptions: { ecmaVersion: 2015, sourceType: 'module' },
 });
 
-ruleTester.run('no-duplicate-message-keys', noDuplicateMessageKeys, {
+ruleTester.run('no-duplicate-message-keys', NoDuplicateMessageKeys, {
   valid: [
     {
       name: 'different messages',
+      filename: 'en-US.messages.js',
       code: `
       import {defineMessages} from '@discord/intl';
       export default defineMessages({
@@ -22,6 +22,7 @@ ruleTester.run('no-duplicate-message-keys', noDuplicateMessageKeys, {
     },
     {
       name: 'different message keys with same value',
+      filename: 'en-US.messages.js',
       code: `
       import {defineMessages} from '@discord/intl';
       export default defineMessages({
@@ -34,6 +35,7 @@ ruleTester.run('no-duplicate-message-keys', noDuplicateMessageKeys, {
   invalid: [
     {
       name: 'repeated message key',
+      filename: 'en-US.messages.js',
       code: `
       import {defineMessages} from '@discord/intl';
       export default defineMessages({
@@ -45,6 +47,7 @@ ruleTester.run('no-duplicate-message-keys', noDuplicateMessageKeys, {
     },
     {
       name: 'repeated with others present',
+      filename: 'en-US.messages.js',
       code: `
       import {defineMessages} from '@discord/intl';
       export default defineMessages({
@@ -57,6 +60,7 @@ ruleTester.run('no-duplicate-message-keys', noDuplicateMessageKeys, {
     },
     {
       name: 'multiple repeated messages',
+      filename: 'en-US.messages.js',
       code: `
       import {defineMessages} from '@discord/intl';
       export default defineMessages({
@@ -70,6 +74,7 @@ ruleTester.run('no-duplicate-message-keys', noDuplicateMessageKeys, {
     },
     {
       name: 'repeated with the same value',
+      filename: 'en-US.messages.js',
       code: `
       import {defineMessages} from '@discord/intl';
       export default defineMessages({

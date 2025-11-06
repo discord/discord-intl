@@ -1,6 +1,6 @@
 // enforce-foo-bar.test.js
 const { RuleTester } = require('eslint');
-const noTrimmableWhitespace = require('./no-trimmable-whitespace');
+const { NoTrimmableWhitespace } = require('./native-rules');
 
 const ruleTester = new RuleTester({
   // Must use at least ecmaVersion 2015 because
@@ -19,20 +19,23 @@ function defineMessages(messages) {
   `;
 }
 
-ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
+ruleTester.run('no-trimmable-whitespace', NoTrimmableWhitespace, {
   valid: [
     {
       name: 'normal strings',
+      filename: 'en-US.messages.js',
       code: defineMessages("{ A: 'no trimmed whitespace' }"),
     },
     {
       name: 'templates',
+      filename: 'en-US.messages.js',
       code: defineMessages(
         '{ A: `no trimmed whitespace`, QUASI: `${  space  }`, MULTILINE: `hi\n  yes` }',
       ),
     },
     {
       name: 'multi-line',
+      filename: 'en-US.messages.js',
       code: defineMessages(
         `{ A: \`no trimmed
         whitespace\`}`,
@@ -40,6 +43,7 @@ ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
     },
     {
       name: 'object',
+      filename: 'en-US.messages.js',
       code: defineMessages(
         '{ A: { message: "no whitespace", description: "  does not matter here  " }}',
       ),
@@ -47,6 +51,7 @@ ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
   ],
   invalid: [
     {
+      filename: 'en-US.messages.js',
       code: defineMessages(`{
         A: '  leading whitespace',
         B: 'trailing whitespace  ',
@@ -55,6 +60,7 @@ ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
       errors: 4,
     },
     {
+      filename: 'en-US.messages.js',
       code: defineMessages(`{
         TABS: '\tleading whitespace',
         B: 'trailing whitespace\t',
@@ -63,6 +69,7 @@ ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
       errors: 4,
     },
     {
+      filename: 'en-US.messages.js',
       code: defineMessages(`{
         NEWLINES: '\\nleading whitespace',
         B: 'trailing whitespace\\n',
@@ -71,12 +78,14 @@ ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
       errors: 4,
     },
     {
+      filename: 'en-US.messages.js',
       code: defineMessages(`{
         MIXED: '\\n  \\t leading\\n  \\twhitespace  \\t\\n',
       }`),
       errors: 2,
     },
     {
+      filename: 'en-US.messages.js',
       code: defineMessages(`{
         ONLY_BROKEN: '\\n \\t leading\\n  \\twhitespace  \\t\\n',
         VALID: 'valid string',
@@ -85,6 +94,7 @@ ruleTester.run('no-trimmable-whitespace', noTrimmableWhitespace, {
     },
     {
       name: 'object',
+      filename: 'en-US.messages.js',
       code: defineMessages(
         '{ A: { message: " no whitespace", description: "  does not matter here  " }}',
       ),
