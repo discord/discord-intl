@@ -6,15 +6,16 @@ use std::fmt::{Display, Formatter};
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[repr(u8)]
 pub enum DiagnosticName {
+    NoAvoidableExactPlurals,
     NoExtraTranslationVariables,
+    NoInvalidPluralSelector,
+    NoMissingPluralOther,
     NoMissingSourceVariables,
     NoRepeatedPluralNames,
     NoRepeatedPluralOptions,
     NoTrimmableWhitespace,
     NoUnicodeVariableNames,
     NoUnsafeVariableSyntax,
-    NoAvoidableExactPlurals,
-    NoMissingPluralOther,
 }
 
 impl Display for DiagnosticName {
@@ -26,15 +27,16 @@ impl Display for DiagnosticName {
 impl DiagnosticName {
     pub fn as_str(&self) -> &'static str {
         match self {
+            DiagnosticName::NoAvoidableExactPlurals => "NoAvoidableExactPlurals",
             DiagnosticName::NoExtraTranslationVariables => "NoExtraTranslationVariables",
+            DiagnosticName::NoInvalidPluralSelector => "NoInvalidPluralSelector",
+            DiagnosticName::NoMissingPluralOther => "NoMissingPluralOther",
             DiagnosticName::NoMissingSourceVariables => "NoMissingSourceVariables",
             DiagnosticName::NoRepeatedPluralNames => "NoRepeatedPluralNames",
             DiagnosticName::NoRepeatedPluralOptions => "NoRepeatedPluralOptions",
             DiagnosticName::NoTrimmableWhitespace => "NoTrimmableWhitespace",
             DiagnosticName::NoUnicodeVariableNames => "NoUnicodeVariableNames",
             DiagnosticName::NoUnsafeVariableSyntax => "NoUnsafeVariableSyntax",
-            DiagnosticName::NoAvoidableExactPlurals => "NoAvoidableExactPlurals",
-            DiagnosticName::NoMissingPluralOther => "NoMissingPluralOther",
         }
     }
 }

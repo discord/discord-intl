@@ -45,6 +45,17 @@ const NoDuplicateMessageKeys = createNativeRule({
     },
   },
 });
+const NoInvalidPluralSelector = createNativeRule({
+  diagnosticName: 'NoInvalidPluralSelector',
+  meta: {
+    fixable: 'code',
+    type: 'problem',
+    docs: {
+      description: 'Disallow plural selectors that are not valid in the locale of the message',
+      category: 'Correctness',
+    },
+  },
+});
 const NoMissingPluralOther = createNativeRule({
   diagnosticName: 'NoMissingPluralOther',
   meta: {
