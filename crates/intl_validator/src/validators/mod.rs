@@ -1,5 +1,6 @@
 pub use no_avoidable_exact_plurals::NoAvoidableExactPlurals;
 pub use no_invalid_plural_selector::NoInvalidPluralSelector;
+pub use no_limited_plurals::NoLimitedPlurals;
 pub use no_missing_plural_other::NoMissingPluralOther;
 pub use no_repeated_plural_names::NoRepeatedPluralNames;
 pub use no_repeated_plural_options::NoRepeatedPluralOptions;
@@ -9,6 +10,7 @@ pub use no_unsafe_variable_syntax::NoUnsafeVariableSyntax;
 
 mod no_avoidable_exact_plurals;
 mod no_invalid_plural_selector;
+mod no_limited_plurals;
 mod no_missing_plural_other;
 mod no_repeated_plural_names;
 mod no_repeated_plural_options;

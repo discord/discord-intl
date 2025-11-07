@@ -56,6 +56,17 @@ const NoInvalidPluralSelector = createNativeRule({
     },
   },
 });
+const NoLimitedPlurals = createNativeRule({
+  diagnosticName: 'NoLimitedPlurals',
+  meta: {
+    fixable: 'code',
+    type: 'problem',
+    docs: {
+      description: 'Enforce using `select` rather than `plural` when only exact selectors are used',
+      category: 'Correctness',
+    },
+  },
+});
 const NoMissingPluralOther = createNativeRule({
   diagnosticName: 'NoMissingPluralOther',
   meta: {
@@ -123,6 +134,8 @@ const NoUnsafeVariableSyntax = createNativeRule({
 module.exports = {
   NoAvoidableExactPlurals,
   NoDuplicateMessageKeys,
+  NoInvalidPluralSelector,
+  NoLimitedPlurals,
   NoMissingPluralOther,
   NoRepeatedPluralNames,
   NoRepeatedPluralOptions,

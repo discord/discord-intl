@@ -34,13 +34,6 @@ cst_validation_rule!(NoAvoidableExactPlurals);
 // `count == 21`). These cases should always prefer using a `#` to get both localized number
 // formatting _and_ accurate rendering in other locales.
 //
-// Finally, this rule also detects cases of a plural containing _only_ exact selectors and should
-// be replaced with a `select`, like `{days, plural, =1 {first} =2 {second} =3 {third}} day`, which
-// is better written `{days, select, 1 {first} 2 {second} 3 {third}} day`. The difference here is
-// that `plural` will allow _any_ number as an input, but contains no `other` clause to capture
-// values other than what's specified (which could lead to a runtime crash), while `select` can be
-// explicitly typed to only allow the given values.
-//
 // A full list of rules as defined by Unicode LDML and used by most localization implementations is
 // available at: https://www.unicode.org/cldr/charts/43/supplemental/language_plural_rules.html.
 

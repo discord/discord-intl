@@ -51,3 +51,24 @@ impl DiagnosticFix {
         self
     }
 }
+
+pub fn apply_fixes(message: &str, fixes: &[DiagnosticFix]) -> String {
+    let mut sorted_fixes = fixes.iter().collect::<Vec<_>>();
+    let mut total_fix_length = 0;
+    sorted_fixes.sort_by_key(|fix| {
+        total_fix_length += fix.source_span.1 - fix.source_span.0;
+        fix.source_span.1
+    });
+
+    let mut result = String::with_capacity(message.len() + total_fix_length);
+    let mut current_offset = 0;
+    for fix in sorted_fixes {
+        result.push_str(&message[current_offset..fix.source_span.0]);
+        if fix.replacement.len() > 0 {
+            result.push_str(&fix.replacement);
+        }
+        current_offset = fix.source_span.1;
+    }
+    result.push_str(&message[current_offset..]);
+    result
+}

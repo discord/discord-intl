@@ -18,14 +18,15 @@ macro_rules! run_validator {
 
 pub fn validate_message_value(message: &MessageValue, locale: KeySymbol) -> Vec<ValueDiagnostic> {
     let mut diagnostics: Vec<ValueDiagnostic> = vec![];
-    run_validator!(NoUnicodeVariableNames, locale, message, diagnostics);
+    run_validator!(NoAvoidableExactPlurals, locale, message, diagnostics);
+    run_validator!(NoInvalidPluralSelector, locale, message, diagnostics);
+    run_validator!(NoLimitedPlurals, locale, message, diagnostics);
+    run_validator!(NoMissingPluralOther, locale, message, diagnostics);
     run_validator!(NoRepeatedPluralNames, locale, message, diagnostics);
     run_validator!(NoRepeatedPluralOptions, locale, message, diagnostics);
     run_validator!(NoTrimmableWhitespace, locale, message, diagnostics);
+    run_validator!(NoUnicodeVariableNames, locale, message, diagnostics);
     run_validator!(NoUnsafeVariableSyntax, locale, message, diagnostics);
-    run_validator!(NoAvoidableExactPlurals, locale, message, diagnostics);
-    run_validator!(NoMissingPluralOther, locale, message, diagnostics);
-    run_validator!(NoInvalidPluralSelector, locale, message, diagnostics);
 
     diagnostics
 }

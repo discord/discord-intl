@@ -1,3 +1,5 @@
+extern crate core;
+
 use intl_database_core::Message;
 
 pub use crate::category::DiagnosticCategory;
@@ -5,7 +7,7 @@ pub use crate::content::validate_message_value;
 pub use crate::diagnostic::{
     DiagnosticName, MessageDiagnostic, MessageDiagnosticsBuilder, TextRange, ValueDiagnostic,
 };
-pub use crate::fix::DiagnosticFix;
+pub use crate::fix::{apply_fixes, DiagnosticFix};
 
 mod category;
 mod content;

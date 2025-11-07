@@ -16,6 +16,7 @@ pub enum DiagnosticName {
     NoTrimmableWhitespace,
     NoUnicodeVariableNames,
     NoUnsafeVariableSyntax,
+    NoLimitedPlurals,
 }
 
 impl Display for DiagnosticName {
@@ -37,6 +38,7 @@ impl DiagnosticName {
             DiagnosticName::NoTrimmableWhitespace => "NoTrimmableWhitespace",
             DiagnosticName::NoUnicodeVariableNames => "NoUnicodeVariableNames",
             DiagnosticName::NoUnsafeVariableSyntax => "NoUnsafeVariableSyntax",
+            DiagnosticName::NoLimitedPlurals => "NoLimitedPlurals",
         }
     }
 }

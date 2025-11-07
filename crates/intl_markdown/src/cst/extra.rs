@@ -97,3 +97,9 @@ impl AnyIcuExpression {
         }
     }
 }
+
+impl IcuPluralArm {
+    pub fn is_exact_selector(&self) -> bool {
+        self.selector_token().text().starts_with("=")
+    }
+}

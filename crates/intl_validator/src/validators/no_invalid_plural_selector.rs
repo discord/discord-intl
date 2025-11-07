@@ -12,12 +12,11 @@ impl Visit for NoInvalidPluralSelector {
         let valid_selectors =
             get_valid_cardinal_selectors(&self.context.locale).unwrap_or_default();
         for arm in node.arms().children() {
-            let selector = arm.selector_token();
-            let is_exact = selector.text().starts_with("=");
-            if is_exact {
+            if arm.is_exact_selector() {
                 continue;
             }
 
+            let selector = arm.selector_token();
             if !valid_selectors.contains(selector.text()) {
                 let description = format!(
                     "`{}` is not a valid plural selector in locale `{}`. Valid options are: {}",
