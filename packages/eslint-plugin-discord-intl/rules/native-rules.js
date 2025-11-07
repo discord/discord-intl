@@ -56,8 +56,8 @@ const NoInvalidPluralSelector = createNativeRule({
     },
   },
 });
-const NoLimitedPlurals = createNativeRule({
-  diagnosticName: 'NoLimitedPlurals',
+const NoNonExhaustivePlurals = createNativeRule({
+  diagnosticName: 'NoNonExhaustivePlurals',
   meta: {
     fixable: 'code',
     type: 'problem',
@@ -135,7 +135,7 @@ module.exports = {
   NoAvoidableExactPlurals,
   NoDuplicateMessageKeys,
   NoInvalidPluralSelector,
-  NoLimitedPlurals,
+  NoNonExhaustivePlurals,
   NoMissingPluralOther,
   NoRepeatedPluralNames,
   NoRepeatedPluralOptions,

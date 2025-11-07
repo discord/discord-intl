@@ -20,7 +20,7 @@ pub fn validate_message_value(message: &MessageValue, locale: KeySymbol) -> Vec<
     let mut diagnostics: Vec<ValueDiagnostic> = vec![];
     run_validator!(NoAvoidableExactPlurals, locale, message, diagnostics);
     run_validator!(NoInvalidPluralSelector, locale, message, diagnostics);
-    run_validator!(NoLimitedPlurals, locale, message, diagnostics);
+    run_validator!(NoNonExhaustivePlurals, locale, message, diagnostics);
     run_validator!(NoMissingPluralOther, locale, message, diagnostics);
     run_validator!(NoRepeatedPluralNames, locale, message, diagnostics);
     run_validator!(NoRepeatedPluralOptions, locale, message, diagnostics);

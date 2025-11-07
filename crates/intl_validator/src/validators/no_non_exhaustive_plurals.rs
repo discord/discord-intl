@@ -4,9 +4,9 @@ use crate::{DiagnosticCategory, DiagnosticFix};
 use intl_markdown::{IcuPlural, Visit, VisitWith};
 use intl_markdown_syntax::Syntax;
 
-cst_validation_rule!(NoLimitedPlurals);
+cst_validation_rule!(NoNonExhaustivePlurals);
 
-impl Visit for NoLimitedPlurals {
+impl Visit for NoNonExhaustivePlurals {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
         node.visit_children_with(self);
 
@@ -27,7 +27,7 @@ impl Visit for NoLimitedPlurals {
         fixes.push(DiagnosticFix::replace_token(&node.format_token(), "select"));
 
         self.context.report(ValueDiagnostic {
-            name: DiagnosticName::NoLimitedPlurals,
+            name: DiagnosticName::NoNonExhaustivePlurals,
             span: Some(node.syntax().source_position()),
             category: DiagnosticCategory::Suspicious,
             description:

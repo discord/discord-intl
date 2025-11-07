@@ -1,16 +1,16 @@
 use crate::harness;
-use intl_validator::validators::NoLimitedPlurals;
+use intl_validator::validators::NoNonExhaustivePlurals;
 use intl_validator::{apply_fixes, DiagnosticName, ValueDiagnostic};
 
 fn validate(content: &str) -> Vec<ValueDiagnostic> {
     let message = harness::define_single_message("MESSAGE_KEY", content);
-    harness::validate_with(&message, NoLimitedPlurals::new("en-US".into())).unwrap_or(vec![])
+    harness::validate_with(&message, NoNonExhaustivePlurals::new("en-US".into())).unwrap_or(vec![])
 }
 
 macro_rules! assert_has_diagnostic {
     ($diagnostics:expr, $span:tt) => {{
         let diagnostics = &$diagnostics;
-        let name = DiagnosticName::NoLimitedPlurals;
+        let name = DiagnosticName::NoNonExhaustivePlurals;
         let span = $span;
         assert_eq!(
             harness::has_matching_diagnostic(diagnostics, name, span),
