@@ -98,8 +98,37 @@ impl AnyIcuExpression {
     }
 }
 
+impl IcuPlural {
+    pub fn other_arm(&self) -> Option<IcuPluralArm> {
+        self.arms().other_arm()
+    }
+}
+
+impl IcuSelectOrdinal {
+    pub fn other_arm(&self) -> Option<IcuPluralArm> {
+        self.arms().other_arm()
+    }
+}
+
+impl IcuSelect {
+    pub fn other_arm(&self) -> Option<IcuPluralArm> {
+        self.arms().other_arm()
+    }
+}
+
+impl IcuPluralArms {
+    pub fn other_arm(&self) -> Option<IcuPluralArm> {
+        self.children()
+            .find(|arm| arm.selector_token().text() == "other")
+    }
+}
+
 impl IcuPluralArm {
     pub fn is_exact_selector(&self) -> bool {
         self.selector_token().text().starts_with("=")
+    }
+
+    pub fn is_other_selector(&self) -> bool {
+        self.selector_token().text() == "other"
     }
 }

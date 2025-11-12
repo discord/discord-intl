@@ -34,10 +34,32 @@ cst_validation_rule!(NoAvoidableExactPlurals);
 // `count == 21`). These cases should always prefer using a `#` to get both localized number
 // formatting _and_ accurate rendering in other locales.
 //
-// A full list of rules as defined by Unicode LDML and used by most localization implementations is
+// A full list of rules as defined by Unicode and used by most localization implementations is
 // available at: https://www.unicode.org/cldr/charts/43/supplemental/language_plural_rules.html.
 
 impl NoAvoidableExactPlurals {
+    fn report_too_many_exact_selectors(
+        &mut self,
+        node: &IcuPlural,
+        exact_count: usize,
+        include_select_fix: bool,
+    ) {
+        let fixes = if include_select_fix {
+            util::ops::replace_plural_with_select(node)
+        } else {
+            vec![]
+        };
+
+        self.context.report(ValueDiagnostic {
+            name: DiagnosticName::NoAvoidableExactPlurals,
+            span: Some(node.syntax().source_position()),
+            category: DiagnosticCategory::Suspicious,
+            description: format!("Too many exact selectors in this plural ({exact_count}). Consider breaking each case into a separate message or using `select` instead"),
+            help: None,
+            fixes,
+        })
+    }
+
     fn report_avoidable_exact_plural(
         &mut self,
         selector: &SyntaxToken,
@@ -78,6 +100,28 @@ impl NoAvoidableExactPlurals {
 
 impl Visit for NoAvoidableExactPlurals {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
+        let mut has_only_exact_selectors = true;
+        let mut exact_selector_count = 0;
+        for arm in node.arms().children() {
+            if arm.is_exact_selector() {
+                exact_selector_count += 1;
+            } else if !arm.is_other_selector() {
+                has_only_exact_selectors = false;
+            }
+        }
+
+        // If there are too many exact selectors, that's the only diagnostic we want to report,
+        // as the "correct fixes" applied below are less accurate than the guidance to prefer
+        // splitting up the message or using a `select` instead.
+        if exact_selector_count > 2 {
+            self.report_too_many_exact_selectors(
+                node,
+                exact_selector_count,
+                has_only_exact_selectors,
+            );
+            return;
+        }
+
         for arm in node.arms().children() {
             arm.visit_children_with(self);
 

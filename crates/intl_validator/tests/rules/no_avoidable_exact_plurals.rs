@@ -45,6 +45,40 @@ fn select_is_not_plural() {
 }
 
 #[test]
+fn no_suggestion_on_few_selectors() {
+    let diagnostics = validate("{count, plural, =0 {foo} =2 {bar}  other {bbb}}", "en-US");
+    println!("{:?}", diagnostics);
+    assert_eq!(diagnostics.len(), 0);
+}
+
+#[test]
+fn suggest_select_on_many_exact_selectors() {
+    let diagnostics = validate(
+        "{count, plural, =1 {foo} =2 {bar} =3 {baz} =4 {aaa} other {bbb}}",
+        "en-US",
+    );
+    assert_eq!(diagnostics.len(), 1);
+    assert!(diagnostics[0]
+        .description
+        .starts_with("Too many exact selectors in this plural"));
+    assert!(!diagnostics[0].fixes.is_empty());
+}
+
+#[test]
+fn suggest_refactor_on_many_mixed_selectors() {
+    // The `few` selector here prevents suggesting a `select` autofix, but still shows a diagnostic.
+    let diagnostics = validate(
+        "{count, plural, =1 {foo} =2 {bar} =3 {baz} =4 {aaa} few {bbb} other {ccc}}",
+        "en-US",
+    );
+    assert_eq!(diagnostics.len(), 1);
+    assert!(diagnostics[0]
+        .description
+        .starts_with("Too many exact selectors in this plural"));
+    assert!(diagnostics[0].fixes.is_empty());
+}
+
+#[test]
 fn valid_exact_zero() {
     let diagnostics = validate("{count, plural, =0 {No items} other {# items}}", "en-US");
     assert_eq!(diagnostics.len(), 0);
@@ -71,7 +105,7 @@ fn leading_exact_one() {
 
 #[test]
 fn leading_exact_zero() {
-    let diagnostics = validate("{count, plural, =0 {0 second} other {# seconds}}", "en-US");
+    let diagnostics = validate("{count, plural, =0 {0 second} other {# seconds}}", "ar");
     assert_eq!(diagnostics.len(), 1);
     assert_has_diagnostic!(diagnostics, (16, 18));
 }
@@ -80,7 +114,7 @@ fn leading_exact_zero() {
 fn multiple_matches() {
     let diagnostics = validate(
         "{count, plural, =0 {0 second} =1 {1 second} other {# seconds}}",
-        "en-US",
+        "ar",
     );
     assert_eq!(diagnostics.len(), 2);
     assert_has_diagnostic!(diagnostics, (16, 18));
@@ -140,7 +174,7 @@ fn higher_selector() {
 
 #[test]
 fn pound_in_exact_zero() {
-    let diagnostics = validate("{count, plural, =0 { # item} other {some items}}", "en-US");
+    let diagnostics = validate("{count, plural, =0 { # item} other {some items}}", "ar");
     assert_eq!(diagnostics.len(), 1);
     assert_has_diagnostic!(diagnostics, (16, 18));
 }

@@ -51,7 +51,9 @@ bench('export translations', () => {
 bench('validate', () => {
   const validations = database.validateMessages();
   const errors = validations.filter((d) => d.category === 'correctness');
+  const suspicious = validations.filter((d) => d.name === 'NoRepeatedPluralOptions');
   console.log(errors.length, ' correctness diagnostics of ', validations.length, ' total');
+  // console.log(suspicious);
   // console.log(util.inspect(errors, { depth: null }));
 });
 

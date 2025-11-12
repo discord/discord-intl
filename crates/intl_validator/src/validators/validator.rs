@@ -3,7 +3,6 @@ use intl_database_core::{KeySymbol, MessageValue};
 use crate::diagnostic::ValueDiagnostic;
 
 pub trait Validator {
-
     fn validate_raw(&mut self, _message: &MessageValue) -> Option<Vec<ValueDiagnostic>> {
         None
     }

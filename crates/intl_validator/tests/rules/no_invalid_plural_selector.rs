@@ -38,6 +38,7 @@ fn other_only_locale() {
     assert_eq!(diagnostics.len(), 2);
     assert_has_diagnostic!(diagnostics, (16, 29));
     assert_has_diagnostic!(diagnostics, (29, 43));
+    assert!(!diagnostics[0].fixes.is_empty());
 }
 
 #[test]
@@ -62,14 +63,39 @@ fn all_valid() {
     assert_eq!(diagnostics.len(), 0);
 }
 
-
 #[test]
 fn exact_selectors() {
-
     let diagnostics = validate(
         "{count, plural, =0 {foo} =1 {bar} =2 {baz} other {# items}}",
         "ja",
     );
 
     assert_eq!(diagnostics.len(), 0);
+}
+
+#[test]
+fn invalid_zero_autofix() {
+    let diagnostics = validate("{count, plural, zero {# item} other {# items}}", "ja");
+
+    assert_eq!(diagnostics.len(), 1);
+    assert_has_diagnostic!(diagnostics, (16, 30));
+    assert!(!diagnostics[0].fixes.is_empty());
+}
+
+#[test]
+fn invalid_one_autofix() {
+    let diagnostics = validate("{count, plural, one {# item} other {# items}}", "ja");
+
+    assert_eq!(diagnostics.len(), 1);
+    assert_has_diagnostic!(diagnostics, (16, 29));
+    assert!(!diagnostics[0].fixes.is_empty());
+}
+
+#[test]
+fn invalid_other_no_autofix() {
+    let diagnostics = validate("{count, plural, two {# item} other {# items}}", "ja");
+
+    assert_eq!(diagnostics.len(), 1);
+    assert_has_diagnostic!(diagnostics, (16, 29));
+    assert!(diagnostics[0].fixes.is_empty());
 }

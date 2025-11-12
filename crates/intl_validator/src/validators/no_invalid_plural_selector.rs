@@ -1,7 +1,7 @@
 use crate::diagnostic::{DiagnosticName, ValueDiagnostic};
 use crate::macros::cst_validation_rule;
 use crate::util::plural_rules::get_valid_cardinal_selectors;
-use crate::DiagnosticCategory;
+use crate::{DiagnosticCategory, DiagnosticFix};
 use intl_markdown::{IcuPlural, Visit, VisitWith};
 use intl_markdown_syntax::Syntax;
 
@@ -28,13 +28,20 @@ impl Visit for NoInvalidPluralSelector {
                         .collect::<Vec<_>>()
                         .join(", ")
                 );
+                let replacement = match selector.text() {
+                    "zero" => Some("=0"),
+                    "one" => Some("=1"),
+                    _ => None,
+                };
                 self.context.report(ValueDiagnostic {
                     name: DiagnosticName::NoInvalidPluralSelector,
                     span: Some(arm.syntax().source_position()),
                     category: DiagnosticCategory::Correctness,
                     description,
                     help: None,
-                    fixes: vec![],
+                    fixes: replacement.map_or(vec![], |replacement| {
+                        vec![DiagnosticFix::replace_token(&selector, replacement)]
+                    }),
                 });
             }
         }

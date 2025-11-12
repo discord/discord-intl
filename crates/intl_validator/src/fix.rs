@@ -1,5 +1,5 @@
 use crate::TextRange;
-use intl_markdown_syntax::SyntaxToken;
+use intl_markdown_syntax::{SyntaxNode, SyntaxToken};
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticFix {
@@ -9,12 +9,16 @@ pub struct DiagnosticFix {
 }
 
 impl DiagnosticFix {
-    pub fn remove_text(source_span: TextRange) -> Self {
+    pub fn replace_node(node: &SyntaxNode, replacement: &str) -> Self {
         DiagnosticFix {
             message: None,
-            source_span,
-            replacement: "".into(),
+            source_span: node.source_position(),
+            replacement: replacement.into(),
         }
+    }
+
+    pub fn remove_node(node: &SyntaxNode) -> Self {
+        DiagnosticFix::replace_node(node, "")
     }
 
     pub fn replace_text(source_span: TextRange, replacement: &str) -> Self {
@@ -23,6 +27,10 @@ impl DiagnosticFix {
             source_span,
             replacement: replacement.into(),
         }
+    }
+
+    pub fn remove_text(source_span: TextRange) -> Self {
+        DiagnosticFix::replace_text(source_span, "")
     }
 
     pub fn insert_text(start: usize, new_text: &str) -> Self {
