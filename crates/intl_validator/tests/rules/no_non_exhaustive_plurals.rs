@@ -60,10 +60,19 @@ fn multiple_exact_selectors() {
 
     assert_eq!(diagnostics.len(), 1);
     assert_has_diagnostic!(diagnostics, (1, 63));
-    println!("{:#?}", diagnostics[0]);
     let fixed = apply_fixes(message, &diagnostics[0].fixes);
     assert_eq!(
         fixed,
         "{count, select, 1 {why plural} 2 {this} 3 {is a} 4 {select}}"
     );
+}
+
+#[test]
+fn multiple_exact_selectors_with_pound_cannot_be_fixed() {
+    let message = "{count, plural, =1 {# plural} =2 {this} =3 {is a} =4 {select}}";
+    let diagnostics = validate(message);
+
+    assert_eq!(diagnostics.len(), 1);
+    assert_has_diagnostic!(diagnostics, (1, 61));
+    assert!(diagnostics[0].fixes.is_empty());
 }

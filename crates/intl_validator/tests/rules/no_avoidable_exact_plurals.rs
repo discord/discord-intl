@@ -47,7 +47,6 @@ fn select_is_not_plural() {
 #[test]
 fn no_suggestion_on_few_selectors() {
     let diagnostics = validate("{count, plural, =0 {foo} =2 {bar}  other {bbb}}", "en-US");
-    println!("{:?}", diagnostics);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -65,10 +64,24 @@ fn suggest_select_on_many_exact_selectors() {
 }
 
 #[test]
-fn suggest_refactor_on_many_mixed_selectors() {
+fn no_suggest_refactor_on_many_mixed_selectors() {
     // The `few` selector here prevents suggesting a `select` autofix, but still shows a diagnostic.
     let diagnostics = validate(
         "{count, plural, =1 {foo} =2 {bar} =3 {baz} =4 {aaa} few {bbb} other {ccc}}",
+        "en-US",
+    );
+    assert_eq!(diagnostics.len(), 1);
+    assert!(diagnostics[0]
+        .description
+        .starts_with("Too many exact selectors in this plural"));
+    assert!(diagnostics[0].fixes.is_empty());
+}
+
+#[test]
+fn no_suggest_refactor_on_selectors_with_pound() {
+    // The `few` selector here prevents suggesting a `select` autofix, but still shows a diagnostic.
+    let diagnostics = validate(
+        "{count, plural, =1 {#} =2 {bar} =3 {baz} =4 {aaa} few {bbb} other {ccc}}",
         "en-US",
     );
     assert_eq!(diagnostics.len(), 1);
