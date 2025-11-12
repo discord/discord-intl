@@ -20,5 +20,5 @@ pub use kind::SyntaxKind;
 pub use node::{SyntaxNode, SyntaxNodeHeader};
 pub use text::TextPointer;
 pub use token::{SourceText, SyntaxToken, TextSize, TextSpan, TrimKind};
-pub use traits::{FromSyntax, FromSyntaxElement, Syntax};
+pub use traits::{EqIgnoreSpan, FromSyntax, FromSyntaxElement, Syntax};
 pub use tree::{TreeBuilder, TreeMarker};

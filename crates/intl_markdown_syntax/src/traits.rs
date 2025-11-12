@@ -23,3 +23,15 @@ pub trait Syntax {
         self.syntax().kind()
     }
 }
+
+pub trait EqIgnoreSpan {
+    /// Return true if two elements are equal, ignoring their location in the
+    /// source text.
+    fn eq_ignore_span(&self, rhs: &Self) -> bool;
+}
+
+impl<T: Syntax> EqIgnoreSpan for T {
+    fn eq_ignore_span(&self, rhs: &Self) -> bool {
+        self.syntax().eq_ignore_span(rhs.syntax())
+    }
+}

@@ -1,4 +1,5 @@
 use crate::text::TextPointer;
+use crate::traits::EqIgnoreSpan;
 use crate::SyntaxKind;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, Range};
@@ -9,6 +10,7 @@ pub type SourceText = Arc<str>;
 pub type TextSize = u32;
 pub type TextSpan = Range<usize>;
 
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum TrimKind {
     TrimNone,
     TrimLeading,
@@ -322,5 +324,11 @@ impl Debug for SyntaxToken {
             ))?;
         }
         Ok(())
+    }
+}
+
+impl EqIgnoreSpan for SyntaxToken {
+    fn eq_ignore_span(&self, rhs: &SyntaxToken) -> bool {
+        self.full_text() == rhs.full_text()
     }
 }

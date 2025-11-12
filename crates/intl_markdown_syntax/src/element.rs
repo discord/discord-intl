@@ -1,4 +1,5 @@
 use crate::iterators::PositionalIterator;
+use crate::traits::EqIgnoreSpan;
 use crate::{SyntaxKind, SyntaxNode, SyntaxToken, TextSize};
 use std::fmt::{Debug, Formatter};
 
@@ -136,6 +137,20 @@ impl From<&SyntaxNode> for SyntaxElement {
 impl From<&SyntaxToken> for SyntaxElement {
     fn from(token: &SyntaxToken) -> Self {
         NodeOrToken::Token(token.clone())
+    }
+}
+
+impl EqIgnoreSpan for SyntaxElement {
+    fn eq_ignore_span(&self, rhs: &Self) -> bool {
+        match rhs {
+            SyntaxElement::Token(rhs_token) => self
+                .as_token()
+                .is_some_and(|token| token.eq_ignore_span(rhs_token)),
+            SyntaxElement::Node(rhs_node) => self
+                .as_node()
+                .is_some_and(|node| node.eq_ignore_span(rhs_node)),
+            SyntaxElement::Empty => matches!(self, SyntaxElement::Empty),
+        }
     }
 }
 

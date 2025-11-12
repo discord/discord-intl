@@ -1,4 +1,5 @@
 use crate::iterators::SyntaxNodeTokenIter;
+use crate::traits::EqIgnoreSpan;
 use crate::{SyntaxElement, SyntaxKind, TextSize};
 use slice_dst::SliceWithHeader;
 use std::fmt::{Debug, Formatter};
@@ -124,6 +125,26 @@ impl Index<Range<usize>> for SyntaxNode {
 
     fn index(&self, index: Range<usize>) -> &Self::Output {
         &self.0.slice[index]
+    }
+}
+
+impl EqIgnoreSpan for SyntaxNode {
+    fn eq_ignore_span(&self, rhs: &SyntaxNode) -> bool {
+        let children = self.children();
+        let rhs_children = rhs.children();
+
+        if rhs_children.len() != children.len() {
+            return false;
+        }
+
+        if self.kind() != rhs.kind() {
+            return false;
+        }
+
+        children
+            .iter()
+            .zip(rhs_children.iter())
+            .all(|(a, b)| a.eq_ignore_span(b))
     }
 }
 
