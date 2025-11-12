@@ -17,6 +17,7 @@ pub enum DiagnosticName {
     NoUnicodeVariableNames,
     NoUnsafeVariableSyntax,
     NoNonExhaustivePlurals,
+    NoUnnecessaryPlural,
 }
 
 impl Display for DiagnosticName {
@@ -39,6 +40,7 @@ impl DiagnosticName {
             DiagnosticName::NoUnicodeVariableNames => "NoUnicodeVariableNames",
             DiagnosticName::NoUnsafeVariableSyntax => "NoUnsafeVariableSyntax",
             DiagnosticName::NoNonExhaustivePlurals => "NoNonExhaustivePlurals",
+            DiagnosticName::NoUnnecessaryPlural => "NoUnnecessaryPlural",
         }
     }
 }

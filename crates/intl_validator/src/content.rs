@@ -26,6 +26,7 @@ pub fn validate_message_value(message: &MessageValue, locale: KeySymbol) -> Vec<
     run_validator!(NoRepeatedPluralOptions, locale, message, diagnostics);
     run_validator!(NoTrimmableWhitespace, locale, message, diagnostics);
     run_validator!(NoUnicodeVariableNames, locale, message, diagnostics);
+    run_validator!(NoUnnecessaryPlural, locale, message, diagnostics);
     run_validator!(NoUnsafeVariableSyntax, locale, message, diagnostics);
 
     diagnostics

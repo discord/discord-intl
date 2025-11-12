@@ -120,6 +120,16 @@ const NoUnicodeVariableNames = createNativeRule({
     },
   },
 });
+const NoUnnecessaryPlural = createNativeRule({
+  diagnosticName: 'NoUnnecessaryPlural',
+  meta: {
+    fixable: 'code',
+    docs: {
+      description: 'Avoid plurals and select expressions where all branches are identical',
+      category: 'Best Practices',
+    },
+  },
+});
 const NoUnsafeVariableSyntax = createNativeRule({
   diagnosticName: 'NoUnsafeVariableSyntax',
   meta: {
@@ -141,6 +151,7 @@ module.exports = {
   NoRepeatedPluralOptions,
   NoTrimmableWhitespace,
   NoUnicodeVariableNames,
+  NoUnnecessaryPlural,
   NoUnsafeVariableSyntax,
   createNativeRule,
 };

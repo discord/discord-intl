@@ -60,42 +60,16 @@ impl Visit for NoRepeatedPluralOptions {
             });
         }
 
-        // TODO: Finish implementing once Node text can be retrieved quickly.
-        // // If all options are identical to the `other` option, then the plural is entirely
-        // // unnecessary and should be replaced with just the content.
-        // if duplicate_arms.len() > 0
-        //     && duplicate_arms.len() == node.arms().len()
-        //     && other_arm.is_some()
-        // {
-        //     let replacement_text = duplicate_arms[0].value().content().;
-        //     self.context.report(ValueDiagnostic {
-        //         name: DiagnosticName::NoRepeatedPluralOptions,
-        //         span: Some(node.syntax().source_position()),
-        //         category: DiagnosticCategory::Suspicious,
-        //         description: String::from(
-        //             "All arms of this plural are identical and should be replaced with just the content for simplicity",
-        //         ),
-        //         help: None,
-        //         fixes: vec![
-        //             DiagnosticFix::remove_node(node.syntax()),
-        //             DiagnosticFix::insert_text(node.syntax().source_position().0, "")
-        //         ],
-        //     })
-        // } else {
-        //     ...
-        // }
-        // Otherwise, just remove the ones that are identical.
         for arm in duplicate_arms {
-            let arm_position = arm.syntax().source_position();
             self.context.report(ValueDiagnostic {
                 name: DiagnosticName::NoRepeatedPluralOptions,
-                span: Some(arm_position),
+                span: Some(arm.syntax().source_position()),
                 category: DiagnosticCategory::Suspicious,
                 description: String::from(
                     "Plural option matches `other` exactly and can be removed",
                 ),
                 help: None,
-                fixes: vec![DiagnosticFix::remove_text(arm_position)],
+                fixes: vec![DiagnosticFix::remove_node(arm.syntax())],
             })
         }
     }

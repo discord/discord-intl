@@ -100,6 +100,8 @@ impl NoAvoidableExactPlurals {
 
 impl Visit for NoAvoidableExactPlurals {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
+        node.visit_children_with(self);
+
         let mut has_only_exact_selectors = true;
         let mut exact_selector_count = 0;
         for arm in node.arms().children() {

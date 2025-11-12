@@ -3,4 +3,5 @@ mod no_invalid_plural_selector;
 mod no_missing_plural_other;
 mod no_non_exhaustive_plurals;
 mod no_repeated_plural_names;
+mod no_unnecessary_plural;
 mod no_unsafe_variable_syntax;

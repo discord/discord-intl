@@ -11,6 +11,7 @@ impl Visit for NoInvalidPluralSelector {
     fn visit_icu_plural(&mut self, node: &IcuPlural) {
         let valid_selectors =
             get_valid_cardinal_selectors(&self.context.locale).unwrap_or_default();
+
         for arm in node.arms().children() {
             if arm.is_exact_selector() {
                 continue;
