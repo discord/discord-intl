@@ -182,15 +182,41 @@ impl Visit for MessageVariablesVisitor {
     fn visit_icu_select(&mut self, select: &IcuSelect) {
         let name = select.ident_token();
         let arms = select.arms();
-        let selectors = arms
-            .children()
-            .map(|arm| arm.selector_token().text().to_string());
-        self.variables.add_instance(
-            name.text(),
-            MessageVariableType::Enum(selectors.collect()),
-            false,
-            Some(name.span()),
-        );
+        let mut selectors = vec![];
+        let mut numeric_selectors = vec![];
+        let mut has_other = false;
+        let mut is_all_numeric = true;
+        for arm in arms.children() {
+            if arm.is_other_selector() {
+                has_other = true;
+                continue;
+            }
+            // If the value can be treated as a numeric literal, then it can be added to the
+            // type set as a number. e.g., `{count, select, 1 {foo} 2 {bar}}` would yield the
+            // enum `1 | 2 | "1" | "2"`, so that messages with these expression can be formatted
+            // like `intl.format(message, {count: 1})` or `intl.format(message, {count: "2"})`.
+            if let Ok(numeric_selector) = arm.selector_token().text().parse::<usize>() {
+                numeric_selectors.push(numeric_selector);
+            } else {
+                is_all_numeric = false;
+                selectors.push(arm.selector_token().text().to_string());
+            }
+        }
+
+        let kind = if is_all_numeric {
+            MessageVariableType::NumericEnum {
+                values: numeric_selectors,
+                allow_other: has_other,
+            }
+        } else {
+            MessageVariableType::Enum {
+                values: selectors,
+                allow_other: has_other,
+            }
+        };
+
+        self.variables
+            .add_instance(name.text(), kind, false, Some(name.span()));
         self.plural_name_stack.push(name.clone());
         select.visit_children_with(self);
         self.plural_name_stack.pop();

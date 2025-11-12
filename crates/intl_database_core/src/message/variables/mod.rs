@@ -11,6 +11,7 @@ use serde::Serialize;
 mod visitor;
 
 #[derive(Clone, Debug, Serialize, Hash, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum MessageVariableType {
     /// Any value is accepted for this variable. Generally used when the
     /// required type of the variable can't be determined.
@@ -23,7 +24,18 @@ pub enum MessageVariableType {
     /// A value that must match one of the defined values in this vec. Enums
     /// that support fallbacks are determined by the runtime, but most use the
     /// option `"other"` to represent that.
-    Enum(Vec<String>),
+    Enum {
+        values: Vec<String>,
+        allow_other: bool,
+    },
+    /// Like a regular Enum, but the values must be numbers, similar to Plurals
+    /// except only a fixed set of options are allowed. If `allow_other` is
+    /// true, then any number is allowed as a value, but anything not given in
+    /// `options` will always use the `other` clause.
+    NumericEnum {
+        values: Vec<usize>,
+        allow_other: bool,
+    },
     /// A Date type must be supplied. The runtime can decide whether the type
     /// can be parsed from a String or must be a Date object.
     Date,

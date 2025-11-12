@@ -71,20 +71,26 @@ fn add_strict_type_name(set: &mut AlphabeticSymbolSet, kind: &MessageVariableTyp
         MessageVariableType::Plural => {
             set.insert("number".into());
         }
-        MessageVariableType::Enum(values) => {
+        MessageVariableType::Enum {
+            values,
+            allow_other,
+        } => {
             for value in values {
-                // If the value can be treated as a numeric literal, then it can be added to the
-                // type set as a number. e.g., `{count, select, 1 {foo} 2 {bar}}` would yield the
-                // enum `1 | 2 | "1" | "2"`, so that messages with these expression can be formatted
-                // like `intl.format(message, {count: 1})` or `intl.format(message, {count: "2"})`.
-                if value.parse::<usize>().is_ok() {
-                    set.insert(KeySymbol::from(&value));
-                }
-                if value == "other" {
-                    set.insert("string".into());
-                } else {
-                    set.insert(format!("'{value}'").into());
-                }
+                set.insert(format!("'{value}'").into());
+            }
+            if *allow_other {
+                set.insert("string".into());
+            }
+        }
+        MessageVariableType::NumericEnum {
+            values,
+            allow_other,
+        } => {
+            for value in values {
+                set.insert(value.to_string().into());
+            }
+            if *allow_other {
+                set.insert("number".into());
             }
         }
         MessageVariableType::Date => {
