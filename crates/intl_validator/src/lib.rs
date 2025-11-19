@@ -25,16 +25,18 @@ pub mod validators;
 /// diagnostics presented from general errors, like invalid syntax or
 /// unsupported syntax.
 pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
-    let Some(source) = message.get_source_translation() else {
-        return vec![];
-    };
+    let (source_has_variables, source_locale) =
+        if let Some(source) = message.get_source_translation() {
+            (
+                !source.variables.is_empty(),
+                // SAFETY: If the source exists, then the locale for it must also exist.
+                Some(message.source_locale().unwrap()),
+            )
+        } else {
+            (false, None)
+        };
 
-    // SAFETY: If the message has a source translation, it must have a source locale.
-    let source_locale = message.source_locale().unwrap();
     let mut diagnostics = MessageDiagnosticsBuilder::new(message.key());
-
-    let source_variables = &source.variables;
-    let source_has_variables = source_variables.count() > 0;
 
     for (locale, translation) in message.translations() {
         diagnostics.extend_from_value_diagnostics(
@@ -42,7 +44,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
             translation,
             *locale,
         );
-        if *locale == source_locale {
+        if source_locale.is_some_and(|source_locale| *locale == source_locale) {
             continue;
         }
 
