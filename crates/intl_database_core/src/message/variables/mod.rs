@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use crate::database::symbol::{KeySymbol, KeySymbolMap};
-use crate::key_symbol;
 use crate::message::variables::visitor::MessageVariablesVisitor;
+use crate::{key_symbol, KeySymbolSet};
 use intl_markdown::{AnyDocument, VisitWith};
 use intl_markdown_syntax::TextSpan;
 use rustc_hash::FxHashSet;
@@ -54,6 +54,17 @@ pub enum MessageVariableType {
     HandlerFunction,
 }
 
+impl MessageVariableType {
+    /// Returns true if the variable type is a reference that directly renders
+    /// the content of the variable.
+    pub fn is_visible_reference(&self) -> bool {
+        !matches!(
+            self,
+            Self::Enum { .. } | Self::NumericEnum { .. } | Self::Plural
+        )
+    }
+}
+
 /// A representation of a single _instance_ of a variable in a message. Each
 /// time a variable appears in a message, even if it is a variable that has
 /// already been seen, a new MessageVariable is created.
@@ -71,6 +82,23 @@ pub struct MessageVariableInstance {
     pub is_builtin: bool,
     /// The specific kind of the variable, used for generating types.
     pub kind: MessageVariableType,
+}
+
+impl MessageVariableInstance {
+    /// Returns true if the content of the variable is rendered as a result of
+    /// this instance. For example, `{count}` is visible because the content of
+    /// `count` is rendered into the string, but `{count, plural, other {foo}}`
+    /// is _not_ visible, because the value of count only controls the plural
+    /// and is not actually rendered in any of the arms.
+    ///
+    /// Builtin variables are _not_ included as visible, because they are
+    /// always stylistic and may not have the same colloquial meaning across
+    /// languages. Note that link and hook functions _do_ contain builtins, but
+    /// _also_ contain other variable references when the content is affected
+    /// by the variable values.
+    pub fn is_visible(&self) -> bool {
+        self.kind.is_visible_reference() && !self.is_builtin
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -119,7 +147,7 @@ impl MessageVariables {
     }
 
     /// Returns a HashSet of the names of all variables in this message.
-    pub fn get_keys(&self) -> FxHashSet<&KeySymbol> {
+    pub fn keys(&self) -> FxHashSet<&KeySymbol> {
         self.variables.keys().collect::<FxHashSet<&KeySymbol>>()
     }
 
@@ -136,6 +164,16 @@ impl MessageVariables {
     pub fn get(&self, key: &KeySymbol) -> Option<&Vec<MessageVariableInstance>> {
         self.variables.get(key)
     }
+
+    /// Return only the variables of this set that are "visible" when the
+    /// message is rendered.
+    pub fn visible_variable_names(&self) -> KeySymbolSet {
+        self.variables
+            .iter()
+            .filter(|(_, instances)| instances.iter().any(|instance| instance.is_visible()))
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
 }
 
 impl Deref for MessageVariables {
@@ -150,4 +188,81 @@ pub fn collect_message_variables(ast: &AnyDocument) -> MessageVariables {
     let mut visitor = MessageVariablesVisitor::new();
     ast.visit_with(&mut visitor);
     visitor.into_variables()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn selectable_variables_are_not_visible() {
+        assert_eq!(MessageVariableType::Plural.is_visible_reference(), false);
+        assert_eq!(
+            MessageVariableType::NumericEnum {
+                values: vec![],
+                allow_other: false
+            }
+            .is_visible_reference(),
+            false
+        );
+        assert_eq!(
+            MessageVariableType::Enum {
+                values: vec![],
+                allow_other: false
+            }
+            .is_visible_reference(),
+            false
+        );
+    }
+
+    #[test]
+    fn regular_variables_are_visible() {
+        assert_eq!(MessageVariableType::Any.is_visible_reference(), true);
+        assert_eq!(MessageVariableType::Number.is_visible_reference(), true);
+        assert_eq!(MessageVariableType::Date.is_visible_reference(), true);
+        assert_eq!(MessageVariableType::Time.is_visible_reference(), true);
+    }
+
+    #[test]
+    fn function_variables_are_visible() {
+        assert_eq!(
+            MessageVariableType::HandlerFunction.is_visible_reference(),
+            true
+        );
+        assert_eq!(
+            MessageVariableType::HookFunction.is_visible_reference(),
+            true
+        );
+        assert_eq!(
+            MessageVariableType::LinkFunction.is_visible_reference(),
+            true
+        );
+    }
+
+    #[test]
+    fn one_visible_reference_makes_variable_visible() {
+        // This tests the difference between `{count, plural, other {foo}}` and
+        // `{count, plural, other {# foo}}`, where only the latter has a visible reference because
+        // of the `#` rendering the number.
+        let mut variables = MessageVariables::new();
+        variables.add_instance("foo", MessageVariableType::Plural, false, None);
+
+        assert_eq!(variables.visible_variable_names().len(), 0);
+
+        // Another visible instance of the same variable makes it visible
+        variables.add_instance("foo", MessageVariableType::Number, false, None);
+        assert_eq!(variables.visible_variable_names().len(), 1);
+    }
+
+    #[test]
+    fn adding_invisible_reference_does_not_hide_variable() {
+        let mut variables = MessageVariables::new();
+        variables.add_instance("foo", MessageVariableType::Number, false, None);
+
+        assert_eq!(variables.visible_variable_names().len(), 1);
+
+        // Another visible instance of the same variable makes it visible
+        variables.add_instance("foo", MessageVariableType::Plural, false, None);
+        assert_eq!(variables.visible_variable_names().len(), 1);
+    }
 }

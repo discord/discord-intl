@@ -72,7 +72,7 @@ impl<'a> IntlTypesGenerator<'a> {
             return AlphabeticSymbolMap::default();
         };
 
-        let source_variables = source.variables.get_keys();
+        let source_variables = source.variables.keys();
 
         // Map of variable keys to locales that define them when the variable
         // is not present in the source message.
@@ -87,7 +87,7 @@ impl<'a> IntlTypesGenerator<'a> {
                 continue;
             }
 
-            for variable in translation.variables.get_keys() {
+            for variable in translation.variables.keys() {
                 if !source_variables.contains(variable) {
                     // For some reason, `entry().or_insert().and_modify()` is not available here.
                     spurious_variables
