@@ -14,7 +14,6 @@ const {
   findAllMessagesFiles,
 } = require('@discord/intl-loader-core');
 const { traverseMessageDefinitions, isDefinitionsFile } = require('./traverse');
-const diagnostics_channel = require('node:diagnostics_channel');
 /** @type {Map<SourceCode, Record<string, IntlDiagnostic[]>>} */
 const FILE_VALIDATIONS = new Map();
 
