@@ -1,6 +1,6 @@
 {
   "name": "@discord/intl-message-database-win32-x64-msvc",
-  "version": "0.27.2",
+  "version": "0.27.3",
   "license": "MIT",
   "os": [
     "win32"
