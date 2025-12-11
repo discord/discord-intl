@@ -14,6 +14,7 @@ const {
   findAllMessagesFiles,
 } = require('@discord/intl-loader-core');
 const { traverseMessageDefinitions, isDefinitionsFile } = require('./traverse');
+const diagnostics_channel = require('node:diagnostics_channel');
 /** @type {Map<SourceCode, Record<string, IntlDiagnostic[]>>} */
 const FILE_VALIDATIONS = new Map();
 
@@ -97,7 +98,9 @@ function processAndValidateNative(sourceCode, fileName, content) {
  */
 function traverseAndReportMatchingNativeValidations(context, predicate) {
   if (!isDefinitionsFile(context.filename, context.sourceCode.text)) return {};
-  ensureInitialized(context.cwd);
+
+  const projectDirectory = context.settings['intl']?.['projectDirectory'] ?? context.cwd;
+  ensureInitialized(projectDirectory);
   const validations = processAndValidateNative(
     context.sourceCode,
     context.filename,
@@ -113,6 +116,24 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
       line: diagnostic.messageLine,
       column: diagnostic.messageCol,
     });
+
+    // Sometimes we get a diagnostic pointing to a different file than the
+    // current source code. Not totally sure why for now, so lets just noisily
+    // log the diagnostic to be able to investigate further when it happens.
+    const textLen = context.sourceCode.text.length;
+    if (
+      diagnostic.file !== context.physicalFilename ||
+      messageOffset + diagnostic.start > textLen ||
+      messageOffset + diagnostic.end > textLen
+    ) {
+      console.error('Invalid diagnostic span from intl vs eslint:');
+      console.log('ESLint source filename:', context.filename);
+      console.log(diagnostic);
+      return {
+        start: context.sourceCode.getLocFromIndex(1),
+        end: context.sourceCode.getLocFromIndex(1),
+      };
+    }
 
     return {
       start: context.sourceCode.getLocFromIndex(messageOffset + diagnostic.start),
