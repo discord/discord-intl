@@ -69,7 +69,7 @@ function processAndValidateNative(sourceCode, fileName, content) {
         messageLine: error.line ?? 0,
         messageCol: error.col ?? 0,
         start: 0,
-        end: content.length,
+        end: 1,
         locale: error.locale ?? 'definition',
         category: 'correctness',
         fixes: [],
