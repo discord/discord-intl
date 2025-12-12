@@ -4,29 +4,38 @@
 /** @typedef {import('eslint').Rule.ReportDescriptorLocation} ReportDescriptorLocation */
 /** @typedef {import('eslint').AST.SourceLocation} SourceLocation */
 /** @typedef {import('eslint').SourceCode} SourceCode */
-/** @typedef {import("@discord/intl-loader-core/types").IntlDiagnostic} IntlDiagnostic */
+/** @typedef {import("@discord/intl-message-database").IntlDiagnostic} IntlDiagnostic */
 
 const crypto = require('node:crypto');
-const {
-  processDefinitionsFile,
-  database,
-  processAllMessagesFiles,
-  findAllMessagesFiles,
-} = require('@discord/intl-loader-core');
+const path = require('node:path');
 const { traverseMessageDefinitions, isDefinitionsFile } = require('./traverse');
+const {
+  IntlMessagesDatabase,
+  IntlDatabaseInsertStrategy,
+} = require('@discord/intl-message-database');
 /** @type {Map<SourceCode, Record<string, IntlDiagnostic[]>>} */
 const FILE_VALIDATIONS = new Map();
 
-let isInitialized = false;
+/** @type {Map<string, IntlMessagesDatabase>} */
+const PROJECT_DATABASE_MAP = new Map();
 
 /**
  * @param {string} directory
+ * @returns {IntlMessagesDatabase}
  */
 function ensureInitialized(directory) {
-  if (isInitialized) return;
+  const key = path.resolve(directory);
+  const existing = PROJECT_DATABASE_MAP.get(key);
+  if (existing != null) return existing;
 
-  processAllMessagesFiles(findAllMessagesFiles([directory]));
-  isInitialized = true;
+  const database = new IntlMessagesDatabase();
+  database.processAllMessagesFiles(
+    database.findAllMessagesFiles([directory], 'en-US'),
+    IntlDatabaseInsertStrategy.Create,
+  );
+
+  PROJECT_DATABASE_MAP.set(key, database);
+  return database;
 }
 
 /**
@@ -37,12 +46,13 @@ function ensureInitialized(directory) {
  * validations, allowing them to be reused across multiple rules without wasting work validating
  * the same messages multiple times.
  *
+ * @param {IntlMessagesDatabase} database
  * @param {SourceCode} sourceCode
  * @param {string} fileName
  * @param {string} content
  * @return {Record<string, IntlDiagnostic[]>}
  */
-function processAndValidateNative(sourceCode, fileName, content) {
+function processAndValidateNative(database, sourceCode, fileName, content) {
   const fileKey = crypto.hash('sha1', content);
   const existing = FILE_VALIDATIONS.get(sourceCode);
   if (existing != null) return existing;
@@ -51,30 +61,31 @@ function processAndValidateNative(sourceCode, fileName, content) {
   // native database that this is a JS message definition _somehow_, so we'll make a random
   // name that should be relatively unique.
   const processingFileName = fileName === '<input>' ? `${fileKey}.messages.js` : fileName;
-  const processResult = processDefinitionsFile(processingFileName, content, {
-    processTranslations: false,
-  });
+  const processResult = database.processDefinitionsFileContent(
+    processingFileName,
+    content,
+    'en-US',
+    IntlDatabaseInsertStrategy.Update,
+  );
 
   /** @type {Record<string, IntlDiagnostic[]>} */
   const validations = {};
 
-  if (!processResult.succeeded) {
-    for (const error of processResult.errors) {
-      const key = error.key ?? 'file';
-      (validations[key] ??= []).push({
-        name: 'Processing::' + error.name,
-        description: error.message,
-        key: error.key ?? 'file',
-        file: error.file ?? processingFileName,
-        messageLine: error.line ?? 0,
-        messageCol: error.col ?? 0,
-        start: 0,
-        end: 1,
-        locale: error.locale ?? 'definition',
-        category: 'correctness',
-        fixes: [],
-      });
-    }
+  for (const error of processResult.errors) {
+    const key = error.key ?? 'file';
+    (validations[key] ??= []).push({
+      name: 'Processing::' + error.name,
+      description: error.message,
+      key: error.key ?? 'file',
+      file: error.file ?? processingFileName,
+      messageLine: error.line ?? 0,
+      messageCol: error.col ?? 0,
+      start: 0,
+      end: 2,
+      locale: error.locale ?? 'definition',
+      category: 'correctness',
+      fixes: [],
+    });
   }
 
   for (const diagnostic of database.validateMessages()) {
@@ -99,8 +110,9 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
   if (!isDefinitionsFile(context.filename, context.sourceCode.text)) return {};
 
   const projectDirectory = context.settings['intl']?.['projectDirectory'] ?? context.cwd;
-  ensureInitialized(projectDirectory);
+  const database = ensureInitialized(projectDirectory);
   const validations = processAndValidateNative(
+    database,
     context.sourceCode,
     context.filename,
     context.sourceCode.text,

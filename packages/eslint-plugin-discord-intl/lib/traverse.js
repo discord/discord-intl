@@ -1,4 +1,4 @@
-const { isMessageDefinitionsFile } = require('@discord/intl-loader-core');
+const { isMessageDefinitionsFile } = require('@discord/intl-message-database');
 
 /** @typedef {import('eslint').Rule.NodeParentExtension} NodeParentExtension */
 /** @typedef {import('eslint').SourceCode} SourceCode */
