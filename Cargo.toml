@@ -40,7 +40,7 @@ keyless_json = { path = "./crates/keyless_json" }
 anyhow = "1"
 criterion = "0.8.1"
 ignore = "0.4.25"
-mimalloc = { version = "0.1", features = ["local_dynamic_tls"] }
+mimalloc = { version = "0.1.48", features = ["local_dynamic_tls"] }
 napi = { version = "3.7.0", features = ["error_anyhow", "serde-json"] }
 napi-derive = "3.4.0"
 regex = "1.11.3"
