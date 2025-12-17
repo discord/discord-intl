@@ -64,7 +64,7 @@ impl BlockDocument {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> TypedNodeChildren<AnyBlockNode> {
+    pub fn children(&self) -> TypedNodeChildren<'_, AnyBlockNode> {
         TypedNodeChildren::new(SyntaxNodeChildren::new(self.syntax.children()))
     }
     pub fn get(&self, index: usize) -> Option<AnyBlockNode> {
@@ -104,7 +104,7 @@ impl InlineContent {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> TypedNodeChildren<AnyInlineNode> {
+    pub fn children(&self) -> TypedNodeChildren<'_, AnyInlineNode> {
         TypedNodeChildren::new(SyntaxNodeChildren::new(self.syntax.children()))
     }
     pub fn get(&self, index: usize) -> Option<AnyInlineNode> {
@@ -249,7 +249,7 @@ impl ThematicBreak {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -381,7 +381,7 @@ impl BlockSpace {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -497,7 +497,7 @@ impl SetextHeadingUnderline {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -601,7 +601,7 @@ impl CodeBlockContent {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -639,7 +639,7 @@ impl CodeBlockInfoString {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -803,7 +803,7 @@ impl TextSpan {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -1349,7 +1349,7 @@ impl StaticLinkDestination {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -1441,7 +1441,7 @@ impl LinkTitleContent {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -1479,7 +1479,7 @@ impl CodeSpanContent {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> SyntaxTokenChildren {
+    pub fn children(&self) -> SyntaxTokenChildren<'_> {
         SyntaxTokenChildren::new(self.syntax.children())
     }
     pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -1919,7 +1919,7 @@ impl IcuPluralArms {
     pub fn len(&self) -> usize {
         self.syntax.len()
     }
-    pub fn children(&self) -> TypedNodeChildren<IcuPluralArm> {
+    pub fn children(&self) -> TypedNodeChildren<'_, IcuPluralArm> {
         TypedNodeChildren::new(SyntaxNodeChildren::new(self.syntax.children()))
     }
     pub fn get(&self, index: usize) -> Option<IcuPluralArm> {

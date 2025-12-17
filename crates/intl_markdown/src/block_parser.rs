@@ -124,7 +124,6 @@ impl Line {
                 if *byte == expected {
                     return false;
                 }
-                offset += 1;
             }
         }
 

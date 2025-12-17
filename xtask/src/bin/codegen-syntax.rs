@@ -204,7 +204,7 @@ fn impl_list_node(node: &GrammarListNode) -> TokenStream {
     let children_impl = match &node.kind {
         ElementKind::Token => {
             quote! {
-                pub fn children(&self) -> SyntaxTokenChildren {
+                pub fn children(&self) -> SyntaxTokenChildren<'_> {
                     SyntaxTokenChildren::new(self.syntax.children())
                 }
                 pub fn get(&self, index: usize) -> Option<&SyntaxToken> {
@@ -215,7 +215,7 @@ fn impl_list_node(node: &GrammarListNode) -> TokenStream {
         ElementKind::Node(name) => {
             let node_ty = format_ident!("{}", name);
             quote! {
-                pub fn children(&self) -> TypedNodeChildren<#node_ty> {
+                pub fn children(&self) -> TypedNodeChildren<'_, #node_ty> {
                     TypedNodeChildren::new(SyntaxNodeChildren::new(self.syntax.children()))
                 }
                 pub fn get(&self, index: usize) -> Option<#node_ty> {

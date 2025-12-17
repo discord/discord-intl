@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use swc_common::source_map::SmallPos;
 use swc_common::sync::Lrc;
 use swc_common::{BytePos, FileName, Loc, SourceMap, Spanned};
-use swc_core::atoms::Atom;
+use swc_core::atoms::{Atom, Wtf8Atom};
 use swc_core::ecma::ast::{
     ExportDecl, ExportDefaultExpr, Expr, Id, ImportDecl, ImportSpecifier, Lit, Module, ObjectLit,
     PropName,
@@ -22,7 +22,13 @@ pub fn parse_message_definitions_file(
 ) -> PResult<(Lrc<SourceMap>, Module)> {
     let cm: Lrc<SourceMap> = Default::default();
 
-    let fm = cm.new_source_file(Lrc::new(FileName::Custom(file_name.into())), source.into());
+    let fm = cm.new_source_file(
+        Lrc::new(FileName::Custom(file_name.into())),
+        // SWC started using ByteStr for source maps, which are incapable of using plain strings.
+        // Since we only receive an `&str` from the outside, there's going to be a clone that
+        // happens here no matter what. Going into a String should be the most straightforward.
+        String::from(source),
+    );
     let lexer = Lexer::new(
         Syntax::Es(Default::default()),
         Default::default(),
@@ -46,7 +52,7 @@ pub fn extract_message_definitions(
 }
 
 struct MessageStringValue<'a> {
-    processed: &'a Atom,
+    processed: &'a Wtf8Atom,
     raw: &'a Atom,
     position: FilePosition,
 }
@@ -54,7 +60,7 @@ struct MessageStringValue<'a> {
 impl MessageStringValue<'_> {
     /// SAFETY: This method assumes the input is a valid string in JavaScript's grammar.
     fn make_source_offsets(&self) -> SourceOffsetList {
-        if self.raw == self.processed {
+        if self.raw == &self.processed.to_string_lossy() {
             return SourceOffsetList::default();
         }
         let mut list: Vec<(u32, u32)> = vec![];
@@ -148,8 +154,8 @@ impl MessageDefinitionsExtractor {
         RawMessageDefinition::new(
             key.into(),
             value.position,
-            value.processed,
-            value.raw,
+            value.processed.to_string_lossy(),
+            &value.raw,
             meta,
             value.make_source_offsets(),
         )
@@ -164,7 +170,7 @@ impl MessageDefinitionsExtractor {
             };
             let name = match &kv.key {
                 PropName::Ident(name) => &name.sym,
-                PropName::Str(name) => &name.value,
+                PropName::Str(name) => &name.value.to_atom_lossy(),
                 _ => continue,
             };
 
@@ -335,7 +341,7 @@ impl MessageDefinitionsExtractor {
     /// is returned. Any other expression will return None.
     fn parse_string_value(&self, expr: &Expr) -> Option<String> {
         match expr.as_lit() {
-            Some(Lit::Str(string)) => Some(string.value.to_string()),
+            Some(Lit::Str(string)) => Some(string.value.to_string_lossy().to_string()),
             _ => None,
         }
     }
@@ -589,7 +595,7 @@ mod tests {
     #[test]
     fn test_offsets() {
         let value = MessageStringValue {
-            processed: &Atom::new("\nfoo\nbar"),
+            processed: &Wtf8Atom::new("\nfoo\nbar"),
             raw: &Atom::new(r#"\nfoo\nbar"#),
             position: FilePosition {
                 file: Default::default(),

@@ -2,7 +2,8 @@ use crate::sources::{MessagesFileDescriptor, SourceFileInsertionData};
 use intl_database_core::{key_symbol, DatabaseError, DatabaseInsertStrategy};
 use intl_database_exporter::CompiledMessageFormat;
 use intl_validator::{DiagnosticFix, MessageDiagnostic};
-use napi::{JsObject, JsString};
+use napi::bindgen_prelude::Object;
+use napi::JsString;
 use napi_derive::napi;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -87,17 +88,18 @@ impl From<MessageDiagnostic> for IntlDiagnostic {
 }
 
 // This is an unused struct purely for generating functional TS types.
+#[allow(unused)]
 #[napi(object)]
-pub struct IntlSourceFile {
+pub struct IntlSourceFile<'a> {
     #[napi(js_name = "type")]
     pub ty: String,
     pub file: String,
-    pub locale: Option<JsString>,
+    pub locale: Option<JsString<'a>>,
     #[napi(js_name = "messageKeys")]
-    pub message_keys: Vec<JsString>,
+    pub message_keys: Vec<JsString<'a>>,
     pub meta: IntlSourceFileMeta,
 }
-
+#[allow(unused)]
 #[napi(object)]
 pub struct IntlSourceFileMeta {
     pub description: String,
@@ -109,6 +111,7 @@ pub struct IntlSourceFileMeta {
 }
 
 // This is an unused struct purely for generating functional TS types.
+#[allow(unused)]
 #[napi(object)]
 pub struct IntlMessageMeta {
     pub description: String,
@@ -117,15 +120,16 @@ pub struct IntlMessageMeta {
 }
 
 // This is an unused struct purely for generating functional TS types.
+#[allow(unused)]
 #[napi(object)]
-pub struct IntlMessage {
+pub struct IntlMessage<'a> {
     /// Original, plain text name of the message given in its definition.
     pub key: String,
     /// Hashed version of the key, used everywhere for minification and obfuscation.
     #[napi(js_name = "hashedKey")]
     pub hashed_key: String,
     /// Map of all translations for this message, including the default.
-    pub translations: HashMap<String, IntlMessageValue>,
+    pub translations: HashMap<String, IntlMessageValue<'a>>,
     /// The source definition information for this message (locale and location).
     #[napi(js_name = "sourceLocale")]
     pub source_locale: Option<String>,
@@ -134,13 +138,14 @@ pub struct IntlMessage {
 }
 
 // This is an unused struct purely for generating functional TS types.
+#[allow(unused)]
 #[napi(object)]
-pub struct IntlMessageValue {
+pub struct IntlMessageValue<'a> {
     pub raw: String,
-    pub parsed: JsObject,
-    pub variables: JsObject,
+    pub parsed: Object<'a>,
+    pub variables: Object<'a>,
     #[napi(js_name = "filePosition")]
-    pub file_position: JsObject,
+    pub file_position: Object<'a>,
 }
 
 #[napi]

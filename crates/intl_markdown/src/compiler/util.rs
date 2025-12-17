@@ -7,14 +7,14 @@ use intl_markdown_syntax::{
 use memchr::Memchr;
 use std::sync::Arc;
 
-pub fn iter_tokens<N: Syntax>(node: &N) -> SyntaxNodeTokenIter {
+pub fn iter_tokens<N: Syntax>(node: &N) -> SyntaxNodeTokenIter<'_> {
     node.syntax().iter_tokens()
 }
 
 pub fn iter_node_text<N: Syntax>(
     node: &N,
     options: TokenTextIterOptions,
-) -> MinimalTextIter<TokenTextIter<SyntaxNodeTokenIter>> {
+) -> MinimalTextIter<TokenTextIter<'_, SyntaxNodeTokenIter<'_>>> {
     iter_tokens(node)
         .into_text_iter()
         .with_options(options)
@@ -93,7 +93,7 @@ impl Visit for PlainTextFormatter {
     }
 }
 
-pub fn unescaped_pointer_chunks(text: &TextPointer) -> UnescapedChunksIterator {
+pub fn unescaped_pointer_chunks(text: &TextPointer) -> UnescapedChunksIterator<'_> {
     UnescapedChunksIterator::new(text)
 }
 
@@ -104,7 +104,7 @@ pub struct UnescapedChunksIterator<'a> {
 }
 
 impl UnescapedChunksIterator<'_> {
-    pub fn new(text: &TextPointer) -> UnescapedChunksIterator {
+    pub fn new(text: &TextPointer) -> UnescapedChunksIterator<'_> {
         UnescapedChunksIterator {
             text,
             cursor: 0,

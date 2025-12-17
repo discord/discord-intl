@@ -1,10 +1,9 @@
+// Use the mimalloc allocator explicitly when building the node addon.
+extern crate intl_allocator;
 use crate::JsonMessage;
 use napi::bindgen_prelude::Array;
 use napi::Env;
 use napi_derive::napi;
-
-// Use the mimalloc allocator explicitly when building the node addon.
-extern crate intl_allocator;
 
 #[napi]
 pub struct Message {
@@ -20,7 +19,10 @@ pub struct Message {
     pub col: u32,
 }
 
-fn collect_messages(env: Env, iterator: impl Iterator<Item = JsonMessage>) -> napi::Result<Array> {
+fn collect_messages(
+    env: &Env,
+    iterator: impl Iterator<Item = JsonMessage>,
+) -> napi::Result<Array<'_>> {
     // This is an arbitrary size hint that should be suitable for a lot of use
     // cases. While it may inadvertently allocate extra memory for some,
     // avoiding repeated re-allocations that we're pretty confident will happen
@@ -44,13 +46,13 @@ fn collect_messages(env: Env, iterator: impl Iterator<Item = JsonMessage>) -> na
 }
 
 #[napi(ts_return_type = "Message[]")]
-pub fn parse_json(env: Env, text: String) -> napi::Result<Array> {
+pub fn parse_json(env: &Env, text: String) -> napi::Result<Array<'_>> {
     let messages = crate::parse_flat_translation_json(&text);
     Ok(collect_messages(env, messages)?)
 }
 
 #[napi(ts_return_type = "Message[]")]
-pub fn parse_json_file(env: Env, file_path: String) -> napi::Result<Array> {
+pub fn parse_json_file(env: &Env, file_path: String) -> napi::Result<Array<'_>> {
     let content = std::fs::read_to_string(&file_path)?;
     parse_json(env, content)
 }

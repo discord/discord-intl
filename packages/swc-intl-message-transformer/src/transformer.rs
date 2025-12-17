@@ -35,7 +35,7 @@ impl IntlMessageConsumerTransformer {
 
 impl VisitMut for IntlMessageConsumerTransformer {
     fn visit_mut_import_decl(&mut self, import_decl: &mut ImportDecl) {
-        let import_source_path = &import_decl.src.value;
+        let import_source_path = &import_decl.src.value.to_string_lossy();
 
         let is_definitions_file = is_message_definitions_file(&import_source_path);
         let extra_import_specifiers = self

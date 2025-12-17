@@ -79,7 +79,7 @@ pub type SyntaxElement = NodeOrToken<SyntaxNode, SyntaxToken>;
 pub type SyntaxElementRef<'a> = NodeOrToken<&'a SyntaxNode, &'a SyntaxToken>;
 
 impl SyntaxElement {
-    pub fn as_ref(&self) -> SyntaxElementRef {
+    pub fn as_ref(&self) -> SyntaxElementRef<'_> {
         self.into()
     }
 

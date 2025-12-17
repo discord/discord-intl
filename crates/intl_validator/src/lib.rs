@@ -1,7 +1,6 @@
 extern crate core;
 
 use intl_database_core::{KeySymbolSet, Message};
-use std::ops::Deref;
 
 pub use crate::category::DiagnosticCategory;
 pub use crate::content::validate_message_value;

@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^5.3.8",
-    "@napi-rs/cli": "3.0.0-alpha.62",
+    "@napi-rs/cli": "3.5.0",
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",
     "semver": "^7.6.3",

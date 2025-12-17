@@ -5,7 +5,6 @@
 //!
 //! This is the preferred way of using the library wherever possible.
 use napi::bindgen_prelude::*;
-use napi::JsUnknown;
 use napi_derive::napi;
 use std::collections::HashMap;
 
@@ -171,7 +170,7 @@ impl IntlMessagesDatabase {
     }
 
     #[napi(ts_return_type = "IntlSourceFile")]
-    pub fn get_source_file(&self, env: Env, file_path: String) -> anyhow::Result<JsUnknown> {
+    pub fn get_source_file(&self, env: &Env, file_path: String) -> anyhow::Result<Unknown<'_>> {
         let source = public::get_source_file(&self.database, &file_path)?;
         Ok(env.to_js_value(source)?)
     }
@@ -187,9 +186,9 @@ impl IntlMessagesDatabase {
     /// map is the hashed name and the value is the original.
     pub fn get_source_file_key_map(
         &self,
-        env: Env,
+        env: &Env,
         file_path: String,
-    ) -> anyhow::Result<JsUnknown> {
+    ) -> anyhow::Result<Unknown<'_>> {
         let hashes = public::get_source_file_key_map(&self.database, &file_path)?;
         Ok(env.to_js_value(&hashes)?)
     }
@@ -208,7 +207,7 @@ impl IntlMessagesDatabase {
     }
 
     #[napi(ts_return_type = "IntlMessage")]
-    pub fn get_message(&self, env: Env, key: String) -> anyhow::Result<JsUnknown> {
+    pub fn get_message(&self, env: &Env, key: String) -> anyhow::Result<Unknown<'_>> {
         let definition = public::get_message(&self.database, &key)?;
         Ok(env.to_js_value(definition)?)
     }
@@ -272,9 +271,9 @@ impl IntlMessagesDatabase {
     #[napi(ts_return_type = "Record<string, IntlMessageValue | undefined>")]
     pub fn get_source_file_message_values(
         &self,
-        env: Env,
+        env: &Env,
         file_path: String,
-    ) -> anyhow::Result<JsUnknown> {
+    ) -> anyhow::Result<Unknown<'_>> {
         let result = public::get_source_file_message_values(&self.database, &file_path)?;
         Ok(env.to_js_value(&result)?)
     }

@@ -5,6 +5,7 @@ pub fn is_valid_cardinal_selector(selector: &str, locale: &str) -> bool {
     get_valid_cardinal_selectors(locale).map_or(false, |options| options.contains(selector))
 }
 
+#[allow(unused)]
 pub fn is_valid_ordinal_selector(selector: &str, locale: &str) -> bool {
     get_valid_cardinal_selectors(locale).map_or(false, |options| options.contains(selector))
 }
@@ -25,6 +26,7 @@ pub fn get_valid_cardinal_selectors(locale: &str) -> Option<HashSet<&'static str
     None
 }
 
+#[allow(unused)]
 pub fn get_valid_ordinal_selectors(locale: &str) -> Option<HashSet<&'static str>> {
     for locale in canonicalized_locale_names_for_plurals(locale) {
         if let Some(options) = ORDINAL_PLURAL_SELECTORS.get(&locale.as_str()) {

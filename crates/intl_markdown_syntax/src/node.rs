@@ -96,7 +96,7 @@ impl SyntaxNode {
         self.0.slice.get(index)
     }
 
-    pub fn iter_tokens(&self) -> SyntaxNodeTokenIter {
+    pub fn iter_tokens(&self) -> SyntaxNodeTokenIter<'_> {
         SyntaxNodeTokenIter::new(&self)
     }
 }

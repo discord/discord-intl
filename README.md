@@ -68,6 +68,8 @@ export default defineMessages({
 
 ## Development
 
+This assumes you have Rust installed and matching the `rust-toolchain.toml` in this repo.
+
 This repository contains a CLI tool for easily managing all development and maintenance tasks. After cloning the repository, run:
 
 ```shell

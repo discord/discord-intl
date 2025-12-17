@@ -10,4 +10,3 @@ export declare class Message {
 export declare function parseJson(text: string): Message[]
 
 export declare function parseJsonFile(filePath: string): Message[]
-

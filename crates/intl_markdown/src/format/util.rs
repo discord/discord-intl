@@ -68,7 +68,7 @@ generate_ascii_encoding_table! {
 /// specifically to match the CommonMark spec's _tests_, but is not actually defined by the spec
 /// itself, and as such there is some slightly special handling, like encoding `&` to `&amp;` rather
 /// than the percent encoding `%26` that it would normally have.
-pub(crate) fn encode_href(text: &str) -> AsciiEncodingIter {
+pub(crate) fn encode_href(text: &str) -> AsciiEncodingIter<'_> {
     AsciiEncodingIter::new(text, PERCENT_ENCODING_REPLACEMENT_TABLE)
 }
 
@@ -82,6 +82,6 @@ generate_ascii_encoding_table! {
     // '\'' => "&#27;",
     b'&' => "&amp;"
 }
-pub(crate) fn encode_body_text(text: &str) -> AsciiEncodingIter {
+pub(crate) fn encode_body_text(text: &str) -> AsciiEncodingIter<'_> {
     AsciiEncodingIter::new(text, HTML_CHAR_ENCODING_REPLACEMENT_TABLE)
 }
