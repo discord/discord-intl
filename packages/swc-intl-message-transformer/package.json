@@ -1,7 +1,7 @@
 {
   "name": "@discord/swc-intl-message-transformer",
   "license": "MIT",
-  "version": "0.28.0-rc.0",
+  "version": "0.28.0-rc.1",
   "description": "SWC plugin for minifying intl message usages.",
   "author": "Jon Egeland",
   "keywords": [
