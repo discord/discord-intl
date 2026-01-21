@@ -1016,7 +1016,7 @@ dependencies = [
  "path-absolutize",
  "rustc-hash 2.1.1",
  "serde",
- "thiserror 1.0.64",
+ "thiserror 2.0.7",
  "ustr",
 ]
 
@@ -1031,7 +1031,7 @@ dependencies = [
  "keyless_json",
  "rustc-hash 2.1.1",
  "serde_json",
- "thiserror 1.0.64",
+ "thiserror 2.0.7",
 ]
 
 [[package]]
@@ -1068,7 +1068,7 @@ dependencies = [
  "intl_message_utils",
  "rustc-hash 2.1.1",
  "sourcemap",
- "thiserror 1.0.64",
+ "thiserror 2.0.7",
  "ustr",
 ]
 
@@ -1213,7 +1213,7 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
- "thiserror 1.0.64",
+ "thiserror 2.0.7",
 ]
 
 [[package]]
@@ -2224,9 +2224,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "50.2.3"
+version = "52.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76a4addc76896d859a57855961fd351486a900021aade516f7623969ed28958f"
+checksum = "33540bdcbf752611f66dcd5576272ce25141356c2d6e7b7ae63a801633a21f02"
 dependencies = [
  "swc_allocator",
  "swc_atoms",
@@ -2300,9 +2300,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "29.0.2"
+version = "30.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63984b544fe1d8f66e9ce616e57429bb878572fcf1504851ef9d9f4f5260e2b"
+checksum = "3fb84a1b1b605c85c38a982f8f6dac4908ca73721aee9f9924d6a60e27339290"
 dependencies = [
  "bitflags",
  "either",
@@ -2334,9 +2334,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_base"
-version = "32.0.0"
+version = "33.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "499486ed875ba49af2f36d0d809f61ce6e42943a3aa1d97f592d96f10fe734cc"
+checksum = "00691748cc689f93316bb699051eadf058852b6326930c0355fe375110318ab5"
 dependencies = [
  "better_scoped_tls",
  "indexmap",
@@ -2356,9 +2356,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_testing"
-version = "35.0.0"
+version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29ec7851260522b2864983caa3fc7004ebb080842f49ee49a5461b779277378d"
+checksum = "ed56a0a8db4ca1b74436d44731d73be78182b9723247981a54f8a4834ef743bb"
 dependencies = [
  "ansi_term",
  "anyhow",

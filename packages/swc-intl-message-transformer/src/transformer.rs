@@ -26,10 +26,10 @@ impl IntlMessageConsumerTransformer {
     pub fn new(config: IntlMessageTransformerConfig) -> Self {
         let set = HashSet::new();
 
-        return Self {
+        Self {
             messages_object_receivers: set,
             config,
-        };
+        }
     }
 }
 
