@@ -213,6 +213,13 @@ impl IntlMessagesDatabase {
     }
 
     #[napi]
+    pub fn get_all_message_keys(&self) -> anyhow::Result<Vec<String>> {
+        Ok(public::iter_all_message_keys(&self.database)?
+            .map(|key| key.to_string())
+            .collect())
+    }
+
+    #[napi]
     pub fn generate_types(
         &self,
         source_file_path: String,

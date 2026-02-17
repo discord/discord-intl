@@ -25,6 +25,7 @@ export declare class IntlMessagesDatabase {
    */
   getDefinitionsFilesForTranslationsPath(translationsPath: string): Array<string>
   getMessage(key: string): IntlMessage
+  getAllMessageKeys(): Array<string>
   generateTypes(sourceFilePath: string, outputFilePath: string): void
   precompile(filePath: string, locale: string, outputPath: string, options?: IntlMessageBundlerOptions | undefined | null): void
   precompileToBuffer(filePath: string, locale: string, options?: IntlMessageBundlerOptions | undefined | null): Buffer
@@ -140,4 +141,3 @@ export interface IntlSourceFileMeta {
 export declare function isMessageDefinitionsFile(key: string): boolean
 
 export declare function isMessageTranslationsFile(key: string): boolean
-

@@ -83,6 +83,24 @@ impl MessagesDatabase {
         get_key_symbol(key).and_then(|symbol| self.messages.get(&symbol))
     }
 
+    pub fn iter_all_messages(
+        &self,
+    ) -> DatabaseResult<impl Iterator<Item = (&KeySymbol, &Message)>> {
+        Ok(self.messages.iter())
+    }
+
+    pub fn iter_all_message_definitions(
+        &self,
+    ) -> DatabaseResult<impl Iterator<Item = (&KeySymbol, &MessageValue)>> {
+        Ok(self.messages.iter().filter_map(|(key, message)| {
+            if !message.is_defined() {
+                return None;
+            }
+            let definition = message.definition();
+            Some((key, definition))
+        }))
+    }
+
     //#region Source Files
 
     pub fn get_source_file(&self, file_key: KeySymbol) -> Option<&SourceFile> {
@@ -128,7 +146,7 @@ impl MessagesDatabase {
     /// source file. The returned values are Options of references to the
     /// message for each key. Keys with no value will still be returned in the
     /// map, but with their values as None.
-    pub fn get_source_file_message_values(
+    pub fn iter_source_file_message_values(
         &self,
         file_key: KeySymbol,
     ) -> DatabaseResult<impl Iterator<Item = (&KeySymbol, Option<&MessageValue>)>> {

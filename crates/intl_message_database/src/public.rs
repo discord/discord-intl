@@ -370,8 +370,15 @@ pub fn get_source_file_message_values<'a>(
     file_path: &str,
 ) -> anyhow::Result<FxHashMap<&'a KeySymbol, Option<&'a MessageValue>>> {
     let source_key = get_key_symbol_or_error(file_path)?;
-    let key_value_pairs = database.get_source_file_message_values(source_key)?;
+    let key_value_pairs = database.iter_source_file_message_values(source_key)?;
     Ok(FxHashMap::from_iter(key_value_pairs))
+}
+
+pub fn iter_all_message_keys(
+    database: &MessagesDatabase,
+) -> anyhow::Result<impl Iterator<Item = KeySymbol> + use<'_>> {
+    let messages = database.iter_all_messages()?;
+    Ok(messages.map(|(key, _)| *key))
 }
 
 #[inline(always)]
