@@ -13,8 +13,8 @@ on:
         description: "Strict Mode (only bump explicitly given packages)"
 
 permissions:
-  # To publish packages with provenance
-  contents: write
+  # To publish packages with provenance via OIDC
+  contents: read
   id-token: write
 
 jobs:

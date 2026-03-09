@@ -22,8 +22,8 @@ on:
         description: 'Fail fast?'
 
 permissions:
-  # To publish packages with provenance
-  contents: write
+  # To publish packages with provenance via OIDC
+  contents: read
   id-token: write
 
 jobs:
@@ -34,17 +34,17 @@ jobs:
       matrix:
         target:
           # Linux
-          - ['ubuntu-22.04', 'linux-x64-gnu']
-          - ['ubuntu-22.04', 'linux-arm64-gnu']
-          - ['ubuntu-22.04', 'linux-x64-musl']
-          - ['ubuntu-22.04', 'linux-arm64-musl']
+          - [ 'ubuntu-22.04', 'linux-x64-gnu' ]
+          - [ 'ubuntu-22.04', 'linux-arm64-gnu' ]
+          - [ 'ubuntu-22.04', 'linux-x64-musl' ]
+          - [ 'ubuntu-22.04', 'linux-arm64-musl' ]
           # Windows
-          - ['windows-latest', 'win32-ia32-msvc']
-          - ['windows-latest', 'win32-x64-msvc']
-          - ['windows-latest', 'win32-arm64-msvc']
+          - [ 'windows-latest', 'win32-ia32-msvc' ]
+          - [ 'windows-latest', 'win32-x64-msvc' ]
+          - [ 'windows-latest', 'win32-arm64-msvc' ]
           # macOS
-          - ['macos-latest', 'darwin-x64']
-          - ['macos-latest', 'darwin-arm64']
+          - [ 'macos-latest', 'darwin-x64' ]
+          - [ 'macos-latest', 'darwin-arm64' ]
     uses: ./.github/workflows/build-napi-platform-package.yaml
     with:
       package: intl-message-database
