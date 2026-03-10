@@ -148,5 +148,3 @@ jobs:
       - name: Publish all @discord/intl-message-database* packages
         run: |
           pnpm intl-cli ecosystem publish-all --provenance --access public --no-git-checks --tag ${{inputs.tag}}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

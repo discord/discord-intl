@@ -43,5 +43,3 @@ jobs:
               --tag canary ${{inputs.strict && '--strict' || ''}} \
               --yes --skip-existing --no-git-checks \
               --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -6,7 +6,7 @@ description: |
 
 inputs:
   node-version:
-    default: "20"
+    default: "24"
     required: false
     type: string
   frozen-lockfile:
