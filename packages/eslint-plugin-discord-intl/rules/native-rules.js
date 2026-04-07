@@ -140,6 +140,17 @@ const NoUnsafeVariableSyntax = createNativeRule({
     },
   },
 });
+const NoVariableTypeMismatches = createNativeRule({
+  diagnosticName: 'NoVariableTypeMismatches',
+  meta: {
+    fixable: 'code',
+    docs: {
+      description:
+        'Disallow variable type changes between source and translation strings',
+      category: 'Correctness',
+    },
+  },
+});
 
 module.exports = {
   NoAvoidableExactPlurals,
@@ -153,5 +164,6 @@ module.exports = {
   NoUnicodeVariableNames,
   NoUnnecessaryPlural,
   NoUnsafeVariableSyntax,
+  NoVariableTypeMismatches,
   createNativeRule,
 };

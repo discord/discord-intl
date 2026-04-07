@@ -1,6 +1,8 @@
 extern crate core;
 
-use intl_database_core::{KeySymbolSet, Message};
+use std::collections::HashSet;
+
+use intl_database_core::{KeySymbolSet, Message, MessageVariableType};
 
 pub use crate::category::DiagnosticCategory;
 pub use crate::content::validate_message_value;
@@ -22,6 +24,41 @@ fn variable_name_list(names: &KeySymbolSet) -> String {
     names.join(", ")
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum VariableTypeGroup {
+    Any,
+    Numeric,
+    String,
+    Date,
+    Function,
+    Handler,
+}
+
+fn variable_type_group(kind: &MessageVariableType) -> VariableTypeGroup {
+    match kind {
+        MessageVariableType::Any => VariableTypeGroup::Any,
+        MessageVariableType::Number
+        | MessageVariableType::Plural
+        | MessageVariableType::NumericEnum { .. } => VariableTypeGroup::Numeric,
+        MessageVariableType::Enum { .. } => VariableTypeGroup::String,
+        MessageVariableType::Date | MessageVariableType::Time => VariableTypeGroup::Date,
+        MessageVariableType::HookFunction | MessageVariableType::LinkFunction => {
+            VariableTypeGroup::Function
+        }
+        MessageVariableType::HandlerFunction => VariableTypeGroup::Handler,
+    }
+}
+
+/// Returns true if `translation` is a variable type that is assignable to `source`. If `translation` is
+/// `Any`, then `source` is always considered assignable (i.e., the type is widening).
+/// Otherwise, the types must be equal to be considered assignable.
+fn is_assignable_variable_type(
+    source: &VariableTypeGroup,
+    translation: &VariableTypeGroup,
+) -> bool {
+    *translation == VariableTypeGroup::Any || source == translation
+}
+
 /// Validate the content of a message across all of its translations, returning
 /// a full set of diagnostics with information about each one.
 ///
@@ -31,16 +68,29 @@ fn variable_name_list(names: &KeySymbolSet) -> String {
 /// unsupported syntax.
 pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
     let has_source = message.source_locale().is_some();
-    let (source_visible_variables, source_locale) =
+    let (source_visible_variables, source_variables, source_locale) =
         if let Some(source) = message.get_source_translation() {
             (
                 source.variables.visible_variable_names(),
+                Some(&source.variables),
                 // SAFETY: If the source exists, then the locale for it must also exist.
                 Some(message.source_locale().unwrap()),
             )
         } else {
-            (Default::default(), None)
+            (Default::default(), None, None)
         };
+
+    let source_variable_types: Option<Vec<_>> = source_variables.map(|vars| {
+        vars.iter()
+            .map(|(name, instances)| {
+                let groups: HashSet<VariableTypeGroup> = instances
+                    .iter()
+                    .map(|inst| variable_type_group(&inst.kind))
+                    .collect();
+                (name, groups)
+            })
+            .collect()
+    });
 
     let mut diagnostics = MessageDiagnosticsBuilder::new(message.key());
 
@@ -100,6 +150,40 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
                 span: None,
                 fixes: vec![],
             });
+        }
+
+        if let Some(source_var_types) = &source_variable_types {
+            for (name, source_groups) in source_var_types {
+                if let Some(translation_instances) = translation.variables.get(name) {
+                    let translation_groups: HashSet<VariableTypeGroup> = translation_instances
+                        .iter()
+                        .map(|inst| variable_type_group(&inst.kind))
+                        .collect();
+
+                    let all_assignable = source_groups.iter().all(|source_group| {
+                        translation_groups.iter().any(|translation_group| {
+                            is_assignable_variable_type(source_group, translation_group)
+                        })
+                    });
+
+                    if !all_assignable {
+                        diagnostics.add(MessageDiagnostic {
+                            key: message.key(),
+                            file_position: translation.file_position,
+                            locale: locale.clone(),
+                            name: DiagnosticName::NoVariableTypeMismatches,
+                            category: DiagnosticCategory::Correctness,
+                            description: format!(
+                                "Variable '{variable}' has a mismatched type between the source and translation",
+                                variable = AsRef::<str>::as_ref(name),
+                            ),
+                            help: Some("The variable type in the translation should match the source message. Consider a new string or update translations to match the source.".into()),
+                            span: None,
+                            fixes: vec![],
+                        });
+                    }
+                }
+            }
         }
     }
 
