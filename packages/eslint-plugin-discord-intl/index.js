@@ -12,6 +12,7 @@ module.exports = {
     'no-unicode-variable-names': NativeRules.NoUnicodeVariableNames,
     'no-unnecessary-plural': NativeRules.NoUnnecessaryPlural,
     'no-unsafe-variable-syntax': NativeRules.NoUnsafeVariableSyntax,
+    'no-variable-type-mismatches': NativeRules.NoVariableTypeMismatches,
 
     'use-static-access': require('./rules/use-static-access'),
     'no-opaque-messages-objects': require('./rules/no-opaque-messages-objects'),
@@ -32,6 +33,7 @@ module.exports = {
         '@discord/discord-intl/no-unicode-variable-names': 'error',
         '@discord/discord-intl/no-unnecessary-plural': 'error',
         '@discord/discord-intl/no-unsafe-variable-syntax': 'error',
+        '@discord/discord-intl/no-variable-type-mismatches': 'error',
 
         // JS rules
         '@discord/discord-intl/use-static-access': 'error',

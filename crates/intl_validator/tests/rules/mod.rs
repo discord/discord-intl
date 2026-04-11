@@ -5,3 +5,4 @@ mod no_non_exhaustive_plurals;
 mod no_repeated_plural_names;
 mod no_unnecessary_plural;
 mod no_unsafe_variable_syntax;
+mod no_variable_type_mismatches;
