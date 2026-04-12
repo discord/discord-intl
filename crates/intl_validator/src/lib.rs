@@ -172,7 +172,7 @@ pub fn validate_message(message: &Message) -> Vec<MessageDiagnostic> {
                             file_position: translation.file_position,
                             locale: locale.clone(),
                             name: DiagnosticName::NoVariableTypeMismatches,
-                            category: DiagnosticCategory::Correctness,
+                            category: DiagnosticCategory::Suspicious,
                             description: format!(
                                 "Variable '{variable}' has a mismatched type between the source and translation",
                                 variable = AsRef::<str>::as_ref(name),
