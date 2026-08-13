@@ -8,9 +8,9 @@
 use crate::sources::{get_locale_from_file_name, MessagesFileDescriptor, SourceFileInsertionData};
 use crate::threading::run_in_thread_pool;
 use intl_database_core::{
-    get_key_symbol, key_symbol, DatabaseError, DatabaseInsertStrategy, DatabaseResult, KeySymbol,
-    Message, MessageValue, MessagesDatabase, RawMessageDefinition, RawMessageTranslation,
-    SourceFile, DEFAULT_LOCALE,
+    get_key_symbol, key_symbol, DatabaseError, DatabaseInsertStrategy, DatabaseResult,
+    FilePosition, KeySymbol, Message, MessageMeta, MessageValue, MessagesDatabase,
+    RawMessageDefinition, RawMessageTranslation, SourceFile, DEFAULT_LOCALE,
 };
 use intl_database_exporter::{ExportTranslations, IntlMessageBundler, IntlMessageBundlerOptions};
 use intl_database_service::IntlDatabaseService;
@@ -355,6 +355,33 @@ pub fn validate_messages(database: &MessagesDatabase) -> anyhow::Result<Vec<Mess
     }
 
     Ok(results)
+}
+
+pub fn validate_one_message(
+    key: &str,
+    source_locale: &str,
+    message: &str,
+    translations: &HashMap<String, String>,
+) -> anyhow::Result<Vec<MessageDiagnostic>> {
+    let mut message = Message::from_definition(
+        key.into(),
+        MessageValue::from_raw(message, FilePosition::fake_default(), Default::default()),
+        source_locale.into(),
+        MessageMeta::default(),
+    );
+
+    for (locale, translation) in translations {
+        message.set_translation(
+            locale.into(),
+            MessageValue::from_raw(
+                translation,
+                FilePosition::fake_default(),
+                Default::default(),
+            ),
+        );
+    }
+
+    Ok(validate_message(&message))
 }
 
 pub fn export_translations(

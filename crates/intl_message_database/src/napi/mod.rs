@@ -287,6 +287,18 @@ impl IntlMessagesDatabase {
 }
 
 #[napi]
+pub fn validate_one_message(
+    key: String,
+    source_locale: String,
+    message: String,
+    translations: HashMap<String, String>,
+) -> anyhow::Result<Vec<IntlDiagnostic>> {
+    let result = public::validate_one_message(&key, &source_locale, &message, &translations)?;
+
+    Ok(result.into_iter().map(IntlDiagnostic::from).collect())
+}
+
+#[napi]
 pub fn hash_message_key(key: String) -> String {
     public::hash_message_key(&key)
 }

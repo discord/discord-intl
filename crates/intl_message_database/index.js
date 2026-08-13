@@ -74,6 +74,7 @@ const nativeBinding = fs.existsSync(localPath) ? require(localPath) : require(pa
 
 const {
   hashMessageKey,
+  validateOneMessage,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
   IntlMessagesDatabase,
@@ -83,6 +84,7 @@ const {
 
 module.exports = {
   hashMessageKey,
+  validateOneMessage,
   isMessageDefinitionsFile,
   isMessageTranslationsFile,
   IntlMessagesDatabase,

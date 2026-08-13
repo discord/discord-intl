@@ -12,13 +12,13 @@ pub enum DatabaseError {
     NoExtractableValues(String),
     #[error("{0} has no matching source implementation")]
     NoSourceImplementation(String),
-    #[error("{name} has already been defined at {} and cannot be defined again", .existing.file_position)]
+    #[error("{name} has already been defined at {} and cannot be defined again at {}", .existing.file_position, .replacement.file_position)]
     AlreadyDefined {
         name: KeySymbol,
         existing: MessageValue,
         replacement: MessageValue,
     },
-    #[error("{name} already has a translation from {} and cannot be set again", .existing.file_position)]
+    #[error("{name} already has a translation from {} and cannot be set again at {}", .existing.file_position, .replacement.file_position)]
     TranslationAlreadySet {
         name: KeySymbol,
         locale: KeySymbol,

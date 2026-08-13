@@ -141,3 +141,5 @@ export interface IntlSourceFileMeta {
 export declare function isMessageDefinitionsFile(key: string): boolean
 
 export declare function isMessageTranslationsFile(key: string): boolean
+
+export declare function validateOneMessage(key: string, sourceLocale: string, message: string, translations: Record<string, string>): Array<IntlDiagnostic>

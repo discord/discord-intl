@@ -2,9 +2,9 @@ use std::fmt::{Display, Formatter};
 
 use serde::Serialize;
 
-use crate::database::symbol::{KeySymbol, KeySymbolSet};
-
 use super::meta::SourceFileMeta;
+use crate::database::symbol::{KeySymbol, KeySymbolSet};
+use crate::key_symbol;
 
 /// A combination of a file name and a byte offset representing a location in
 /// a file.
@@ -22,6 +22,10 @@ pub struct FilePosition {
 impl FilePosition {
     pub fn new(file: KeySymbol, line: u32, col: u32) -> Self {
         Self { file, line, col }
+    }
+
+    pub fn fake_default() -> Self {
+        FilePosition::new(key_symbol("<input>"), 0, 0)
     }
 }
 
