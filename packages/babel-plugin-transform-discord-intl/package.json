@@ -1,6 +1,6 @@
 {
   "name": "@discord/babel-plugin-transform-discord-intl",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "license": "MIT",
   "type": "commonjs",
   "description": "Babel plugin for transforming message accesses and definitions",
