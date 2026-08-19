@@ -212,6 +212,12 @@ impl IntlMessagesDatabase {
         Ok(env.to_js_value(definition)?)
     }
 
+    #[napi(ts_return_type = "IntlMessage[]")]
+    pub fn get_messages_with_tag(&self, env: &Env, tag: String) -> anyhow::Result<Unknown<'_>> {
+        let definitions = public::get_messages_with_tag(&self.database, &tag)?;
+        Ok(env.to_js_value(&definitions)?)
+    }
+
     #[napi]
     pub fn get_all_message_keys(&self) -> anyhow::Result<Vec<String>> {
         Ok(public::iter_all_message_keys(&self.database)?

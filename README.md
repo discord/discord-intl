@@ -47,6 +47,7 @@ export const meta = {
   project: 'custom-status',
   secret: true,
   translate: true,
+  tags: ['preview'],
 };
 
 /**

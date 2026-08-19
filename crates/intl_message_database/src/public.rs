@@ -298,6 +298,27 @@ pub fn get_message<'a>(database: &'a MessagesDatabase, key: &str) -> anyhow::Res
     Ok(definition)
 }
 
+pub fn get_messages_with_tag<'a>(
+    database: &'a MessagesDatabase,
+    tag: &str,
+) -> anyhow::Result<Vec<&'a Message>> {
+    let tag_string = String::from(tag);
+    print!("starting search");
+    let matched = database
+        .iter_all_messages()?
+        .filter_map(|(_, message)| {
+            let has_tag = message
+                .meta()
+                .tags
+                .as_ref()
+                .is_some_and(|tags| tags.contains(&tag_string));
+            has_tag.then_some(message)
+        })
+        .collect();
+    print!("search complete");
+    Ok(matched)
+}
+
 pub fn generate_types(
     database: &MessagesDatabase,
     source_file_path: &str,

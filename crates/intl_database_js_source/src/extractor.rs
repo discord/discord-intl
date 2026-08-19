@@ -303,6 +303,9 @@ impl MessageDefinitionsExtractor {
             "description" => self
                 .parse_string_value(value)
                 .map(|value| self.root_meta.description = Some(value)),
+            "tags" => self
+                .parse_string_array_value(value)
+                .map(|value| self.root_meta.tags = Some(value)),
             _ => None,
         };
     }
@@ -315,16 +318,23 @@ impl MessageDefinitionsExtractor {
         // hints when the value types would be incorrect (e.g., `secret` is
         // given a number value instead of a boolean).
         match name {
-            "secret" => self
-                .parse_boolean_value(value)
-                .map(|value| target.secret = value),
-            "translate" => self
-                .parse_boolean_value(value)
-                .map(|value| target.translate = value),
-            "description" => self
-                .parse_string_value(value)
-                .map(|value| target.description = Some(value)),
-            _ => None,
+            "secret" => {
+                self.parse_boolean_value(value)
+                    .map(|value| target.secret = value);
+            }
+            "translate" => {
+                self.parse_boolean_value(value)
+                    .map(|value| target.translate = value);
+            }
+            "description" => {
+                self.parse_string_value(value)
+                    .map(|value| target.description = Some(value));
+            }
+            "tags" => {
+                self.parse_string_array_value(value)
+                    .map(|value| target.extend_tags(value));
+            }
+            _ => {}
         };
     }
 
@@ -344,6 +354,25 @@ impl MessageDefinitionsExtractor {
             Some(Lit::Str(string)) => Some(string.value.to_string_lossy().to_string()),
             _ => None,
         }
+    }
+
+    /// If the given expression is an array literal containing only string
+    /// literals, the value of that literal is returned. Any other expression
+    /// will return None.
+    fn parse_string_array_value(&self, expr: &Expr) -> Option<Vec<String>> {
+        let Expr::Array(lit) = expr else {
+            return None;
+        };
+
+        if lit.elems.len() == 0 {
+            return None;
+        }
+
+        let mut values = Vec::with_capacity(lit.elems.len());
+        for elem in &lit.elems {
+            values.push(self.parse_string_value(elem.as_ref()?.expr.as_ref())?);
+        }
+        Some(values)
     }
 
     fn adjust_position_from_quote(&self, loc: Loc, offset: u32) -> FilePosition {
@@ -546,7 +575,7 @@ mod tests {
             'string-key': 'this has a stringy key',
         }});
         "#,
-                intl_message_utils::RUNTIME_PACKAGE_NAME
+                RUNTIME_PACKAGE_NAME
             ),
         )
         .expect("failed to parse source code");
@@ -571,6 +600,118 @@ mod tests {
         assert!(extractor.failed_definitions.is_empty());
         assert_eq!(false, extractor.root_meta.translate);
         assert_eq!(Some("Hello world".into()), extractor.root_meta.description);
+    }
+
+    #[test]
+    fn test_extract_meta_with_tags() {
+        let file_name = "testing.js";
+        let (source, module) = parse_message_definitions_file(
+            file_name,
+            r#"
+                export const meta = {
+                    tags: ['foo'],
+                };
+                "#,
+        )
+        .expect("failed to parse source code");
+
+        let extractor = extract_message_definitions(file_name, source, module);
+
+        assert!(extractor.failed_definitions.is_empty());
+        let tags = extractor.root_meta.tags.unwrap();
+        assert_eq!(vec![String::from("foo")], tags);
+    }
+    #[test]
+    fn test_extract_meta_with_inherited_tags() {
+        let file_name = "testing.js";
+        let (source, module) = parse_message_definitions_file(
+            file_name,
+            &format!(
+                r#"
+                import {{defineMessages}} from '{}';
+                export const meta = {{
+                    translate: false,
+                    description: "Hello world",
+                    tags: ['foo'],
+                }};
+
+                export default defineMessages({{
+                    HELLO: {{
+                        message: "foo",
+                        tags: ['extra-tag'],
+                    }}
+                }});
+                "#,
+                RUNTIME_PACKAGE_NAME
+            ),
+        )
+        .expect("failed to parse source code");
+
+        let extractor = extract_message_definitions(file_name, source, module);
+
+        assert!(extractor.failed_definitions.is_empty());
+        assert_eq!(extractor.message_definitions.len(), 1);
+        let message_tags = extractor
+            .message_definitions
+            .first()
+            .and_then(|definition| definition.meta.tags.as_ref());
+
+        assert!(message_tags.is_some());
+        assert_eq!(
+            vec![String::from("foo"), String::from("extra-tag")],
+            *message_tags.unwrap(),
+        );
+    }
+
+    #[test]
+    fn test_extract_meta_with_empty_tags() {
+        let file_name = "testing.js";
+        let (source, module) = parse_message_definitions_file(
+            file_name,
+            r#"
+                export const meta = {
+                    tags: [],
+                };
+                "#,
+        )
+        .expect("failed to parse source code");
+
+        let extractor = extract_message_definitions(file_name, source, module);
+        assert!(extractor.root_meta.tags.is_none());
+    }
+
+    #[test]
+    fn test_extract_meta_with_invalid_tags() {
+        let file_name = "testing.js";
+        let (source, module) = parse_message_definitions_file(
+            file_name,
+            r#"
+                export const meta = {
+                    tags: [notAString],
+                };
+                "#,
+        )
+        .expect("failed to parse source code");
+
+        let extractor = extract_message_definitions(file_name, source, module);
+        assert!(extractor.root_meta.tags.is_none());
+    }
+
+    #[test]
+    fn test_extract_meta_with_empty_element_tags() {
+        let file_name = "testing.js";
+        let (source, module) = parse_message_definitions_file(
+            file_name,
+            r#"
+                export const meta = {
+                    tags: [,,"foo"],
+                };
+                "#,
+        )
+        .expect("failed to parse source code");
+
+        let extractor = extract_message_definitions(file_name, source, module);
+        assert!(extractor.root_meta.tags.is_none());
     }
 
     #[test]

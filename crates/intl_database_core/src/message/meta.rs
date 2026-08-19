@@ -9,7 +9,7 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(remote = "Self", rename_all = "camelCase")]
 pub struct SourceFileMeta {
-    /// Optional additional context for the source file, giving more information  about where its
+    /// Optional additional context for the source file, giving more information about where its
     /// messages may be used or how the messages are intended to be grouped.
     pub description: Option<String>,
     /// Whether the message should be considered private and not suitable for
@@ -31,6 +31,11 @@ pub struct SourceFileMeta {
     /// The absolute path to the source file where this meta originated, acting as the base file
     /// for all messages contained in the set.
     pub source_file_path: PathBuf,
+    /// Additional user-land information to apply to all messages in the source file. This list has
+    /// no effect on the behavior of a message and is purely for other tools to consume.
+    /// Tags defined on the source file are inherited by all messages in that file, even if the
+    /// message defines new tags on itself.
+    pub tags: Option<Vec<String>>,
 }
 
 impl Serialize for SourceFileMeta {
@@ -50,6 +55,7 @@ impl SourceFileMeta {
             translations_path: "./messages".into(),
             source_file_path: source_file_path.into(),
             description: None,
+            tags: None,
         }
     }
 
@@ -71,6 +77,10 @@ impl SourceFileMeta {
     }
     pub fn with_description(mut self, description: &str) -> Self {
         self.description = Some(String::from(description));
+        self
+    }
+    pub fn with_tags(mut self, tags: &[String]) -> Self {
+        self.tags = Some(tags.to_vec());
         self
     }
 
@@ -133,6 +143,11 @@ pub struct MessageMeta {
     /// `false`, the default message value will be used in all locales, no matter if there is a
     /// translation present.
     pub translate: bool,
+    /// Additional user-land information to apply to this message. This list has no effect on the
+    /// behavior of the message and is purely for other tools to consume.
+    /// Tags defined on the source file are inherited by all messages in that file, even if the
+    /// message defines new tags on itself.
+    pub tags: Option<Vec<String>>,
 }
 
 impl Default for MessageMeta {
@@ -141,6 +156,7 @@ impl Default for MessageMeta {
             secret: false,
             translate: true,
             description: None,
+            tags: None,
         }
     }
 }
@@ -158,6 +174,17 @@ impl MessageMeta {
         self.description = Some(String::from(description));
         self
     }
+    pub fn with_tags(mut self, tags: Vec<String>) -> Self {
+        self.tags = Some(tags);
+        self
+    }
+
+    pub fn extend_tags(&mut self, tags: Vec<String>) {
+        match &mut self.tags {
+            Some(existing_tags) => existing_tags.extend(tags),
+            None => self.tags = Some(tags),
+        }
+    }
 }
 
 impl From<&SourceFileMeta> for MessageMeta {
@@ -166,6 +193,39 @@ impl From<&SourceFileMeta> for MessageMeta {
             secret: value.secret,
             translate: value.translate,
             description: None,
+            tags: value.tags.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_message_meta_extends_empty_tags() {
+        let mut meta = MessageMeta::default().with_tags(vec![]);
+        meta.extend_tags(vec!["foo".into()]);
+        assert!(meta.tags.is_some_and(|tags| tags.len() == 1));
+    }
+
+    #[test]
+    fn test_message_meta_extends_existing_tags() {
+        let mut meta = MessageMeta::default().with_tags(vec!["foo".into(), "bar".into()]);
+        meta.extend_tags(vec!["aaa".into()]);
+        assert_eq!(
+            vec![
+                String::from("foo"),
+                String::from("bar"),
+                String::from("aaa")
+            ],
+            meta.tags.unwrap()
+        );
+    }
+    #[test]
+    fn test_message_meta_extends_no_tags() {
+        let mut meta = MessageMeta::default();
+        meta.extend_tags(vec!["foo".into()]);
+        assert_eq!(vec![String::from("foo")], meta.tags.unwrap());
     }
 }

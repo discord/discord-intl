@@ -11,6 +11,7 @@ const path = require('node:path');
 const util = require('node:util');
 const { bench, locales: allLocales } = require('./util');
 const { hydrateFormatJsAst, compressFormatJsToAst } = require('@discord/intl-ast');
+const { match } = require('assert');
 
 const locales = allLocales;
 
@@ -43,6 +44,13 @@ bench('get source file', () => {
   const sourceFile = database.getSourceFile(SOURCE_FILES[0]);
   // console.dir(sourceFile, { depth: 1 });
 });
+
+// NOTE(faulty): This can be slow to test if all messages are tagged, because
+// converting thousands of messages to JS objects is _very_ slow.
+// bench('get messages tagged `foo`', () => {
+//   // const matchedMessages = database.getMessagesWithTag('foo');
+//   // console.log(matchedMessages.length);
+// });
 
 bench('export translations', () => {
   const files = database.exportTranslations('messages.jsona');

@@ -108,6 +108,7 @@ pub struct IntlSourceFileMeta {
     #[napi(js_name = "translationsPath")]
     pub translations_path: String,
     pub source_file_path: String,
+    pub tags: Option<Vec<String>>,
 }
 
 // This is an unused struct purely for generating functional TS types.
@@ -117,6 +118,7 @@ pub struct IntlMessageMeta {
     pub description: String,
     pub secret: bool,
     pub translate: bool,
+    pub tags: Option<Vec<String>>,
 }
 
 // This is an unused struct purely for generating functional TS types.
