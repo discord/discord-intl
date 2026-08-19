@@ -16,6 +16,7 @@ module.exports = {
 
     'use-static-access': require('./rules/use-static-access'),
     'no-opaque-messages-objects': require('./rules/no-opaque-messages-objects'),
+    'no-invalid-meta': require('./rules/no-invalid-meta'),
   },
   configs: {
     recommended: {
@@ -38,6 +39,7 @@ module.exports = {
         // JS rules
         '@discord/discord-intl/use-static-access': 'error',
         '@discord/discord-intl/no-opaque-messages-objects': 'error',
+        // '@discord/discord-intl/no-invalid-meta': 'error',
       },
     },
   },
