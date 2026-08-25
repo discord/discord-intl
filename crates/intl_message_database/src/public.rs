@@ -8,9 +8,10 @@
 use crate::sources::{get_locale_from_file_name, MessagesFileDescriptor, SourceFileInsertionData};
 use crate::threading::run_in_thread_pool;
 use intl_database_core::{
-    get_key_symbol, key_symbol, DatabaseError, DatabaseInsertStrategy, DatabaseResult,
-    FilePosition, KeySymbol, Message, MessageMeta, MessageValue, MessagesDatabase,
-    RawMessageDefinition, RawMessageTranslation, SourceFile, DEFAULT_LOCALE,
+    existing_file_key_symbol, file_key_symbol, get_key_symbol, key_symbol, normalize_file_path,
+    DatabaseError, DatabaseInsertStrategy, DatabaseResult, FilePosition, KeySymbol, Message,
+    MessageMeta, MessageValue, MessagesDatabase, RawMessageDefinition, RawMessageTranslation,
+    SourceFile, DEFAULT_LOCALE,
 };
 use intl_database_exporter::{ExportTranslations, IntlMessageBundler, IntlMessageBundlerOptions};
 use intl_database_service::IntlDatabaseService;
@@ -23,6 +24,13 @@ use std::path::PathBuf;
 
 fn get_key_symbol_or_error(value: &str) -> DatabaseResult<KeySymbol> {
     get_key_symbol(value).ok_or(DatabaseError::ValueNotInterned(value.to_string()))
+}
+
+/// The same as [`get_key_symbol_or_error`], but for a value that names a file. Use this for every
+/// path lookup so that a caller can find a file with a different spelling than it inserted with.
+fn get_file_key_symbol_or_error(file_path: &str) -> DatabaseResult<KeySymbol> {
+    existing_file_key_symbol(file_path)
+        .ok_or(DatabaseError::ValueNotInterned(file_path.to_string()))
 }
 
 /// Scan the file system within the given `source_directories` for all messages files contained
@@ -81,7 +89,7 @@ pub fn process_all_messages_files(
                 "Failed to read messages file at {}",
                 file_path.display()
             ));
-            let file_path = key_symbol(&file_path.to_string_lossy());
+            let file_path = file_key_symbol(&file_path.to_string_lossy());
             let data = SourceFileInsertionData::new(file_path, locale);
 
             let (definitions, translations) = if is_message_definitions_file(&file_path) {
@@ -93,11 +101,9 @@ pub fn process_all_messages_files(
                     _ => (None, None),
                 }
             } else {
-                let translations = crate::sources::extract_translations_from_file(
-                    key_symbol(&file_path),
-                    &content,
-                )
-                .map(|translations| translations.collect::<Vec<RawMessageTranslation>>());
+                let translations =
+                    crate::sources::extract_translations_from_file(file_path, &content)
+                        .map(|translations| translations.collect::<Vec<RawMessageTranslation>>());
                 (None, Some(translations))
             };
             (data, definitions, translations)
@@ -173,10 +179,11 @@ pub fn process_all_translation_files(
         |(locale, file_path)| {
             let content = std::fs::read_to_string(&file_path)
                 .expect(&format!("Failed to read translation file at {}", file_path));
+            let file_key = file_key_symbol(&file_path);
             (
                 key_symbol(&locale),
-                key_symbol(&file_path),
-                crate::sources::extract_translations_from_file(key_symbol(&file_path), &content)
+                file_key,
+                crate::sources::extract_translations_from_file(file_key, &content)
                     .map(|translations| translations.collect::<Vec<RawMessageTranslation>>()),
             )
         },
@@ -231,7 +238,7 @@ pub fn get_source_file<'a>(
     database: &'a MessagesDatabase,
     file_path: &str,
 ) -> anyhow::Result<&'a SourceFile> {
-    let file_symbol = get_key_symbol_or_error(file_path)?;
+    let file_symbol = get_file_key_symbol_or_error(file_path)?;
     let Some(source) = database.sources.get(&file_symbol) else {
         return Err(DatabaseError::SymbolNotFound(file_symbol).into());
     };
@@ -249,7 +256,7 @@ pub fn get_source_file_key_map(
     database: &MessagesDatabase,
     file_path: &str,
 ) -> anyhow::Result<FxHashMap<String, KeySymbol>> {
-    let file_symbol = get_key_symbol_or_error(file_path)?;
+    let file_symbol = get_file_key_symbol_or_error(file_path)?;
     let Some(source) = database.sources.get(&file_symbol) else {
         return Err(DatabaseError::SymbolNotFound(file_symbol).into());
     };
@@ -273,7 +280,7 @@ pub fn get_definitions_files_for_translations_path(
     database: &MessagesDatabase,
     translations_path: &str,
 ) -> Vec<KeySymbol> {
-    let expected_path = PathBuf::from(translations_path);
+    let expected_path = PathBuf::from(normalize_file_path(translations_path).as_ref());
     // Very cheap to allocate initially, and saves repeated allocations that
     // are very likely to be hit.
     let mut result = Vec::with_capacity(8);
@@ -324,7 +331,7 @@ pub fn generate_types(
     source_file_path: &str,
     output_file_path: &str,
 ) -> anyhow::Result<()> {
-    let source_file_key = get_key_symbol_or_error(source_file_path)?;
+    let source_file_key = get_file_key_symbol_or_error(source_file_path)?;
     let mut generator =
         IntlTypesGenerator::new(&database, source_file_key, output_file_path.to_string());
     generator.run()?;
@@ -355,7 +362,7 @@ pub fn precompile_to_buffer(
     options: IntlMessageBundlerOptions,
 ) -> anyhow::Result<Vec<u8>> {
     let locale_key = get_key_symbol_or_error(&locale)?;
-    let source_key = get_key_symbol_or_error(file_path)?;
+    let source_key = get_file_key_symbol_or_error(file_path)?;
     let keys_count = database
         .get_source_file(source_key)
         .map_or(0, |source| source.message_keys().len());
@@ -417,7 +424,7 @@ pub fn get_source_file_message_values<'a>(
     database: &'a MessagesDatabase,
     file_path: &str,
 ) -> anyhow::Result<FxHashMap<&'a KeySymbol, Option<&'a MessageValue>>> {
-    let source_key = get_key_symbol_or_error(file_path)?;
+    let source_key = get_file_key_symbol_or_error(file_path)?;
     let key_value_pairs = database.iter_source_file_message_values(source_key)?;
     Ok(FxHashMap::from_iter(key_value_pairs))
 }
