@@ -9,6 +9,7 @@ use self::message::Message;
 use self::symbol::{get_key_symbol, key_symbol, KeySymbol, KeySymbolMap, KeySymbolSet};
 
 pub mod message;
+pub mod path;
 pub mod source;
 pub mod symbol;
 
