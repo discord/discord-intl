@@ -7,18 +7,29 @@ on:
 
 jobs:
   lint-rust:
-    name: Lint Rust crates
-    runs-on: macos-latest
+    name: Lint Rust crates (${{ matrix.target[1] }})
+    strategy:
+      # Windows is the only platform where one file has more than one valid path spelling, so the
+      # path-key tests in intl_message_database do not run anywhere else. Do not let a failure on
+      # one platform hide the result on the other.
+      fail-fast: false
+      matrix:
+        target:
+          - [ 'macos-latest', 'darwin-arm64' ]
+          - [ 'windows-latest', 'win32-x64-msvc' ]
+    runs-on: ${{ matrix.target[0] }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
         with:
-          runner: macos-latest
-          target: 'darwin-arm64'
+          runner: ${{ matrix.target[0] }}
+          target: ${{ matrix.target[1] }}
 
       - name: cargo-fmt
+        # Formatting is platform independent, so only check it once.
+        if: startsWith(matrix.target[0], 'macos')
         run: |
           cargo-fmt --all --check
 
