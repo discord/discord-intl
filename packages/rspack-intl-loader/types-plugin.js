@@ -2,6 +2,7 @@ const {
   database,
   isMessageDefinitionsFile,
   generateTypeDefinitions,
+  processDefinitionsFile,
 } = require('@discord/intl-loader-core');
 
 /**
@@ -46,6 +47,9 @@ class IntlTypeGeneratorPlugin {
     });
     compiler.hooks.invalid.tap('IntlTypeGeneratorPlugin', (filePath) => {
       if (filePath != null && isMessageDefinitionsFile(filePath)) {
+        const result = processDefinitionsFile(filePath);
+        if (!result.succeeded) return;
+
         const duration = this.generateTypeDefinitions(filePath);
         console.error(
           `🌍 Updated intl type definitions for ${filePath} (${duration.toFixed(3)}ms)`,
