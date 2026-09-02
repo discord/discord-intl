@@ -1,4 +1,5 @@
 pub use database::message::Message;
+pub use database::path::{existing_file_key_symbol, file_key_symbol, normalize_file_path};
 pub use database::source::{
     MessageDefinitionSource, MessageSourceError, MessageSourceResult, MessageTranslationSource,
     RawMessage, RawMessageDefinition, RawMessageTranslation, SourceOffsetList,

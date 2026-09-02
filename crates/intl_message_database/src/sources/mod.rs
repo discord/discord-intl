@@ -1,8 +1,9 @@
 use ignore::WalkBuilder;
 use intl_database_core::{
-    key_symbol, DatabaseError, DatabaseInsertStrategy, DatabaseResult, DefinitionFile, KeySymbol,
-    KeySymbolSet, MessageDefinitionSource, MessageTranslationSource, MessagesDatabase,
-    RawMessageDefinition, RawMessageTranslation, SourceFile, SourceFileMeta, TranslationFile,
+    file_key_symbol, key_symbol, normalize_file_path, DatabaseError, DatabaseInsertStrategy,
+    DatabaseResult, DefinitionFile, KeySymbol, KeySymbolSet, MessageDefinitionSource,
+    MessageTranslationSource, MessagesDatabase, RawMessageDefinition, RawMessageTranslation,
+    SourceFile, SourceFileMeta, TranslationFile,
 };
 use intl_database_js_source::JsMessageSource;
 use intl_database_json_source::JsonMessageSource;
@@ -135,10 +136,13 @@ pub fn find_all_messages_files<A: AsRef<str>>(
             return None;
         };
         let file_path = item.path().to_path_buf();
-        if found_files.contains(&file_path) {
+        // Dedupe on the canonical spelling rather than the path itself. Overlapping input
+        // directories spelled differently otherwise yield one file twice, and the second
+        // insertion collides with the first. The descriptor keeps the raw path so that reading
+        // the file does not depend on a lossy string conversion.
+        if !found_files.insert(normalize_file_path(&file_path.to_string_lossy()).into_owned()) {
             return None;
         }
-        found_files.insert(file_path.clone());
 
         let Some(basename) = file_path.file_name() else {
             return None;
@@ -161,7 +165,7 @@ pub fn process_definitions_file(
     locale: &str,
     strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
-    let file_key = key_symbol(file_name);
+    let file_key = file_key_symbol(file_name);
     let locale_key = key_symbol(locale);
     let mut data = SourceFileInsertionData::new(file_key, locale_key);
     match extract_definitions_from_file(file_key, content) {
@@ -252,7 +256,7 @@ pub fn process_translations_file(
     content: &str,
     strategy: DatabaseInsertStrategy,
 ) -> SourceFileInsertionData {
-    let file_key = key_symbol(file_name);
+    let file_key = file_key_symbol(file_name);
     let locale_key = key_symbol(&locale);
     let mut data = SourceFileInsertionData::new(file_key, locale_key);
     match extract_translations_from_file(file_key, content) {

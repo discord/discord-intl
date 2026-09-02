@@ -13,7 +13,8 @@ const {
   IntlMessagesDatabase,
   IntlDatabaseInsertStrategy,
 } = require('@discord/intl-message-database');
-/** @type {Map<SourceCode, Record<string, IntlDiagnostic[]>>} */
+/** @typedef {{ sourceFileKey: string, validations: Record<string, IntlDiagnostic[]> }} FileValidations */
+/** @type {Map<SourceCode, FileValidations>} */
 const FILE_VALIDATIONS = new Map();
 
 /** @type {Map<string, IntlMessagesDatabase>} */
@@ -50,7 +51,7 @@ function ensureInitialized(directory) {
  * @param {SourceCode} sourceCode
  * @param {string} fileName
  * @param {string} content
- * @return {Record<string, IntlDiagnostic[]>}
+ * @return {FileValidations}
  */
 function processAndValidateNative(database, sourceCode, fileName, content) {
   const fileKey = crypto.hash('sha1', content);
@@ -67,6 +68,10 @@ function processAndValidateNative(database, sourceCode, fileName, content) {
     'en-US',
     IntlDatabaseInsertStrategy.Update,
   );
+  // The database interns file paths and may store a different spelling than the one we passed in
+  // (on Windows it normalizes the drive letter and separators). Every diagnostic it hands back is
+  // tagged with _its_ spelling, so match on this rather than on `processingFileName`.
+  const sourceFileKey = processResult.fileKey;
 
   /** @type {Record<string, IntlDiagnostic[]>} */
   const validations = {};
@@ -77,7 +82,7 @@ function processAndValidateNative(database, sourceCode, fileName, content) {
       name: 'Processing::' + error.name,
       description: error.message,
       key: error.key ?? 'file',
-      file: error.file ?? processingFileName,
+      file: error.file ?? sourceFileKey,
       messageLine: error.line ?? 0,
       messageCol: error.col ?? 0,
       start: 0,
@@ -89,13 +94,14 @@ function processAndValidateNative(database, sourceCode, fileName, content) {
   }
 
   for (const diagnostic of database.validateMessages()) {
-    if (diagnostic.file === processingFileName) {
+    if (diagnostic.file === sourceFileKey) {
       (validations[diagnostic.key] ??= []).push(diagnostic);
     }
   }
 
-  FILE_VALIDATIONS.set(sourceCode, validations);
-  return validations;
+  const result = { sourceFileKey, validations };
+  FILE_VALIDATIONS.set(sourceCode, result);
+  return result;
 }
 
 /**
@@ -111,7 +117,7 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
 
   const projectDirectory = context.settings['intl']?.['projectDirectory'] ?? context.cwd;
   const database = ensureInitialized(projectDirectory);
-  const validations = processAndValidateNative(
+  const { sourceFileKey, validations } = processAndValidateNative(
     database,
     context.sourceCode,
     context.filename,
@@ -133,7 +139,7 @@ function traverseAndReportMatchingNativeValidations(context, predicate) {
     // log the diagnostic to be able to investigate further when it happens.
     const textLen = context.sourceCode.text.length;
     if (
-      diagnostic.file !== context.physicalFilename ||
+      diagnostic.file !== sourceFileKey ||
       messageOffset + diagnostic.start > textLen ||
       messageOffset + diagnostic.end > textLen
     ) {
