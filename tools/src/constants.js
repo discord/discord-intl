@@ -18,5 +18,6 @@ export const NPM_PACKAGES = {
 };
 
 export const CRATES = {
-  discord_intl_MARKDOWN: path.join(REPO_ROOT, 'crates', 'discord_intl_markdown'),
+  ROOT: path.join(REPO_ROOT, 'crates'),
+  DISCORD_INTL_MARKDOWN: path.join(REPO_ROOT, 'crates', 'discord_intl_markdown'),
 };

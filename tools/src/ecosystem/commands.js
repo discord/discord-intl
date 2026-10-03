@@ -22,7 +22,7 @@ export default async function () {
     .aliases(['ecosystem'])
     .description('Operate on the entire ecosystem of JS packages in the repo.');
 
-  group.addCommand(versionCommand('version', dbPackage, publicPackages));
+  group.addCommand(versionCommand('version', dbPackage, publicPackages, true));
   group.addCommand(
     npmPublishCommand('publish-all').action(async (options) => {
       console.info('Ensuring all public packages have matching versions');

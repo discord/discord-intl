@@ -1,7 +1,11 @@
 [package]
 name = "discord_intl_flat_json_parser"
-version = "0.1.0"
-edition = "2021"
+description = "Purpose-built, limited JSON parser with positional information for discord_intl"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [lib]
 crate-type = ["cdylib", "lib"]

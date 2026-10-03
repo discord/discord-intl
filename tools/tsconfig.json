@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -8,6 +10,8 @@
     "noEmit": true,
     "allowJs": true,
     "checkJs": true,
-    "lib": [],
+    "lib": [
+      "es2021"
+    ]
   }
 }

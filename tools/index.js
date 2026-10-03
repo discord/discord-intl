@@ -9,6 +9,7 @@ import jsonCommands from './src/json/commands.js';
 import ecosystemCommands from './src/ecosystem/commands.js';
 import { createJsPackageCommands } from './src/js-package.js';
 import { rustup } from './src/util/rustup.js';
+import { cratesCommands } from './src/crates.js';
 
 process.chdir(REPO_ROOT);
 cd(REPO_ROOT);
@@ -19,6 +20,7 @@ cd(REPO_ROOT);
     .addCommand(await ciCommands())
     .addCommand(await dbCommands())
     .addCommand(await jsonCommands())
+    .addCommand(await cratesCommands())
     .addCommand(await ecosystemCommands())
     .addCommand(await utilCommands())
     .addCommand(

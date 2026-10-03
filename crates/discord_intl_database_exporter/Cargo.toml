@@ -1,8 +1,11 @@
 [package]
 name = "discord_intl_database_exporter"
 description = "Serialization utilities for exporting message database contents to other systems and general formats"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [dependencies]
 discord_intl_database_core = { workspace = true }

@@ -48,7 +48,7 @@ jobs:
     uses: ./.github/workflows/build-napi-platform-package.yaml
     with:
       package: intl-message-database
-      crate: intl_message_database
+      crate: discord_intl_message_database
       cli-name: db
       runner: ${{ matrix.target[0] }}
       target: ${{ matrix.target[1] }}
@@ -72,7 +72,7 @@ jobs:
     uses: ./.github/workflows/build-napi-platform-package.yaml
     with:
       package: intl-flat-json-parser
-      crate: intl_flat_json_parser
+      crate: discord_intl_flat_json_parser
       cli-name: json
       runner: ${{ matrix.target[0] }}
       target: ${{ matrix.target[1] }}
@@ -148,3 +148,34 @@ jobs:
       - name: Publish all @discord/intl-message-database* packages
         run: |
           pnpm intl-cli ecosystem publish-all --provenance --access public --no-git-checks --tag ${{inputs.tag}}
+
+  publish_crates:
+    name: Publish Rust Crates
+    needs:
+      - lint-rust
+      - build-db
+      - build-json-parser
+      - build-swc
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    if: inputs.publish
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-build-env
+        with:
+          target: linux-arm64-gnu
+          
+      - uses: cargo-bins/cargo-binstall@75b4bfae1b2c753a6806bbce6e6cb89b602de33c # v1.22.0
+
+      - name: Install cargo-workspaces
+        run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - run: pnpm intl-cli ecosystem publish-crates
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

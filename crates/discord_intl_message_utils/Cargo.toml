@@ -1,9 +1,11 @@
 [package]
 name = "discord_intl_message_utils"
 description = "Utilities used across different crates in the intl package."
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [dependencies]
 xxhash-rust = { workspace = true }

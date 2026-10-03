@@ -1,7 +1,11 @@
 [package]
 name = "discord_intl_markdown_syntax"
-version = "0.1.0"
-edition = "2021"
+description = "Generated AST Syntax definition for discord_intl's custom ICU+Markdown message syntax"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [dependencies]
 slice-dst = "1.6.0"

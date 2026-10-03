@@ -10,7 +10,7 @@ jobs:
     name: Lint Rust crates (${{ matrix.target[1] }})
     strategy:
       # Windows is the only platform where one file has more than one valid path spelling, so the
-      # path-key tests in intl_message_database do not run anywhere else. Do not let a failure on
+      # path-key tests in discord_intl_message_database do not run anywhere else. Do not let a failure on
       # one platform hide the result on the other.
       fail-fast: false
       matrix:

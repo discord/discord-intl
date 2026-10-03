@@ -1,7 +1,11 @@
 [package]
 name = "discord_intl_database_js_source"
-version = "0.1.0"
-edition = "2021"
+description = "discord_intl Source implementation for JS messages files."
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [dependencies]
 discord_intl_database_core = { workspace = true }

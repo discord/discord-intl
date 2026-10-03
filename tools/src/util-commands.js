@@ -20,7 +20,7 @@ export default async function () {
     )
     .action(async () => {
       await $({
-        cwd: CRATES.discord_intl_MARKDOWN,
+        cwd: CRATES.DISCORD_INTL_MARKDOWN,
         stdio: ['inherit', 'inherit', 'ignore'],
       })`node --experimental-strip-types ./scripts/cjk-ranges.ts -l rust`;
     });

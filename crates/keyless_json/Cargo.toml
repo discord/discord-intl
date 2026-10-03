@@ -1,9 +1,11 @@
 [package]
 name = "keyless_json"
 description = "A Serde serializer that allows well-structured JSON to be minified into keyless arrays of elements."
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [dependencies]
 serde = { workspace = true }

@@ -1,8 +1,11 @@
 [package]
 name = "discord_intl_validator"
 description = "Validation utilities for both individual message values and aggregate messages across an entire database"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [dependencies]
 discord_intl_database_core = { workspace = true }

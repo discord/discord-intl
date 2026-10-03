@@ -1,6 +1,10 @@
 [package]
 name = "discord_intl_database_service"
-version = "0.1.0"
-edition = "2021"
+description = "Trait definition for services that operate on discord_intl_message_database instances"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [dependencies]

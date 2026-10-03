@@ -3,6 +3,7 @@ import { Argument, Command } from 'commander';
 
 import { git } from './util/git.js';
 import { getWorkspacePackages, updatePackageJson } from './pnpm.js';
+import { getCargoWorkspaceVersion, updateCargoWorkspaceVersions } from './cargo.js';
 
 /**
  * @typedef {import('./pnpm.js').PnpmPackage} PnpmPackage
@@ -17,18 +18,19 @@ import { getWorkspacePackages, updatePackageJson } from './pnpm.js';
  * @param {string} groupName
  * @param {PnpmPackage} basePack
  * @param {PnpmPackage[]=} packageFamily
+ * @param {boolean=} includeRust
  * @returns {Command}
  */
-export function versionCommand(groupName, basePack, packageFamily) {
+export function versionCommand(groupName, basePack, packageFamily, includeRust = false) {
   const hasFamily = packageFamily?.length > 0;
   const group = new Command(groupName);
+  let targetName = hasFamily ? `all packages around ${basePack.name}` : `${basePack.name}`;
+  if (includeRust) {
+    targetName += ' and the Cargo workspace';
+  }
   group
     .command('bump')
-    .description(
-      hasFamily
-        ? `Bump the version of all packages around ${basePack.name}`
-        : `Bump the version of ${basePack.name}`,
-    )
+    .description(`Bump the version of ${targetName}`)
     .addArgument(
       new Argument('<level>', 'Which level of version to bump').choices(
         ['rc', 'canary', 'release', 'set'].concat(semver.RELEASE_TYPES.concat()),
@@ -45,15 +47,16 @@ export function versionCommand(groupName, basePack, packageFamily) {
       hasFamily
         ? await bumpAllVersions(basePack, packageFamily, level)
         : await bumpVersion(basePack, level);
+      const newVersion = applyVersionBump(getPackageVersion(basePack), level);
+      if (includeRust) {
+        await updateCargoWorkspaceVersions(newVersion);
+        console.info(`- Cargo workspace now at ${newVersion}`);
+      }
     });
 
   group
     .command('show')
-    .description(
-      hasFamily
-        ? `List all version of packages around ${basePack.name}`
-        : `Show the current version of ${basePack.name}`,
-    )
+    .description(`Show the current version of ${targetName}`)
     .option('--short', 'Print only the raw version from the package.json of the package.')
     .action(({ short }) => {
       /** @type {(pack: PnpmPackage) => void} */
@@ -74,11 +77,23 @@ export function versionCommand(groupName, basePack, packageFamily) {
   if (hasFamily) {
     group
       .command('check')
-      .description('Checks that all included packages are currently set to the same version.')
-      .action(() => {
-        if (!checkAllVersionsEqual(basePack, packageFamily)) {
+      .description(`Checks that ${targetName} are currently set to the same version.`)
+      .action(async () => {
+        const expectedVersion = basePack.version;
+        if (!checkAllVersionsEqual(expectedVersion, packageFamily)) {
           process.exit(1);
         }
+        if (includeRust) {
+          const cargoVersion = await getCargoWorkspaceVersion();
+          if (cargoVersion !== expectedVersion) {
+            console.warn(
+              `[version-check] Cargo workspace version ${cargoVersion} does not match expected package version ${expectedVersion}`,
+            );
+            process.exit(1);
+          }
+        }
+
+        console.info(`[version-check] All packages have matching versions: ${expectedVersion}`);
       });
   }
 
@@ -194,23 +209,21 @@ export async function bumpVersion(pack, level) {
  * Checks that all packages in `packageFamily` have a version specifier that exactly matches the one
  * given in `basePackage`.
  *
- * @param {PnpmPackage} basePackage
+ * @param {string | PnpmPackage} packageOrVersion
  * @param {PnpmPackage[]} packageFamily
  * @returns {boolean}
  */
-export function checkAllVersionsEqual(basePackage, packageFamily) {
+export function checkAllVersionsEqual(packageOrVersion, packageFamily) {
+  const expectedVersion =
+    typeof packageOrVersion === 'string' ? packageOrVersion : packageOrVersion.version;
   let allValid = true;
   for (const pack of packageFamily) {
-    if (pack.version !== basePackage.version) {
+    if (pack.version !== expectedVersion) {
       console.warn(
-        `[version-check] ${pack.name}@${pack.version} does not match root version ${basePackage.version}`,
+        `[version-check] ${pack.name}@${pack.version} does not match root version ${expectedVersion}`,
       );
       allValid = false;
     }
-  }
-
-  if (allValid) {
-    console.info(`[version-check] All packages have matching versions: ${basePackage.version}`);
   }
   return allValid;
 }

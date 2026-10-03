@@ -1,9 +1,11 @@
 [package]
 name = "discord_intl_markdown"
 description = "A combination Markdown and ICU messageformat parser for i18n messages."
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 [lib]
 crate-type = ["lib"]

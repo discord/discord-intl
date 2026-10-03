@@ -1,9 +1,11 @@
 [package]
 name = "discord_intl_message_database"
 description = "An intl message management databae, supporting CRUD for messages with attribution to their source files, validation, type generation, exporting, and more"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license = "MIT"
+publish = true
 
 
 [lib]
