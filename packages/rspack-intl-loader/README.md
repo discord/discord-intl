@@ -7,11 +7,11 @@ A Webpack/Rspack loader for intl message definition files using `@discord/intl`.
 Add the loader as a rule for _all_ kinds of messages files in your application:
 
 ```javascript
-const INTL_MESSAGES_REGEXP = /\.messages\.(js|json|jsona)$/;
+const discord_intl_MESSAGES_REGEXP = /\.messages\.(js|json|jsona)$/;
 
 rules = [
   {
-    test: INTL_MESSAGES_REGEXP,
+    test: discord_intl_MESSAGES_REGEXP,
     loader: '@discord/rspack-intl-loader',
   },
 ];
@@ -27,7 +27,7 @@ Note that you'll also want/need the `@discord/swc-intl-message-transformer` plug
 rules = [
   {
     loader: 'builtin:swc-loader',
-    exclude: [INTL_MESSAGES_REGEXP],
+    exclude: [discord_intl_MESSAGES_REGEXP],
     options: {
       jsc: {
         experimental: {
@@ -61,7 +61,7 @@ Webpack processes asset files slightly differently than Rspack and relies on som
 ```javascript
 rules = [
   {
-    test: INTL_MESSAGES_REGEXP,
+    test: discord_intl_MESSAGES_REGEXP,
     use: [
       {
         loader: '@discord/rspack-intl-loader',

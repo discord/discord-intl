@@ -31,14 +31,14 @@ export default async function () {
 
   const group = new Command('db')
     .aliases(['intl-message-database'])
-    .description('Operate on the intl_message_database crate/package');
+    .description('Operate on the discord_intl_message_database crate/package');
 
   group
     .command('build')
-    .description('Build the intl_message_database native Node extension')
+    .description('Build the discord_intl_message_database native Node extension')
     .addOption(buildTargetOption())
     .action(async ({ target }) => {
-      await buildNapiPackage('intl-message-database', dbPackage, target);
+      await buildNapiPackage('discord-intl-message-database', dbPackage, target);
     });
 
   group
@@ -47,7 +47,7 @@ export default async function () {
     .option('--build', 'Rebuild the crate locally before running the bench')
     .action(async ({ build }) => {
       if (build) {
-        await buildNapiPackage('intl-message-database', dbPackage, hostPlatform.target);
+        await buildNapiPackage('discord-intl-message-database', dbPackage, hostPlatform.target);
       }
       await pnpm.runScriptInPackage(dbPackage, 'bench:native');
     });

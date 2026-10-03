@@ -65,7 +65,7 @@ function getPackageName() {
 const packageName = getPackageName();
 const localPath = path.join(
   __dirname,
-  `npm/${packageName}/intl-message-database.${packageName}.node`,
+  `npm/${packageName}/discord-intl-message-database.${packageName}.node`,
 );
 const packagePath = `@discord/intl-message-database-${packageName}`;
 

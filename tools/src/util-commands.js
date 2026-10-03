@@ -16,11 +16,11 @@ export default async function () {
   group
     .command('gen-cjk-ranges')
     .description(
-      'Generate CJK range bounds for intl_markdown based on the current Unicode standard',
+      'Generate CJK range bounds for discord_intl_markdown based on the current Unicode standard',
     )
     .action(async () => {
       await $({
-        cwd: CRATES.INTL_MARKDOWN,
+        cwd: CRATES.discord_intl_MARKDOWN,
         stdio: ['inherit', 'inherit', 'ignore'],
       })`node --experimental-strip-types ./scripts/cjk-ranges.ts -l rust`;
     });

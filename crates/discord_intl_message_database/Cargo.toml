@@ -1,0 +1,37 @@
+[package]
+name = "discord_intl_message_database"
+description = "An intl message management databae, supporting CRUD for messages with attribution to their source files, validation, type generation, exporting, and more"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = []
+# Enable to compile the library as a static library
+static_link = []
+
+[dependencies]
+anyhow = { workspace = true }
+ignore = { workspace = true }
+discord_intl_allocator = { workspace = true }
+discord_intl_database_core = { workspace = true }
+discord_intl_database_exporter = { workspace = true }
+discord_intl_database_js_source = { workspace = true }
+discord_intl_database_json_source = { workspace = true }
+discord_intl_database_service = { workspace = true }
+discord_intl_database_types_generator = { workspace = true }
+discord_intl_message_utils = { workspace = true }
+discord_intl_validator = { workspace = true }
+napi = { workspace = true }
+napi-derive = { workspace = true }
+num_cpus = "1"
+rustc-hash = { workspace = true }
+serde = { workspace = true }
+threadpool = "1.8.1"
+
+[build-dependencies]
+napi-build = { workspace = true }

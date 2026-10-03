@@ -10,7 +10,7 @@ module.exports = {
     // Order matters here! Even though this is an Object, Jest still processes these first to
     // last (object insertion order). These patterns can overlap, so we want to put all of the
     // special handling first.
-    [INTL_MESSAGES_FILE_PATTERN]: require.resolve('@discord/jest-processor-discord-intl'),
+    [discord_intl_MESSAGES_FILE_PATTERN]: require.resolve('@discord/jest-processor-discord-intl'),
     // ...other transforms, like `*.tsx?` and more.
   },
 };

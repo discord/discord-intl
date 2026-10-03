@@ -1,0 +1,25 @@
+{
+  "name": "@discord/intl-flat-json-parser-linux-arm64-gnu",
+  "version": "0.32.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "discord-intl-flat-json-parser.linux-arm64-gnu.node",
+  "files": [
+    "discord-intl-flat-json-parser.linux-arm64-gnu.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  },
+  "libc": [
+    "glibc"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  }
+}

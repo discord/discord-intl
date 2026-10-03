@@ -36,7 +36,7 @@ importers:
         specifier: 5.5.4
         version: 5.5.4
 
-  crates/intl_flat_json_parser:
+  crates/discord_intl_flat_json_parser:
     optionalDependencies:
       '@discord/intl-flat-json-parser-darwin-arm64':
         specifier: workspace:*
@@ -61,19 +61,19 @@ importers:
         specifier: ^2.18.4
         version: 2.18.4
 
-  crates/intl_flat_json_parser/npm/darwin-arm64: {}
+  crates/discord_intl_flat_json_parser/npm/darwin-arm64: {}
 
-  crates/intl_flat_json_parser/npm/darwin-x64: {}
+  crates/discord_intl_flat_json_parser/npm/darwin-x64: {}
 
-  crates/intl_flat_json_parser/npm/linux-arm64-gnu: {}
+  crates/discord_intl_flat_json_parser/npm/linux-arm64-gnu: {}
 
-  crates/intl_flat_json_parser/npm/linux-x64-gnu: {}
+  crates/discord_intl_flat_json_parser/npm/linux-x64-gnu: {}
 
-  crates/intl_flat_json_parser/npm/win32-arm64-msvc: {}
+  crates/discord_intl_flat_json_parser/npm/win32-arm64-msvc: {}
 
-  crates/intl_flat_json_parser/npm/win32-x64-msvc: {}
+  crates/discord_intl_flat_json_parser/npm/win32-x64-msvc: {}
 
-  crates/intl_message_database:
+  crates/discord_intl_message_database:
     optionalDependencies:
       '@discord/intl-message-database-darwin-arm64':
         specifier: workspace:*
@@ -110,23 +110,23 @@ importers:
         specifier: ^2.18.3
         version: 2.18.4
 
-  crates/intl_message_database/npm/darwin-arm64: {}
+  crates/discord_intl_message_database/npm/darwin-arm64: {}
 
-  crates/intl_message_database/npm/darwin-x64: {}
+  crates/discord_intl_message_database/npm/darwin-x64: {}
 
-  crates/intl_message_database/npm/linux-arm64-gnu: {}
+  crates/discord_intl_message_database/npm/linux-arm64-gnu: {}
 
-  crates/intl_message_database/npm/linux-arm64-musl: {}
+  crates/discord_intl_message_database/npm/linux-arm64-musl: {}
 
-  crates/intl_message_database/npm/linux-x64-gnu: {}
+  crates/discord_intl_message_database/npm/linux-x64-gnu: {}
 
-  crates/intl_message_database/npm/linux-x64-musl: {}
+  crates/discord_intl_message_database/npm/linux-x64-musl: {}
 
-  crates/intl_message_database/npm/win32-arm64-msvc: {}
+  crates/discord_intl_message_database/npm/win32-arm64-msvc: {}
 
-  crates/intl_message_database/npm/win32-ia32-msvc: {}
+  crates/discord_intl_message_database/npm/win32-ia32-msvc: {}
 
-  crates/intl_message_database/npm/win32-x64-msvc: {}
+  crates/discord_intl_message_database/npm/win32-x64-msvc: {}
 
   packages/babel-plugin-transform-discord-intl:
     dependencies:
@@ -148,7 +148,7 @@ importers:
     dependencies:
       '@discord/intl-message-database':
         specifier: workspace:*
-        version: link:../../crates/intl_message_database
+        version: link:../../crates/discord_intl_message_database
       '@typescript-eslint/scope-manager':
         specifier: ^8.8.1
         version: 8.8.1
@@ -210,7 +210,7 @@ importers:
     dependencies:
       '@discord/intl-message-database':
         specifier: workspace:*
-        version: link:../../crates/intl_message_database
+        version: link:../../crates/discord_intl_message_database
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0

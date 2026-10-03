@@ -1,0 +1,15 @@
+[package]
+name = "discord_intl_database_js_source"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+discord_intl_database_core = { workspace = true }
+discord_intl_message_utils = { workspace = true }
+swc_common = { workspace = true }
+swc_core = { workspace = true, features = [
+    "ecma_parser",
+    "ecma_ast",
+    "ecma_visit",
+] }
+memchr = { workspace = true }

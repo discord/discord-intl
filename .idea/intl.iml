@@ -2,37 +2,37 @@
 <module type="EMPTY_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown/benches" isTestSource="true" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown/examples" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown/tests" isTestSource="true" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown_macros/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_message_database/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_message_utils/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/keyless_json/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/packages/swc-intl-message-transformer/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_core/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_exporter/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_js_source/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_json_source/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_service/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_database_types_generator/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_validator/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown_visitor/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_message_database/examples" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_flat_json_parser/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_allocator/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_flat_json_parser/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/codegen/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/xtask/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_markdown_syntax/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_validator/tests" isTestSource="true" />
-      <sourceFolder url="file://$MODULE_DIR$/crates/intl_message_database/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_allocator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_database_core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_database_exporter/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_database_js_source/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_database_json_source/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_database_service/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_database_types_generator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_flat_json_parser/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_flat_json_parser/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_markdown/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_markdown/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_markdown/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_markdown/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_markdown_macros/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_markdown_syntax/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_message_database/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_message_database/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_message_database/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_message_utils/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_validator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_intl_validator/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/runtime-bench/data" />
-      <excludeFolder url="file://$MODULE_DIR$/crates/intl_markdown/target" />
-      <excludeFolder url="file://$MODULE_DIR$/crates/intl_message_database/data" />
       <excludeFolder url="file://$MODULE_DIR$/packages/intl/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/crates/discord_intl_markdown/target" />
+      <excludeFolder url="file://$MODULE_DIR$/crates/discord_intl_message_database/data" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

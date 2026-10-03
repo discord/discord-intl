@@ -1,0 +1,22 @@
+{
+  "name": "@discord/intl-message-database-win32-ia32-msvc",
+  "version": "0.32.0",
+  "license": "MIT",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "main": "discord-intl-message-database.win32-ia32-msvc.node",
+  "files": [
+    "discord-intl-message-database.win32-ia32-msvc.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  }
+}

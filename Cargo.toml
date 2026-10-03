@@ -1,19 +1,19 @@
 [workspace]
 members = [
-    "crates/intl_allocator",
-    "crates/intl_database_core",
-    "crates/intl_database_exporter",
-    "crates/intl_database_js_source",
-    "crates/intl_database_json_source",
-    "crates/intl_database_service",
-    "crates/intl_database_types_generator",
-    "crates/intl_flat_json_parser",
-    "crates/intl_markdown",
-    "crates/intl_markdown_macros",
-    "crates/intl_markdown_syntax",
-    "crates/intl_message_database",
-    "crates/intl_message_utils",
-    "crates/intl_validator",
+    "crates/discord_intl_allocator",
+    "crates/discord_intl_database_core",
+    "crates/discord_intl_database_exporter",
+    "crates/discord_intl_database_js_source",
+    "crates/discord_intl_database_json_source",
+    "crates/discord_intl_database_service",
+    "crates/discord_intl_database_types_generator",
+    "crates/discord_intl_flat_json_parser",
+    "crates/discord_intl_markdown",
+    "crates/discord_intl_markdown_macros",
+    "crates/discord_intl_markdown_syntax",
+    "crates/discord_intl_message_database",
+    "crates/discord_intl_message_utils",
+    "crates/discord_intl_validator",
     "crates/keyless_json",
     "packages/swc-intl-message-transformer",
     "xtask",
@@ -21,20 +21,20 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-intl_allocator = { path = "./crates/intl_allocator" }
-intl_database_core = { path = "./crates/intl_database_core" }
-intl_database_exporter = { path = "./crates/intl_database_exporter" }
-intl_database_js_source = { path = "./crates/intl_database_js_source" }
-intl_database_json_source = { path = "./crates/intl_database_json_source" }
-intl_database_service = { path = "./crates/intl_database_service" }
-intl_database_types_generator = { path = "./crates/intl_database_types_generator" }
-intl_flat_json_parser = { path = "./crates/intl_flat_json_parser" }
-intl_markdown = { path = "./crates/intl_markdown" }
-intl_markdown_macros = { path = "./crates/intl_markdown_macros" }
-intl_markdown_syntax = { path = "./crates/intl_markdown_syntax" }
-intl_message_database = { path = "./crates/intl_message_database" }
-intl_message_utils = { path = "./crates/intl_message_utils" }
-intl_validator = { path = "./crates/intl_validator" }
+discord_intl_allocator = { path = "crates/discord_intl_allocator" }
+discord_intl_database_core = { path = "crates/discord_intl_database_core" }
+discord_intl_database_exporter = { path = "crates/discord_intl_database_exporter" }
+discord_intl_database_js_source = { path = "crates/discord_intl_database_js_source" }
+discord_intl_database_json_source = { path = "crates/discord_intl_database_json_source" }
+discord_intl_database_service = { path = "crates/discord_intl_database_service" }
+discord_intl_database_types_generator = { path = "./crates/discord_intl_database_types_generator" }
+discord_intl_flat_json_parser = { path = "./crates/discord_intl_flat_json_parser" }
+discord_intl_markdown = { path = "./crates/discord_intl_markdown" }
+discord_intl_markdown_macros = { path = "./crates/discord_intl_markdown_macros" }
+discord_intl_markdown_syntax = { path = "./crates/discord_intl_markdown_syntax" }
+discord_intl_message_database = { path = "./crates/discord_intl_message_database" }
+discord_intl_message_utils = { path = "./crates/discord_intl_message_utils" }
+discord_intl_validator = { path = "./crates/discord_intl_validator" }
 keyless_json = { path = "./crates/keyless_json" }
 
 anyhow = "1"

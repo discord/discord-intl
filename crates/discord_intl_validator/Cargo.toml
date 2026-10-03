@@ -1,0 +1,18 @@
+[package]
+name = "discord_intl_validator"
+description = "Validation utilities for both individual message values and aggregate messages across an entire database"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+discord_intl_database_core = { workspace = true }
+discord_intl_markdown = { workspace = true }
+discord_intl_markdown_syntax = { workspace = true }
+once_cell = { workspace = true }
+serde = { workspace = true }
+regex = { workspace = true }
+lazy_static = { workspace = true }
+
+[dev-dependencies]
+discord_intl_database_js_source = { workspace = true }
+discord_intl_database_json_source = { workspace = true }

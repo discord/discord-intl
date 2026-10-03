@@ -6,7 +6,7 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::visit::{VisitMut, VisitMutWith};
 
-use intl_message_utils::{hash_message_key, is_message_definitions_file};
+use discord_intl_message_utils::{hash_message_key, is_message_definitions_file};
 
 use crate::IntlMessageTransformerConfig;
 

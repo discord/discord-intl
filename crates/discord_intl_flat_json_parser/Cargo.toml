@@ -1,0 +1,31 @@
+[package]
+name = "discord_intl_flat_json_parser"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = []
+# Enable when building the NAPI extension version of this crate.
+node_addon = []
+
+[dependencies]
+memchr = { workspace = true }
+discord_intl_allocator = { workspace = true }
+unescape_zero_copy = { workspace = true }
+
+napi = { workspace = true }
+napi-derive = { workspace = true }
+
+[build-dependencies]
+napi-build = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "json_parsing"
+harness = false

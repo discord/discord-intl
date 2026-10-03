@@ -31,14 +31,14 @@ export default async function () {
 
   const group = new Command('json')
     .aliases(['intl-flat-json-parser'])
-    .description('Operate on the intl_flat_json_parser crate/package');
+    .description('Operate on the discord_intl_flat_json_parser crate/package');
 
   group
     .command('build')
-    .description('Build the intl_flat_json_parser native Node extension')
+    .description('Build the discord_intl_flat_json_parser native Node extension')
     .addOption(buildTargetOption())
     .action(async ({ target }) => {
-      await buildNapiPackage('intl-flat-json-parser', dbPackage, target);
+      await buildNapiPackage('discord-intl-flat-json-parser', dbPackage, target);
     });
 
   group
@@ -47,7 +47,7 @@ export default async function () {
     .option('--build', 'Rebuild the crate locally before running the bench')
     .action(async ({ build }) => {
       if (build) {
-        await buildNapiPackage('intl-flat-json-parser', dbPackage, hostPlatform.target);
+        await buildNapiPackage('discord-intl-flat-json-parser', dbPackage, hostPlatform.target);
       }
       await pnpm.runScriptInPackage(dbPackage, 'bench');
     });

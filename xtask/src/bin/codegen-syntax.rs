@@ -19,7 +19,7 @@ fn main() {
 }
 
 fn try_main() -> anyhow::Result<()> {
-    let mut codegen = Codegen::new(util::repo_root().join("crates/intl_markdown/src"));
+    let mut codegen = Codegen::new(util::repo_root().join("crates/discord_intl_markdown/src"));
 
     let grammar = Grammar::from_str(include_str!("../../data/markdown.ungram"))?;
     let syntax = syntax_from_grammar(&grammar);
@@ -134,7 +134,7 @@ fn generate_visitor_from_grammar(nodes: &Vec<AnyGrammarNode>) -> String {
 
 fn generate_tree_from_grammar(nodes: &Vec<AnyGrammarNode>) -> String {
     let mut result = quote! {
-        use intl_markdown_syntax::*;
+        use discord_intl_markdown_syntax::*;
         use crate::cst::util::*;
     };
     for node in nodes {

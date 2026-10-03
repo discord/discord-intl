@@ -1,0 +1,22 @@
+{
+  "name": "@discord/intl-flat-json-parser-darwin-arm64",
+  "version": "0.32.0",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "discord-intl-flat-json-parser.darwin-arm64.node",
+  "files": [
+    "discord-intl-flat-json-parser.darwin-arm64.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/discord/discord-intl"
+  }
+}

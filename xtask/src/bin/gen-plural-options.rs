@@ -81,7 +81,7 @@ fn try_main() -> anyhow::Result<()> {
         }
     };
 
-    let mut codegen = Codegen::new(util::repo_root().join("crates/intl_validator"));
+    let mut codegen = Codegen::new(util::repo_root().join("crates/discord_intl_validator"));
     codegen.write_file("src/util/plural_option_data.rs", content.to_string())?;
     codegen.finish()
 }

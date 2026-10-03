@@ -169,7 +169,7 @@ fn get_module_prelude() -> impl ToTokens {
 
 fn try_main() -> anyhow::Result<()> {
     let mut codegen =
-        Codegen::new(util::repo_root().join("crates/intl_markdown/tests/spec/commonmark"));
+        Codegen::new(util::repo_root().join("crates/discord_intl_markdown/tests/spec/commonmark"));
     let examples = get_examples();
     let cases_by_section = get_cases_by_section(examples);
 
@@ -180,7 +180,7 @@ fn try_main() -> anyhow::Result<()> {
     let test_harness = quote! {
         #[cfg(test)]
         mod harness {
-            use intl_markdown::{ICUMarkdownParser, SourceText, compiler};
+            use discord_intl_markdown::{ICUMarkdownParser, SourceText, compiler};
 
             pub fn parse(input: &str) -> String {
                 let mut parser = ICUMarkdownParser::new(SourceText::from(input), true);

@@ -1,0 +1,9 @@
+[package]
+name = "discord_intl_database_json_source"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+discord_intl_database_core = { workspace = true }
+discord_intl_flat_json_parser = { workspace = true }
+memchr = { workspace = true }
