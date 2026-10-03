@@ -151,7 +151,7 @@ impl TextPointer {
             if let Some(range) = self.source.substr_range(text) {
                 let mut clone = self.clone();
                 clone.offset = range.start as TextSize;
-                clone.len = range.len() as TextSize;
+                clone.len = (range.end - range.start) as TextSize;
                 return clone;
             }
         }
@@ -196,7 +196,7 @@ impl TextPointer {
             if let Some(range) = self.source.substr_range(text) {
                 let mut clone = self.clone();
                 clone.offset = range.start as TextSize;
-                clone.len = range.len() as TextSize;
+                clone.len = (range.end - range.start) as TextSize;
                 return clone;
             }
         }

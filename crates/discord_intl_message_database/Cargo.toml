@@ -31,7 +31,7 @@ napi-derive = { workspace = true }
 num_cpus = "1"
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-threadpool = "1.8.1"
+threadpool = { workspace = true }
 
 [build-dependencies]
 napi-build = { workspace = true }

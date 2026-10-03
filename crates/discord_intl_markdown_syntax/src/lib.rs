@@ -1,4 +1,3 @@
-#![feature(substr_range)]
 #![feature(iter_collect_into)]
 
 mod element;
