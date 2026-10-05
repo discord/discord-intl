@@ -158,7 +158,7 @@ jobs:
       - build-swc
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     if: inputs.publish
     steps:
@@ -176,6 +176,6 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
 
-      - run: pnpm intl-cli ecosystem publish-crates
+      - run: pnpm intl-cli crates publish-all
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

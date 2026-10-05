@@ -5,7 +5,7 @@ import { Command } from 'commander';
  * Run `pnpm publish` with the given arguments.
  */
 export async function cratesPublish() {
-  await $({ stdio: 'inherit' })`cargo workspaces publish --dry-run --publish-as-is --allow-dirty`;
+  await $({ stdio: 'inherit' })`cargo workspaces publish --publish-as-is`;
   console.info('Finished publishing crates');
 }
 
