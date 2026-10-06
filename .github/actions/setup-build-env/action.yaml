@@ -76,6 +76,22 @@ runs:
         export CXX=$(xcrun -f clang++);
         SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
         export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+    
+
+    # Cross-compiling support with zig and cargo-zigbuild/cargo-xwin. Only needed if the host is linux.
+    - name: Install ziglang
+      uses: goto-bus-stop/setup-zig@v2
+      if: inputs.native == 'true' && inputs.target != 'wasm' && startsWith(inputs.runner, 'ubuntu')
+      with:
+        version: 0.13.0
+
+    - name: Install cargo toolchains
+      uses: taiki-e/install-action@v2
+      if: inputs.native == 'true' && inputs.target != 'wasm' && startsWith(inputs.runner, 'ubuntu')
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        tool: cargo-zigbuild,cargo-xwin
 
     - name: Print build environment setup
       shell: bash
