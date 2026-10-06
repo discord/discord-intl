@@ -19,7 +19,7 @@ jobs:
           - [ 'windows-latest', 'win32-x64-msvc' ]
     runs-on: ${{ matrix.target[0] }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env

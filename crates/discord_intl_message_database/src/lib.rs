@@ -6,4 +6,3 @@ pub mod public;
 
 #[cfg(not(feature = "static_link"))]
 pub mod napi;
-

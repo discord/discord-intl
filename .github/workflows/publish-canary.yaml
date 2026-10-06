@@ -25,7 +25,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env

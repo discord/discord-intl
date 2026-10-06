@@ -10,7 +10,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
@@ -23,7 +23,7 @@ jobs:
 
       - name: Upload artifact
         id: upload-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: swc_intl_message_transformer.wasm
           path: packages/swc-intl-message-transformer/swc_intl_message_transformer.wasm

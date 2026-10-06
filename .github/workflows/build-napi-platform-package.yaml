@@ -7,6 +7,10 @@ on:
         description: "Base name of the NPM package being built (no @discord, no platform name included)"
         required: true
         type: string
+      artifact:
+        description: "Prefix name of the generated .node artifact from the build (i.e. the-package-name for the-package-name.darwin-arm64.node)"
+        required: true
+        type: string
       crate:
         description: "Path name of the crate being built (e.g., some_crate instead of some-crate)"
         required: true
@@ -40,7 +44,7 @@ jobs:
     outputs:
       runner-labels: ${{ steps.upload-artifact.outputs.runner-labels || inputs.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Build Env
         uses: ./.github/actions/setup-build-env
@@ -54,8 +58,8 @@ jobs:
 
       - name: Upload artifact
         id: upload-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{inputs.package}}.${{inputs.target}}.node
+          name: ${{inputs.artifact}}.${{inputs.target}}.node
           path: crates/${{inputs.crate}}/npm/${{inputs.target}}/${{inputs.package}}.${{inputs.target}}.node
           if-no-files-found: error
