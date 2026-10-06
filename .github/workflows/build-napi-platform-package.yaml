@@ -61,5 +61,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{inputs.artifact}}.${{inputs.target}}.node
-          path: crates/${{inputs.crate}}/npm/${{inputs.target}}/${{inputs.package}}.${{inputs.target}}.node
+          path: crates/${{inputs.crate}}/npm/${{inputs.target}}/${{inputs.artifact}}.${{inputs.target}}.node
           if-no-files-found: error
