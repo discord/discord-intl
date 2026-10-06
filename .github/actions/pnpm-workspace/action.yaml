@@ -28,9 +28,8 @@ runs:
         registry-url: 'https://registry.npmjs.org/'
 
     - name: Install pnpm
-      uses: pnpm/action-setup@v6.0.0
+      uses: pnpm/action-setup@v4
       with:
-        version: 9
         standalone: ${{ startsWith(inputs.node-version, '16') }}
 
 

@@ -12,6 +12,7 @@
     "react": "*",
     "typescript": "*"
   },
+  "packageManager": "pnpm@9.12.2",
   "pnpm": {
     "overrides": {
       "@types/react": "18",
