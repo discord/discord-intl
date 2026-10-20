@@ -243,6 +243,7 @@ pub enum IntlDatabaseInsertStrategy {
     Create,
     Update,
     Replace,
+    ReplaceAllowingDuplicates,
 }
 
 impl From<DatabaseInsertStrategy> for IntlDatabaseInsertStrategy {
@@ -251,6 +252,9 @@ impl From<DatabaseInsertStrategy> for IntlDatabaseInsertStrategy {
             DatabaseInsertStrategy::NewSourceFile => IntlDatabaseInsertStrategy::Create,
             DatabaseInsertStrategy::UpdateSourceFile => IntlDatabaseInsertStrategy::Update,
             DatabaseInsertStrategy::ReplaceExisting => IntlDatabaseInsertStrategy::Replace,
+            DatabaseInsertStrategy::ReplaceAllowingDuplicates => {
+                IntlDatabaseInsertStrategy::ReplaceAllowingDuplicates
+            }
         }
     }
 }
@@ -261,6 +265,9 @@ impl From<IntlDatabaseInsertStrategy> for DatabaseInsertStrategy {
             IntlDatabaseInsertStrategy::Create => DatabaseInsertStrategy::NewSourceFile,
             IntlDatabaseInsertStrategy::Update => DatabaseInsertStrategy::UpdateSourceFile,
             IntlDatabaseInsertStrategy::Replace => DatabaseInsertStrategy::ReplaceExisting,
+            IntlDatabaseInsertStrategy::ReplaceAllowingDuplicates => {
+                DatabaseInsertStrategy::ReplaceAllowingDuplicates
+            }
         }
     }
 }

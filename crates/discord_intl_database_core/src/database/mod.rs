@@ -29,6 +29,11 @@ pub enum DatabaseInsertStrategy {
     /// a remote source like a translation vendor, where the updates come from external files and
     /// need to be applied and then re-written to the existing source files.
     ReplaceExisting,
+    /// Like [ReplaceExisting], except this also allows duplicate definitions to be added within
+    /// the same file. This should typically be avoided and reported as an error, but while doing
+    /// things like historical analysis, it can sometimes be necessary to allow duplicates in case
+    /// of source files that may have had errors that were missed at that time.
+    ReplaceAllowingDuplicates,
 }
 
 impl DatabaseInsertStrategy {
@@ -38,6 +43,7 @@ impl DatabaseInsertStrategy {
             DatabaseInsertStrategy::NewSourceFile => false,
             DatabaseInsertStrategy::UpdateSourceFile => true,
             DatabaseInsertStrategy::ReplaceExisting => true,
+            DatabaseInsertStrategy::ReplaceAllowingDuplicates => true,
         }
     }
 
@@ -47,6 +53,17 @@ impl DatabaseInsertStrategy {
             DatabaseInsertStrategy::NewSourceFile => false,
             DatabaseInsertStrategy::UpdateSourceFile => false,
             DatabaseInsertStrategy::ReplaceExisting => true,
+            DatabaseInsertStrategy::ReplaceAllowingDuplicates => true,
+        }
+    }
+
+    #[inline]
+    pub fn allows_same_file_redefinition(&self) -> bool {
+        match self {
+            DatabaseInsertStrategy::NewSourceFile => false,
+            DatabaseInsertStrategy::UpdateSourceFile => false,
+            DatabaseInsertStrategy::ReplaceExisting => false,
+            DatabaseInsertStrategy::ReplaceAllowingDuplicates => true,
         }
     }
 

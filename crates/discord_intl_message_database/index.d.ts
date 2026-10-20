@@ -55,7 +55,8 @@ export declare const enum IntlCompiledMessageFormat {
 export declare const enum IntlDatabaseInsertStrategy {
   Create = 0,
   Update = 1,
-  Replace = 2
+  Replace = 2,
+  ReplaceAllowingDuplicates = 3
 }
 
 export interface IntlDiagnostic {
