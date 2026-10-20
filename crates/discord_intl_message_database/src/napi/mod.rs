@@ -281,6 +281,11 @@ impl IntlMessagesDatabase {
         public::export_translations(&self.database, file_extension)
     }
 
+    #[napi]
+    pub fn dump_as_csvs(&self, output_directory: String) -> anyhow::Result<()> {
+        public::dump_as_csvs(&self.database, &output_directory)
+    }
+
     #[napi(ts_return_type = "Record<string, IntlMessageValue | undefined>")]
     pub fn get_source_file_message_values(
         &self,

@@ -42,6 +42,7 @@ export declare class IntlMessagesDatabase {
   precompileToBuffer(filePath: string, locale: string, options?: IntlMessageBundlerOptions | undefined | null): Buffer
   validateMessages(): Array<IntlDiagnostic>
   exportTranslations(fileExtension?: string | undefined | null): Array<string>
+  dumpAsCsvs(outputDirectory: string): void
   getSourceFileMessageValues(filePath: string): Record<string, IntlMessageValue | undefined>
 }
 

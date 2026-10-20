@@ -14,7 +14,7 @@ use discord_intl_database_core::{
     SourceFile, DEFAULT_LOCALE,
 };
 use discord_intl_database_exporter::{
-    ExportTranslations, IntlMessageBundler, IntlMessageBundlerOptions,
+    DumpMessagesCsv, ExportTranslations, IntlMessageBundler, IntlMessageBundlerOptions,
 };
 use discord_intl_database_service::IntlDatabaseService;
 use discord_intl_database_types_generator::IntlTypesGenerator;
@@ -420,6 +420,12 @@ pub fn export_translations(
 ) -> anyhow::Result<Vec<String>> {
     let files = ExportTranslations::new(&database, file_extension).run()?;
     Ok(files)
+}
+
+pub fn dump_as_csvs(database: &MessagesDatabase, output_directory: &str) -> anyhow::Result<()> {
+    let output_path = std::env::current_dir()?.join(PathBuf::from(output_directory));
+    DumpMessagesCsv::new(&database, output_path).run()?;
+    Ok(())
 }
 
 pub fn get_source_file_message_values<'a>(

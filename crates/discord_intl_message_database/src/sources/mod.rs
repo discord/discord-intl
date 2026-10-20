@@ -211,7 +211,7 @@ pub fn insert_definitions(
     );
     let mut tracker = SourceFileKeyTracker::new(source_file.message_keys().clone());
     for definition in definitions {
-        if tracker.contains(&definition.name) {
+        if tracker.contains(&definition.name) && !strategy.allows_same_file_replacement() {
             let existing = db
                 .get_message(&definition.name)
                 .map(|message| message.definition())

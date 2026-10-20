@@ -6,7 +6,7 @@
 
 use discord_intl_database_core::{DatabaseInsertStrategy, MessagesDatabase};
 use discord_intl_message_database::public::{
-    find_all_messages_files, is_message_definitions_file, process_definitions_file,
+    dump_as_csvs, find_all_messages_files, is_message_definitions_file, process_definitions_file,
     process_translation_file,
 };
 
@@ -37,15 +37,10 @@ fn find_and_process_files(database: &mut MessagesDatabase) -> anyhow::Result<()>
 }
 
 pub fn main() {
-    let mut databases = vec![];
-    for _ in 0..10 {
-        let mut database = MessagesDatabase::new();
-        find_and_process_files(&mut database).expect("Failed to process message files");
-        databases.push(database);
-    }
+    let mut database = MessagesDatabase::new();
+    find_and_process_files(&mut database).expect("Failed to process message files");
 
-    println!("Processed {} unique messages", databases[0].messages.len());
-
+    dump_as_csvs(&database, "./data/dump").expect("Failed to dump csv file");
     // validate_messages(&database).expect("validated messages");
 
     // let source = format!("{input_root}/en-US.messages.js");

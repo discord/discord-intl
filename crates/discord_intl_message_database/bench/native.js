@@ -55,6 +55,9 @@ bench('get source file', () => {
 bench('export translations', () => {
   const files = database.exportTranslations('messages.jsona');
 });
+bench('dump as csvs', () => {
+  database.dumpAsCsvs('./data/csv_dump');
+});
 
 bench('validate', () => {
   const validations = database.validateMessages();
