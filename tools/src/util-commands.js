@@ -72,7 +72,7 @@ export default async function () {
         }
 
         // Native node extension artifacts move to their platform specific directory.
-        const dbExtensionMatch = basename.match(/^intl-message-database\.(.*)\.node$/);
+        const dbExtensionMatch = basename.match(/^discord-intl-message-database\.(.*)\.node$/);
         if (dbExtensionMatch != null) {
           const platform = dbExtensionMatch[1];
           const platformPackage = await pnpm.getPackage(`${NPM_PACKAGES.DATABASE}-${platform}`);
@@ -80,7 +80,7 @@ export default async function () {
           continue;
         }
         // Native node extension artifacts move to their platform specific directory.
-        const jsonExtensonMatch = basename.match(/^intl-flat-json-parser\.(.*)\.node$/);
+        const jsonExtensonMatch = basename.match(/^discord-intl-flat-json-parser\.(.*)\.node$/);
         if (jsonExtensonMatch != null) {
           const platform = jsonExtensonMatch[1];
           const platformPackage = await pnpm.getPackage(`${NPM_PACKAGES.JSON_PARSER}-${platform}`);
@@ -94,6 +94,8 @@ export default async function () {
           await moveTo(path.join(swcPackage.path, basename));
           continue;
         }
+
+        throw new Error(`Unrecognized artifact \`${basename}\``);
       }
     });
 
