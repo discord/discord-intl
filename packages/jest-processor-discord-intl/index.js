@@ -76,7 +76,7 @@ function _processCode(source, filePath, _config) {
 }
 
 module.exports = {
-  discord_intl_MESSAGES_FILE_PATTERN: '\\.messages\\.(js|json|jsona)(\\?forceTranslation)?$',
+  INTL_MESSAGES_FILE_PATTERN: '\\.messages\\.(js|json|jsona)(\\?forceTranslation)?$',
 
   /**
    * @param {string} source
