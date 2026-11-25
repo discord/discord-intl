@@ -65,7 +65,10 @@ impl MessageStringValue<'_> {
         }
         let mut list: Vec<(u32, u32)> = vec![];
 
-        let bytes = &self.raw.as_bytes()[1..self.raw.as_bytes().len() - 1];
+        let raw_bytes = self.raw.as_bytes();
+        let Some(bytes) = raw_bytes.get(1..raw_bytes.len().saturating_sub(1)) else {
+            return SourceOffsetList::default();
+        };
         let mut total_offset = 0;
         let mut last_checked_byte = 0;
         for idx in memchr::memchr_iter(b'\\', bytes) {
@@ -88,7 +91,10 @@ impl MessageStringValue<'_> {
                         5
                     } else {
                         // \u{XXXXXX} codepoint escapes
-                        let count = bytes[idx + 3..=idx + 9]
+                        let count = bytes
+                            .get(idx + 3..=idx + 9)
+                            .or_else(|| bytes.get(idx + 3..))
+                            .unwrap_or_default()
                             .iter()
                             .position(|b| *b == b'}')
                             .unwrap_or(0);
@@ -101,7 +107,7 @@ impl MessageStringValue<'_> {
                 // \OOO octal escapes
                 b'0'..b'7' => {
                     let mut octal_count = 1;
-                    for byte in &bytes[idx + 2..idx + 3] {
+                    for byte in bytes.get(idx + 2..idx + 3).unwrap_or_default() {
                         if !matches!(byte, b'0'..b'7') {
                             break;
                         }
