@@ -113,7 +113,7 @@ impl<'a> TranslationsJsonParser<'a> {
         &self.diagnostics
     }
     pub fn is_complete(&self) -> bool {
-        self.complete && self.diagnostics.is_empty()
+        self.checked && self.complete && self.diagnostics.is_empty()
     }
 
     fn diagnostic(

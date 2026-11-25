@@ -463,3 +463,6 @@ pub fn is_compiled_messages_artifact(key: &str) -> bool {
 pub fn is_message_translations_file(key: &str) -> bool {
     discord_intl_message_utils::is_message_translations_file(key)
 }
+
+mod extraction;
+pub use extraction::*;

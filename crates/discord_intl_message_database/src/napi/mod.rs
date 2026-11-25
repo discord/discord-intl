@@ -32,6 +32,20 @@ impl IntlMessagesDatabase {
         }
     }
 
+    #[napi(ts_return_type = "IntlExtractionReport")]
+    pub fn extract_file_content_with_diagnostics(
+        &self,
+        env: &Env,
+        file_path: String,
+        content: String,
+    ) -> anyhow::Result<Unknown<'_>> {
+        Ok(
+            env.to_js_value(&public::extract_file_content_with_diagnostics(
+                &file_path, &content,
+            ))?,
+        )
+    }
+
     #[napi]
     pub fn find_all_messages_files(
         &mut self,
