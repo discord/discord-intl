@@ -497,14 +497,14 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_allocator"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "mimalloc",
 ]
 
 [[package]]
 name = "discord_intl_database_core"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "discord_intl_markdown",
  "discord_intl_markdown_macros",
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_database_exporter"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "anyhow",
  "csv",
@@ -534,7 +534,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_database_js_source"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "discord_intl_database_core",
  "discord_intl_message_utils",
@@ -546,7 +546,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_database_json_source"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "discord_intl_database_core",
  "discord_intl_flat_json_parser",
@@ -555,11 +555,11 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_database_service"
-version = "0.33.3"
+version = "0.34.0"
 
 [[package]]
 name = "discord_intl_database_types_generator"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "anyhow",
  "discord_intl_database_core",
@@ -571,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_flat_json_parser"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "criterion",
  "discord_intl_allocator",
@@ -585,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_markdown"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "criterion",
  "discord_intl_allocator",
@@ -604,7 +604,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_markdown_macros"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -613,14 +613,14 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_markdown_syntax"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "slice-dst",
 ]
 
 [[package]]
 name = "discord_intl_message_database"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "anyhow",
  "discord_intl_allocator",
@@ -644,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_message_utils"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "memchr",
  "once_cell",
@@ -653,7 +653,7 @@ dependencies = [
 
 [[package]]
 name = "discord_intl_validator"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "discord_intl_database_core",
  "discord_intl_database_js_source",
@@ -1113,7 +1113,7 @@ dependencies = [
 
 [[package]]
 name = "keyless_json"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "itoa",
  "ryu",
@@ -1943,7 +1943,7 @@ dependencies = [
 
 [[package]]
 name = "swc-intl-message-transformer"
-version = "0.33.3"
+version = "0.34.0"
 dependencies = [
  "discord_intl_message_utils",
  "serde",
