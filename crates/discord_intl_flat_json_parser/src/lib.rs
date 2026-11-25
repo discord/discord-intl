@@ -1,7 +1,9 @@
 mod parser;
 mod util;
 
-pub use parser::{JsonMessage, JsonPosition, TranslationsJsonParser};
+pub use parser::{
+    JsonDiagnostic, JsonDiagnosticKind, JsonMessage, JsonPosition, TranslationsJsonParser,
+};
 
 #[cfg(not(feature = "node_addon"))]
 pub mod napi;

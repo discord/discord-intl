@@ -1,4 +1,4 @@
-use crate::util::{char_length_from_byte, unescape_json_str};
+use crate::util::{char_length_from_byte, unescape_json_str, unescape_json_str_with_diagnostics};
 use std::ops::Range;
 use std::rc::Rc;
 
@@ -23,13 +23,27 @@ impl JsonMessage {
         has_escapes: bool,
         position: JsonPosition,
     ) -> Option<Self> {
+        Self::decode(key, raw, has_escapes, position, false).ok()
+    }
+
+    fn decode(
+        key: &str,
+        raw: &str,
+        has_escapes: bool,
+        position: JsonPosition,
+        checked: bool,
+    ) -> Result<Self, unescape_zero_copy::Error> {
         let raw = Rc::from(raw);
         let value = if has_escapes {
-            Rc::from(unescape_json_str(&raw).ok()?)
+            Rc::from(if checked {
+                unescape_json_str_with_diagnostics(&raw)?
+            } else {
+                unescape_json_str(&raw)?
+            })
         } else {
             raw.clone()
         };
-        Some(Self {
+        Ok(Self {
             key: Rc::from(key),
             raw,
             value,
@@ -38,12 +52,31 @@ impl JsonMessage {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JsonDiagnosticKind {
+    ParseError,
+    InvalidUnicode,
+    UnsupportedForm,
+}
+
+#[derive(Clone, Debug)]
+pub struct JsonDiagnostic {
+    pub kind: JsonDiagnosticKind,
+    pub span: (u32, u32),
+    pub line: u32,
+    pub column: u32,
+    pub message: String,
+}
+
 pub struct TranslationsJsonParser<'a> {
     text: &'a str,
     position: usize,
     line: usize,
     last_line_start: usize,
     has_failed: bool,
+    checked: bool,
+    complete: bool,
+    diagnostics: Vec<JsonDiagnostic>,
 }
 
 impl<'a> TranslationsJsonParser<'a> {
@@ -54,6 +87,69 @@ impl<'a> TranslationsJsonParser<'a> {
             line: 1,
             last_line_start: 0,
             has_failed: false,
+            checked: false,
+            complete: false,
+            diagnostics: Vec::new(),
+        }
+    }
+
+    /// Use the legacy parser and decoder, retaining observations about failures or discarded input.
+    pub fn with_diagnostics(text: &'a str) -> Self {
+        let mut parser = Self::new(text);
+        parser.checked = true;
+        parser.parse_start();
+        if parser.has_failed {
+            parser.diagnostic(
+                JsonDiagnosticKind::ParseError,
+                parser.position,
+                parser.position,
+                "Legacy parser did not find an opening object",
+            );
+        }
+        parser
+    }
+
+    pub fn diagnostics(&self) -> &[JsonDiagnostic] {
+        &self.diagnostics
+    }
+    pub fn is_complete(&self) -> bool {
+        self.complete && self.diagnostics.is_empty()
+    }
+
+    fn diagnostic(
+        &mut self,
+        kind: JsonDiagnosticKind,
+        start: usize,
+        end: usize,
+        message: impl Into<String>,
+    ) {
+        if !self.checked {
+            return;
+        }
+        let prefix = &self.text[..start];
+        self.diagnostics.push(JsonDiagnostic {
+            kind,
+            span: (start as u32, end as u32),
+            line: prefix.bytes().filter(|byte| *byte == b'\n').count() as u32 + 1,
+            column: prefix
+                .rsplit('\n')
+                .next()
+                .unwrap_or("")
+                .encode_utf16()
+                .count() as u32,
+            message: message.into(),
+        });
+    }
+
+    fn observed_end(&mut self, end: usize) {
+        self.complete = true;
+        if !self.text[end..].trim().is_empty() {
+            self.diagnostic(
+                JsonDiagnosticKind::UnsupportedForm,
+                end,
+                self.text.len(),
+                "Legacy parser ignores content after the object",
+            );
         }
     }
 
@@ -234,6 +330,7 @@ impl<'a> TranslationsJsonParser<'a> {
                 }
                 b'}' => {
                     has_match = true;
+                    self.observed_end(next_position);
                     self.position = self.text.len();
                     break;
                 }
@@ -265,7 +362,18 @@ impl<'a> TranslationsJsonParser<'a> {
     pub fn parse_message(&mut self) -> Option<JsonMessage> {
         // Presume the last parse advanced past the `,` between messages or the
         // end of the object, so this should always succeed.
-        let key_start = self.advance_past_quote()?;
+        let key_search_start = self.position;
+        let key_start = match self.advance_past_quote() {
+            Some(start) => start,
+            None => {
+                if self.position == self.text.len() {
+                    if let Some(end) = self.text[key_search_start..].find('}') {
+                        self.observed_end(key_search_start + end + 1);
+                    }
+                }
+                return None;
+            }
+        };
         // Key parsing is anything until the next quote.
         // We make the assumption that it won't contain escapes,`}`, or newlines.
         let key_end = self.advance_past_quote()? - 1;
@@ -284,17 +392,28 @@ impl<'a> TranslationsJsonParser<'a> {
         let message_key = self.str_slice(key_start..key_end);
         let raw = self.str_slice(value_start..value_end - 1);
 
-        JsonMessage::try_new(
+        let result = JsonMessage::decode(
             message_key,
             raw,
             has_escapes,
             JsonPosition {
                 line: value_line as u32,
-                // We make an assumption here that there is no unicode in the message key, meaning
-                // the column is just the number of bytes since the last newline.
                 col: value_column as u32,
             },
-        )
+            self.checked,
+        );
+        match result {
+            Ok(message) => Some(message),
+            Err(error) => {
+                let kind = if matches!(error, unescape_zero_copy::Error::InvalidUnicode(_)) {
+                    JsonDiagnosticKind::InvalidUnicode
+                } else {
+                    JsonDiagnosticKind::ParseError
+                };
+                self.diagnostic(kind, value_start, value_end - 1, error.to_string());
+                None
+            }
+        }
     }
 }
 
@@ -306,7 +425,18 @@ impl<'a> Iterator for TranslationsJsonParser<'a> {
             return None;
         }
 
-        self.parse_message()
+        let start = self.position;
+        let diagnostics = self.diagnostics.len();
+        let message = self.parse_message();
+        if message.is_none() && !self.complete && diagnostics == self.diagnostics.len() {
+            self.diagnostic(
+                JsonDiagnosticKind::ParseError,
+                start,
+                self.position,
+                "Legacy parser stopped without a translation entry",
+            );
+        }
+        message
     }
 }
 

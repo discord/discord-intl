@@ -42,6 +42,52 @@ fn make_source_offsets(message: &JsonMessage) -> SourceOffsetList {
     SourceOffsetList::new(list)
 }
 
+impl JsonMessageSource {
+    /// All structural and decoding diagnostics come from the flat JSON parser.
+    pub fn extract_translations_with_diagnostics(
+        self,
+        file: KeySymbol,
+        content: &str,
+    ) -> discord_intl_database_core::ExtractionReport<RawMessageTranslation> {
+        use discord_intl_database_core::{DiagnosticCode, ExtractionReport, SourceDiagnostic};
+        use discord_intl_flat_json_parser::{JsonDiagnosticKind, TranslationsJsonParser};
+        let mut parser = TranslationsJsonParser::with_diagnostics(content);
+        let messages = parser
+            .by_ref()
+            .map(|item| {
+                let offsets = make_source_offsets(&item);
+                RawMessageTranslation::new(
+                    key_symbol(&item.key),
+                    FilePosition::new(file, item.position.line, item.position.col),
+                    item.value,
+                    offsets,
+                )
+            })
+            .collect();
+        let diagnostics = parser
+            .diagnostics()
+            .iter()
+            .map(|d| SourceDiagnostic {
+                code: match d.kind {
+                    JsonDiagnosticKind::ParseError => DiagnosticCode::ParseError,
+                    JsonDiagnosticKind::InvalidUnicode => DiagnosticCode::InvalidUnicode,
+                    JsonDiagnosticKind::UnsupportedForm => DiagnosticCode::UnsupportedForm,
+                },
+                file,
+                line: d.line,
+                column: d.column,
+                span: d.span,
+                message: d.message.clone(),
+            })
+            .collect();
+        ExtractionReport {
+            messages,
+            diagnostics,
+            complete: parser.is_complete(),
+        }
+    }
+}
+
 impl MessageTranslationSource for JsonMessageSource {
     fn get_locale_from_file_name(&self, file_name: &str) -> KeySymbol {
         Path::new(file_name)
