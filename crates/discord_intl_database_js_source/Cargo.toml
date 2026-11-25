@@ -17,3 +17,6 @@ swc_core = { workspace = true, features = [
     "ecma_visit",
 ] }
 memchr = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

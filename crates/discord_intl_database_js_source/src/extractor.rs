@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::cell::RefCell;
 use swc_common::source_map::SmallPos;
 use swc_common::sync::Lrc;
 use swc_common::{BytePos, FileName, Loc, SourceMap, Spanned};
@@ -11,8 +12,8 @@ use swc_core::ecma::parser::{lexer::Lexer, PResult, Parser, StringInput, Syntax}
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use discord_intl_database_core::{
-    key_symbol, FilePosition, KeySymbol, MessageMeta, MessageSourceError, MessageSourceResult,
-    RawMessageDefinition, SourceFileMeta, SourceOffsetList,
+    key_symbol, DiagnosticCode, FilePosition, KeySymbol, MessageMeta, MessageSourceError,
+    MessageSourceResult, RawMessageDefinition, SourceDiagnostic, SourceFileMeta, SourceOffsetList,
 };
 use discord_intl_message_utils::RUNTIME_PACKAGE_NAME;
 
@@ -20,6 +21,15 @@ pub fn parse_message_definitions_file(
     file_name: &str,
     source: &str,
 ) -> PResult<(Lrc<SourceMap>, Module)> {
+    parse_with_diagnostics(file_name, source)
+        .map(|(map, module, _)| (map, module))
+        .map_err(|(_, error)| error)
+}
+
+type ParsedModule = (Lrc<SourceMap>, Module, Vec<SourceDiagnostic>);
+type ParseFailure = (Vec<SourceDiagnostic>, swc_core::ecma::parser::error::Error);
+
+pub fn parse_with_diagnostics(file_name: &str, source: &str) -> Result<ParsedModule, ParseFailure> {
     let cm: Lrc<SourceMap> = Default::default();
 
     let fm = cm.new_source_file(
@@ -37,8 +47,28 @@ pub fn parse_message_definitions_file(
     );
 
     let mut parser = Parser::new_from(lexer);
-    let module = parser.parse_module()?;
-    Ok((cm, module))
+    let diagnostic = |error: &swc_core::ecma::parser::error::Error| {
+        let span = error.span();
+        SourceDiagnostic::new(
+            DiagnosticCode::ParseError,
+            key_symbol(file_name),
+            source,
+            (
+                span.lo.0.saturating_sub(fm.start_pos.0),
+                span.hi.0.saturating_sub(fm.start_pos.0),
+            ),
+            error.kind().msg().to_string(),
+        )
+    };
+    let module = parser.parse_module();
+    let mut errors: Vec<_> = parser.take_errors().iter().map(diagnostic).collect();
+    match module {
+        Ok(module) => Ok((cm, module, errors)),
+        Err(error) => {
+            errors.push(diagnostic(&error));
+            Err((errors, error))
+        }
+    }
 }
 
 pub fn extract_message_definitions(
@@ -137,6 +167,8 @@ pub struct MessageDefinitionsExtractor {
     pub root_meta: SourceFileMeta,
     define_messages_id: Option<Id>,
     source_map: Lrc<SourceMap>,
+    pub diagnostics: RefCell<Vec<SourceDiagnostic>>,
+    pub found_definitions: bool,
 }
 
 impl MessageDefinitionsExtractor {
@@ -148,6 +180,33 @@ impl MessageDefinitionsExtractor {
             failed_definitions: vec![],
             root_meta: SourceFileMeta::new(source_file_path),
             source_map,
+            diagnostics: RefCell::new(Vec::new()),
+            found_definitions: false,
+        }
+    }
+
+    fn diagnostic(&self, code: DiagnosticCode, span: swc_common::Span, message: impl Into<String>) {
+        let files = self.source_map.files();
+        let file = &files[0];
+        self.diagnostics.borrow_mut().push(SourceDiagnostic::new(
+            code,
+            self.file_key,
+            &file.src,
+            (
+                span.lo.0.saturating_sub(file.start_pos.0),
+                span.hi.0.saturating_sub(file.start_pos.0),
+            ),
+            message,
+        ));
+    }
+
+    fn observe_unicode(&self, value: &Wtf8Atom, span: swc_common::Span) {
+        if value.as_str().is_none() {
+            self.diagnostic(
+                DiagnosticCode::InvalidUnicode,
+                span,
+                "Legacy decoding replaces a lone surrogate with U+FFFD",
+            );
         }
     }
 
@@ -172,12 +231,27 @@ impl MessageDefinitionsExtractor {
     fn parse_definitions_object(&mut self, object: &ObjectLit) {
         for property in object.props.iter() {
             let Some(kv) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
+                self.diagnostic(
+                    DiagnosticCode::UnsupportedForm,
+                    property.span(),
+                    "Legacy extraction ignores this property form",
+                );
                 continue;
             };
             let name = match &kv.key {
                 PropName::Ident(name) => &name.sym,
-                PropName::Str(name) => &name.value.to_atom_lossy(),
-                _ => continue,
+                PropName::Str(name) => {
+                    self.observe_unicode(&name.value, name.span);
+                    &name.value.to_atom_lossy()
+                }
+                _ => {
+                    self.diagnostic(
+                        DiagnosticCode::UnsupportedForm,
+                        kv.key.span(),
+                        "Legacy extraction ignores this message key",
+                    );
+                    continue;
+                }
             };
 
             let parse_result = match &*kv.value {
@@ -189,7 +263,14 @@ impl MessageDefinitionsExtractor {
 
             match parse_result {
                 Ok(definition) => self.message_definitions.push(definition),
-                Err(error) => self.failed_definitions.push(error),
+                Err(error) => {
+                    self.diagnostic(
+                        DiagnosticCode::UnsupportedForm,
+                        kv.value.span(),
+                        error.to_string(),
+                    );
+                    self.failed_definitions.push(error);
+                }
             }
         }
     }
@@ -206,9 +287,19 @@ impl MessageDefinitionsExtractor {
 
         for property in object.props.iter() {
             let Some(kv) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
+                self.diagnostic(
+                    DiagnosticCode::UnsupportedForm,
+                    property.span(),
+                    "Legacy extraction ignores this property form",
+                );
                 continue;
             };
             let Some(name) = kv.key.as_ident() else {
+                self.diagnostic(
+                    DiagnosticCode::IgnoredMetadata,
+                    kv.key.span(),
+                    "Legacy extraction ignores metadata with this key form",
+                );
                 continue;
             };
 
@@ -236,6 +327,15 @@ impl MessageDefinitionsExtractor {
         pos: BytePos,
     ) -> MessageSourceResult<MessageStringValue<'a>> {
         let loc = self.source_map.lookup_char_pos(pos);
+        match value {
+            Expr::Lit(Lit::Str(string)) => self.observe_unicode(&string.value, string.span),
+            Expr::Tpl(template) if template.quasis.len() == 1 && template.exprs.is_empty() => {
+                if let Some(cooked) = &template.quasis[0].cooked {
+                    self.observe_unicode(cooked, template.span);
+                }
+            }
+            _ => {}
+        }
         match value {
             Expr::Lit(Lit::Str(string)) => Ok(MessageStringValue {
                 processed: &string.value,
@@ -279,9 +379,19 @@ impl MessageDefinitionsExtractor {
     fn parse_root_meta_initializer(&mut self, object: &ObjectLit) {
         for property in object.props.iter() {
             let Some(kv) = property.as_prop().and_then(|prop| prop.as_key_value()) else {
+                self.diagnostic(
+                    DiagnosticCode::UnsupportedForm,
+                    property.span(),
+                    "Legacy extraction ignores this property form",
+                );
                 continue;
             };
             let Some(name) = kv.key.as_ident() else {
+                self.diagnostic(
+                    DiagnosticCode::IgnoredMetadata,
+                    kv.key.span(),
+                    "Legacy extraction ignores metadata with this key form",
+                );
                 continue;
             };
 
@@ -296,7 +406,7 @@ impl MessageDefinitionsExtractor {
         // NOTE: This effectively relies on TypeScript's checker to provide
         // hints when the value types would be incorrect (e.g., `secret` is
         // given a number value instead of a boolean).
-        match name {
+        let applied = match name {
             "secret" => self
                 .parse_boolean_value(value)
                 .map(|value| self.root_meta.secret = value),
@@ -314,6 +424,15 @@ impl MessageDefinitionsExtractor {
                 .map(|value| self.root_meta.tags = Some(value)),
             _ => None,
         };
+        if applied.is_none()
+            && !(name == "tags" && matches!(value, Expr::Array(array) if array.elems.is_empty()))
+        {
+            self.diagnostic(
+                DiagnosticCode::IgnoredMetadata,
+                value.span(),
+                format!("Legacy extraction ignores file metadata {name}"),
+            );
+        }
     }
 
     /// Interpret a given name/value pair to see if it represents a MessageMeta
@@ -323,25 +442,30 @@ impl MessageDefinitionsExtractor {
         // NOTE: This effectively relies on TypeScript's checker to provide
         // hints when the value types would be incorrect (e.g., `secret` is
         // given a number value instead of a boolean).
-        match name {
-            "secret" => {
-                self.parse_boolean_value(value)
-                    .map(|value| target.secret = value);
-            }
-            "translate" => {
-                self.parse_boolean_value(value)
-                    .map(|value| target.translate = value);
-            }
-            "description" => {
-                self.parse_string_value(value)
-                    .map(|value| target.description = Some(value));
-            }
-            "tags" => {
-                self.parse_string_array_value(value)
-                    .map(|value| target.extend_tags(value));
-            }
-            _ => {}
+        let applied = match name {
+            "secret" => self
+                .parse_boolean_value(value)
+                .map(|value| target.secret = value),
+            "translate" => self
+                .parse_boolean_value(value)
+                .map(|value| target.translate = value),
+            "description" => self
+                .parse_string_value(value)
+                .map(|value| target.description = Some(value)),
+            "tags" => self
+                .parse_string_array_value(value)
+                .map(|value| target.extend_tags(value)),
+            _ => None,
         };
+        if applied.is_none()
+            && !(name == "tags" && matches!(value, Expr::Array(array) if array.elems.is_empty()))
+        {
+            self.diagnostic(
+                DiagnosticCode::IgnoredMetadata,
+                value.span(),
+                format!("Legacy extraction ignores message metadata {name}"),
+            );
+        }
     }
 
     /// If the given expression is a boolean literal, it is interpreted into an
@@ -357,7 +481,10 @@ impl MessageDefinitionsExtractor {
     /// is returned. Any other expression will return None.
     fn parse_string_value(&self, expr: &Expr) -> Option<String> {
         match expr.as_lit() {
-            Some(Lit::Str(string)) => Some(string.value.to_string_lossy().to_string()),
+            Some(Lit::Str(string)) => {
+                self.observe_unicode(&string.value, string.span);
+                Some(string.value.to_string_lossy().to_string())
+            }
             _ => None,
         }
     }
@@ -413,6 +540,11 @@ impl Visit for MessageDefinitionsExtractor {
             } else {
                 // We've found the meta and determined it didn't have an
                 // initializer, so we don't need to continue iterating.
+                self.diagnostic(
+                    DiagnosticCode::IgnoredMetadata,
+                    decl.span(),
+                    "Legacy extraction ignores invalid file metadata",
+                );
                 self.failed_definitions
                     .push(MessageSourceError::InvalidSourceFileMeta);
                 break;
@@ -446,6 +578,7 @@ impl Visit for MessageDefinitionsExtractor {
         // If it has an object expression as the first argument
         if let Some(definition_object) = call_expr.args.get(0).and_then(|arg| arg.expr.as_object())
         {
+            self.found_definitions = true;
             self.parse_definitions_object(definition_object);
         }
     }
