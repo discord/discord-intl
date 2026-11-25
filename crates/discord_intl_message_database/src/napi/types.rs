@@ -271,3 +271,69 @@ impl From<IntlDatabaseInsertStrategy> for DatabaseInsertStrategy {
         }
     }
 }
+
+#[allow(unused)]
+#[napi(object)]
+pub struct IntlSourceDiagnostic {
+    #[napi(ts_type = "'ParseError' | 'InvalidUnicode' | 'IgnoredMetadata' | 'UnsupportedForm'")]
+    pub code: String,
+    pub file: String,
+    pub line: u32,
+    pub column: u32,
+    #[napi(ts_type = "[number, number]")]
+    pub span: Vec<u32>,
+    pub message: String,
+}
+
+#[allow(unused)]
+#[napi(object)]
+pub struct IntlExtractedFileMeta {
+    #[napi(ts_type = "string | null")]
+    pub description: String,
+    pub secret: bool,
+    pub translate: bool,
+    #[napi(ts_type = "string[] | null")]
+    pub tags: Vec<String>,
+    pub translations_path: String,
+}
+
+#[allow(unused)]
+#[napi(object)]
+pub struct IntlExtractedMessageMeta {
+    #[napi(ts_type = "string | null")]
+    pub description: String,
+    pub secret: bool,
+    pub translate: bool,
+    #[napi(ts_type = "string[] | null")]
+    pub tags: Vec<String>,
+}
+
+#[allow(unused)]
+#[napi(object)]
+pub struct IntlSourcePosition {
+    pub file: String,
+    pub line: u32,
+    pub col: u32,
+}
+
+#[allow(unused)]
+#[napi(object)]
+pub struct IntlExtractedMessage {
+    pub key: String,
+    pub text: String,
+    #[napi(ts_type = "IntlExtractedMessageMeta | null")]
+    pub meta: String,
+    pub position: IntlSourcePosition,
+    #[napi(ts_type = "Array<[number, number]>")]
+    pub source_offsets: Vec<Vec<u32>>,
+}
+
+#[allow(unused)]
+#[napi(object)]
+pub struct IntlExtractionReport {
+    #[napi(ts_type = "IntlExtractedFileMeta | null")]
+    pub meta: String,
+    pub messages: Vec<IntlExtractedMessage>,
+    pub diagnostics: Vec<IntlSourceDiagnostic>,
+    pub complete: bool,
+}

@@ -3,8 +3,8 @@
 pub use bundle::{
     CompiledMessageFormat, IntlMessageBundler, IntlMessageBundlerError, IntlMessageBundlerOptions,
 };
-pub use export::ExportTranslations;
 pub use dump_messages_csv::DumpMessagesCsv;
+pub use export::ExportTranslations;
 
 mod bundle;
 mod dump_messages_csv;

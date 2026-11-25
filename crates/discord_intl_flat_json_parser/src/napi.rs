@@ -1,4 +1,5 @@
 // Use the mimalloc allocator explicitly when building the node addon.
+#[cfg(feature = "allocator")]
 extern crate discord_intl_allocator;
 use crate::JsonMessage;
 use napi::bindgen_prelude::Array;

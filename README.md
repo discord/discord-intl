@@ -112,3 +112,11 @@ pnpm intl-cli ci publish-canary @discord/intl [...and more packages]
 # Publish a complete new release of all packages
 pnpm intl-cli ci release
 ```
+
+### Allocator selection for Rust consumers
+
+The markdown parser, database core, source crates, and message database enable the
+`allocator` feature by default. Rust hosts that provide their own global allocator
+can use `default-features = false`. Feature forwarding disables the transitive
+`discord_intl_allocator` dependency too. Cargo features are additive: another
+consumer enabling `allocator` in the same dependency graph enables it for both.

@@ -55,3 +55,26 @@ pub fn json_escape_sequence(s: &str) -> Result<(char, &str), Error> {
         ch => Ok((ch, chars.as_str())),
     }
 }
+
+/// Preserve legacy decoding while turning its unchecked Unicode slice failures into diagnostics.
+pub(crate) fn unescape_json_str_with_diagnostics(value: &str) -> Result<Cow<'_, str>, Error> {
+    unescape_zero_copy::unescape(
+        |escape| {
+            if escape.starts_with('u') {
+                let first =
+                    u32::from_str_radix(escape.get(1..5).ok_or(Error::IncompleteUnicode)?, 16)?;
+                if (0xD800..=0xDBFF).contains(&first) {
+                    let second = u32::from_str_radix(
+                        escape.get(7..11).ok_or(Error::IncompleteUnicode)?,
+                        16,
+                    )?;
+                    if second.checked_sub(0xDC00).is_none() {
+                        return Err(Error::InvalidUnicode(second));
+                    }
+                }
+            }
+            json_escape_sequence(escape)
+        },
+        value,
+    )
+}

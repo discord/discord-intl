@@ -1,8 +1,9 @@
 pub use database::message::Message;
 pub use database::path::{existing_file_key_symbol, file_key_symbol, normalize_file_path};
 pub use database::source::{
-    MessageDefinitionSource, MessageSourceError, MessageSourceResult, MessageTranslationSource,
-    RawMessage, RawMessageDefinition, RawMessageTranslation, SourceOffsetList,
+    DiagnosticCode, ExtractionReport, MessageDefinitionSource, MessageSourceError,
+    MessageSourceResult, MessageTranslationSource, RawMessage, RawMessageDefinition,
+    RawMessageTranslation, SourceDiagnostic, SourceOffsetList, SourceParseError,
 };
 pub use database::symbol::{get_key_symbol, key_symbol, KeySymbol, KeySymbolMap, KeySymbolSet};
 pub use database::{DatabaseInsertStrategy, MessagesDatabase};

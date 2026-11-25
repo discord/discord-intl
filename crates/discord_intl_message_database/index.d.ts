@@ -12,6 +12,7 @@ export declare function parseJson(text: string): Message[]
 export declare function parseJsonFile(filePath: string): Message[]
 export declare class IntlMessagesDatabase {
   constructor()
+  extractFileContentWithDiagnostics(filePath: string, content: string): IntlExtractionReport
   findAllMessagesFiles(directories: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
   filterAllMessagesFiles(files: Array<string>, defaultDefinitionLocale: string): Array<IntlMessagesFileDescriptor>
   processAllMessagesFiles(directories: Array<IntlMessagesFileDescriptor>, strategy: IntlDatabaseInsertStrategy): Array<IntlSourceFileInsertionData>
@@ -82,6 +83,36 @@ export interface IntlDiagnosticFix {
   replacement: string
 }
 
+export interface IntlExtractedFileMeta {
+  description: string | null
+  secret: boolean
+  translate: boolean
+  tags: string[] | null
+  translationsPath: string
+}
+
+export interface IntlExtractedMessage {
+  key: string
+  text: string
+  meta: IntlExtractedMessageMeta | null
+  position: IntlSourcePosition
+  sourceOffsets: Array<[number, number]>
+}
+
+export interface IntlExtractedMessageMeta {
+  description: string | null
+  secret: boolean
+  translate: boolean
+  tags: string[] | null
+}
+
+export interface IntlExtractionReport {
+  meta: IntlExtractedFileMeta | null
+  messages: Array<IntlExtractedMessage>
+  diagnostics: Array<IntlSourceDiagnostic>
+  complete: boolean
+}
+
 export interface IntlMessage {
   /** Original, plain text name of the message given in its definition. */
   key: string
@@ -119,6 +150,15 @@ export interface IntlMessageValue {
   filePosition: object
 }
 
+export interface IntlSourceDiagnostic {
+  code: 'ParseError' | 'InvalidUnicode' | 'IgnoredMetadata' | 'UnsupportedForm'
+  file: string
+  line: number
+  column: number
+  span: [number, number]
+  message: string
+}
+
 export interface IntlSourceFile {
   type: string
   file: string
@@ -151,6 +191,12 @@ export interface IntlSourceFileMeta {
   translationsPath: string
   sourceFilePath: string
   tags?: Array<string>
+}
+
+export interface IntlSourcePosition {
+  file: string
+  line: number
+  col: number
 }
 
 export declare function isMessageDefinitionsFile(key: string): boolean

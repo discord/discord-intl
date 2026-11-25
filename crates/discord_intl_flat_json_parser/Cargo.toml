@@ -11,13 +11,14 @@ publish = true
 crate-type = ["cdylib", "lib"]
 
 [features]
-default = []
+allocator = ["dep:discord_intl_allocator"]
+default = ["allocator"]
 # Enable when building the NAPI extension version of this crate.
 node_addon = []
 
 [dependencies]
 memchr = { workspace = true }
-discord_intl_allocator = { workspace = true }
+discord_intl_allocator = { workspace = true, optional = true }
 unescape_zero_copy = { workspace = true }
 
 napi = { workspace = true }

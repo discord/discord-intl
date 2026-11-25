@@ -539,6 +539,7 @@ dependencies = [
  "discord_intl_database_core",
  "discord_intl_message_utils",
  "memchr",
+ "serde_json",
  "swc_common",
  "swc_core",
 ]

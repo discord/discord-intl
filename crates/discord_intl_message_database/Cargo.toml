@@ -12,14 +12,15 @@ publish = true
 crate-type = ["cdylib", "lib"]
 
 [features]
-default = []
+allocator = ["dep:discord_intl_allocator", "discord_intl_database_core/allocator", "discord_intl_database_exporter/allocator", "discord_intl_database_js_source/allocator", "discord_intl_database_json_source/allocator", "discord_intl_database_types_generator/allocator", "discord_intl_validator/allocator"]
+default = ["allocator"]
 # Enable to compile the library as a static library
 static_link = []
 
 [dependencies]
 anyhow = { workspace = true }
 ignore = { workspace = true }
-discord_intl_allocator = { workspace = true }
+discord_intl_allocator = { workspace = true, optional = true }
 discord_intl_database_core = { workspace = true }
 discord_intl_database_exporter = { workspace = true }
 discord_intl_database_js_source = { workspace = true }

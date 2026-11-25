@@ -35,13 +35,18 @@ pub type MessageSourceResult<T> = Result<T, MessageSourceError>;
 /// offset at the nearest lower "index" value (the first of the pair for each element). This is
 /// unfortunately not constant-time, but since lookups only need to be done in a relatively small
 /// number of cases and are not part of the initial processing path, this cost is acceptable.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize)]
 #[repr(transparent)]
 pub struct SourceOffsetList(Vec<(u32, u32)>);
 
 impl SourceOffsetList {
     pub fn new(list: Vec<(u32, u32)>) -> Self {
         Self(list)
+    }
+
+    /// Borrow processed-text boundaries and cumulative source offsets.
+    pub fn as_slice(&self) -> &[(u32, u32)] {
+        &self.0
     }
 
     pub fn total_offset_at(&self, pos: usize) -> u32 {
@@ -161,3 +166,89 @@ pub trait MessageTranslationSource {
         content: &str,
     ) -> MessageSourceResult<impl Iterator<Item = RawMessageTranslation> + '_>;
 }
+
+/// A source diagnostic with one-based lines, zero-based UTF-16 columns and byte spans.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceDiagnostic {
+    pub code: DiagnosticCode,
+    pub file: KeySymbol,
+    pub line: u32,
+    pub column: u32,
+    pub span: (u32, u32),
+    pub message: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+pub enum DiagnosticCode {
+    ParseError,
+    InvalidUnicode,
+    IgnoredMetadata,
+    UnsupportedForm,
+}
+
+impl SourceDiagnostic {
+    pub fn new(
+        code: DiagnosticCode,
+        file: KeySymbol,
+        content: &str,
+        span: (u32, u32),
+        message: impl Into<String>,
+    ) -> Self {
+        let mut start = (span.0 as usize).min(content.len());
+        while !content.is_char_boundary(start) {
+            start -= 1;
+        }
+        let prefix = &content[..start];
+        Self {
+            code,
+            file,
+            span,
+            line: prefix.bytes().filter(|b| *b == b'\n').count() as u32 + 1,
+            column: prefix
+                .rsplit('\n')
+                .next()
+                .unwrap_or("")
+                .encode_utf16()
+                .count() as u32,
+            message: message.into(),
+        }
+    }
+}
+
+/// Successfully extracted messages, together with reasons extraction may be incomplete.
+#[derive(Debug)]
+pub struct ExtractionReport<T> {
+    pub messages: Vec<T>,
+    pub diagnostics: Vec<SourceDiagnostic>,
+    pub complete: bool,
+}
+
+impl std::fmt::Display for SourceDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{}:{}: {}",
+            self.file, self.line, self.column, self.message
+        )
+    }
+}
+impl std::error::Error for SourceDiagnostic {}
+
+/// Fatal parsing failure, including recoverable diagnostics collected before it.
+#[derive(Debug)]
+pub struct SourceParseError {
+    pub diagnostics: Vec<SourceDiagnostic>,
+}
+impl std::fmt::Display for SourceParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (index, diagnostic) in self.diagnostics.iter().enumerate() {
+            if index > 0 {
+                writeln!(f)?;
+            }
+            write!(f, "{diagnostic}")?;
+        }
+        Ok(())
+    }
+}
+impl std::error::Error for SourceParseError {}
