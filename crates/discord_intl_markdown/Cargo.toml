@@ -14,12 +14,14 @@ bench = false
 doctest = false
 
 [features]
+default = ["allocator"]
+allocator = ["dep:discord_intl_allocator"]
 # Enable extra tracking and tracing within the parser to aid debugging.
 test = ["debug-tracing"]
 debug-tracing = []
 
 [dependencies]
-discord_intl_allocator = { workspace = true }
+discord_intl_allocator = { workspace = true, optional = true }
 discord_intl_markdown_macros = { workspace = true }
 discord_intl_markdown_syntax = { workspace = true }
 memchr = { workspace = true }

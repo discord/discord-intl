@@ -1,3 +1,4 @@
+#[cfg(feature = "allocator")]
 extern crate discord_intl_allocator;
 pub mod sources;
 mod threading;

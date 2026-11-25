@@ -1,5 +1,6 @@
 #![feature(portable_simd)]
 extern crate core;
+#[cfg(feature = "allocator")]
 extern crate discord_intl_allocator;
 
 use crate::compiler::{compile_document, CompiledElement};
