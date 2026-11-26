@@ -83,8 +83,14 @@ pub fn process_all_messages_files(
     files: impl Iterator<Item = MessagesFileDescriptor> + ExactSizeIterator,
     strategy: DatabaseInsertStrategy,
 ) -> anyhow::Result<Vec<SourceFileInsertionData>> {
+    let files: Vec<MessagesFileDescriptor> = files
+        .filter(|descriptor| {
+            let file_path = descriptor.file_path.to_string_lossy();
+            is_message_definitions_file(&file_path) || is_message_translations_file(&file_path)
+        })
+        .collect();
     let results = run_in_thread_pool(
-        files,
+        files.into_iter(),
         |descriptor| {
             let MessagesFileDescriptor { file_path, locale } = descriptor;
             let content = std::fs::read_to_string(&file_path).expect(&format!(
