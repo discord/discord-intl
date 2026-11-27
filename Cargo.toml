@@ -22,25 +22,25 @@ resolver = "2"
 
 [workspace.package]
 # This version is automatically managed by `pnpm intl-cli eco version`.
-version = "0.34.0"
+version = "0.34.1"
 edition = "2021"
 repository = "https://github.com/discord/discord-intl"
 
 [workspace.dependencies]
-discord_intl_allocator = { version = "=0.34.0", path = "crates/discord_intl_allocator" }
-discord_intl_database_core = { default-features = false, version = "=0.34.0", path = "crates/discord_intl_database_core" }
-discord_intl_database_exporter = { default-features = false, version = "=0.34.0", path = "crates/discord_intl_database_exporter" }
-discord_intl_database_js_source = { default-features = false, version = "=0.34.0", path = "crates/discord_intl_database_js_source" }
-discord_intl_database_json_source = { default-features = false, version = "=0.34.0", path = "crates/discord_intl_database_json_source" }
-discord_intl_database_service = { version = "=0.34.0", path = "crates/discord_intl_database_service" }
-discord_intl_database_types_generator = { default-features = false, version = "=0.34.0", path = "./crates/discord_intl_database_types_generator" }
-discord_intl_flat_json_parser = { default-features = false, version = "=0.34.0", path = "./crates/discord_intl_flat_json_parser" }
-discord_intl_markdown = { default-features = false, version = "=0.34.0", path = "./crates/discord_intl_markdown" }
-discord_intl_markdown_macros = { version = "=0.34.0", path = "./crates/discord_intl_markdown_macros" }
-discord_intl_markdown_syntax = { version = "=0.34.0", path = "./crates/discord_intl_markdown_syntax" }
-discord_intl_message_utils = { version = "=0.34.0", path = "./crates/discord_intl_message_utils" }
-discord_intl_validator = { default-features = false, version = "=0.34.0", path = "./crates/discord_intl_validator" }
-keyless_json = { version = "=0.34.0", path = "./crates/keyless_json" }
+discord_intl_allocator = { version = "=0.34.1", path = "crates/discord_intl_allocator" }
+discord_intl_database_core = { default-features = false, version = "=0.34.1", path = "crates/discord_intl_database_core" }
+discord_intl_database_exporter = { default-features = false, version = "=0.34.1", path = "crates/discord_intl_database_exporter" }
+discord_intl_database_js_source = { default-features = false, version = "=0.34.1", path = "crates/discord_intl_database_js_source" }
+discord_intl_database_json_source = { default-features = false, version = "=0.34.1", path = "crates/discord_intl_database_json_source" }
+discord_intl_database_service = { version = "=0.34.1", path = "crates/discord_intl_database_service" }
+discord_intl_database_types_generator = { default-features = false, version = "=0.34.1", path = "./crates/discord_intl_database_types_generator" }
+discord_intl_flat_json_parser = { default-features = false, version = "=0.34.1", path = "./crates/discord_intl_flat_json_parser" }
+discord_intl_markdown = { default-features = false, version = "=0.34.1", path = "./crates/discord_intl_markdown" }
+discord_intl_markdown_macros = { version = "=0.34.1", path = "./crates/discord_intl_markdown_macros" }
+discord_intl_markdown_syntax = { version = "=0.34.1", path = "./crates/discord_intl_markdown_syntax" }
+discord_intl_message_utils = { version = "=0.34.1", path = "./crates/discord_intl_message_utils" }
+discord_intl_validator = { default-features = false, version = "=0.34.1", path = "./crates/discord_intl_validator" }
+keyless_json = { version = "=0.34.1", path = "./crates/keyless_json" }
 
 anyhow = "1"
 criterion = "0.8.1"
