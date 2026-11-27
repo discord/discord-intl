@@ -53,8 +53,9 @@ regex = "1.11.3"
 rustc-hash = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-swc_common = "26.0.0"
-swc_core = "82.0.0"
+swc_common = "=26.0.0"
+# This version of swc_core is the last one that's compatible with some older Deno versions that we rely on elsewhere.
+swc_core = "=78.0.1"
 thiserror = "2"
 threadpool = "1.8.1"
 unescape_zero_copy = "2.3.0"
